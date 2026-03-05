@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim Racing Tharavadu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red:#E8001D; --red-dim:#9b0014; --gold:#F5A623;
+    --bg:#080A0C; --bg2:#0E1114; --bg3:#161A1F;
+    --border:rgba(255,255,255,0.07); --text:#E8EAF0; --muted:#6B7280; --green:#00E676;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:9999;}
+
+  /* NAV */
+  nav{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:center;justify-content:space-between;padding:0 3rem;height:64px;background:rgba(8,10,12,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+  .nav-logo{display:flex;align-items:center;gap:12px;cursor:pointer;}
+  .logo-mark{width:36px;height:36px;}
+  .logo-mark svg{width:100%;height:100%;}
+  .nav-brand{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.08em;color:var(--text);line-height:1;}
+  .nav-brand span{color:var(--red);}
+  .nav-links{display:flex;align-items:center;gap:2rem;list-style:none;}
+  .nav-links a{font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color 0.2s;cursor:pointer;}
+  .nav-links a:hover,.nav-links a.active{color:var(--text);}
+  .nav-links a.active{border-bottom:2px solid var(--red);padding-bottom:2px;}
+  .nav-cta{background:var(--red);color:#fff !important;padding:8px 20px;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);transition:background 0.2s !important;}
+  .nav-cta:hover{background:#ff1f38 !important;}
+
+  /* PAGES */
+  .page{display:none;min-height:100vh;}
+  .page.active{display:block;}
+
+  /* HERO */
+  #home{padding-top:64px;}
+  .hero{position:relative;height:92vh;display:flex;align-items:center;overflow:hidden;}
+  .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 70% 50%,rgba(232,0,29,0.12) 0%,transparent 70%),radial-gradient(ellipse 40% 60% at 20% 80%,rgba(245,166,35,0.06) 0%,transparent 60%),linear-gradient(180deg,#080A0C 0%,#0D0F12 100%);}
+  .hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(232,0,29,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(232,0,29,0.06) 1px,transparent 1px);background-size:60px 60px;transform:perspective(600px) rotateX(20deg) scaleY(1.4);transform-origin:bottom;opacity:0.6;}
+  .hero-content{position:relative;z-index:2;padding:0 6rem;max-width:900px;}
+  .hero-tag{font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.3em;text-transform:uppercase;color:var(--red);margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;}
+  .hero-tag::before{content:'';display:inline-block;width:40px;height:2px;background:var(--red);}
+  .hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,10vw,8.5rem);line-height:0.92;letter-spacing:0.02em;margin-bottom:2rem;animation:fadeUp 0.8s ease both;}
+  .hero-title .line2{color:var(--red);display:block;}
+  .hero-title .line3{color:rgba(255,255,255,0.18);display:block;}
+  .hero-sub{font-size:1.05rem;color:var(--muted);line-height:1.7;max-width:480px;margin-bottom:2.5rem;animation:fadeUp 0.8s 0.15s ease both;}
+  .hero-actions{display:flex;gap:1rem;animation:fadeUp 0.8s 0.25s ease both;}
+  .btn-primary{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.9rem;letter-spacing:0.15em;text-transform:uppercase;padding:14px 32px;background:var(--red);color:#fff;border:none;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);cursor:pointer;transition:background 0.2s,transform 0.15s;}
+  .btn-primary:hover{background:#ff1f38;transform:translateY(-2px);}
+  .btn-outline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.9rem;letter-spacing:0.15em;text-transform:uppercase;padding:14px 32px;background:transparent;color:var(--text);border:1px solid var(--border);clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);cursor:pointer;transition:border-color 0.2s,transform 0.15s;}
+  .btn-outline:hover{border-color:rgba(255,255,255,0.3);transform:translateY(-2px);}
+  .hero-stat-strip{position:absolute;bottom:0;left:0;right:0;display:flex;border-top:1px solid var(--border);background:rgba(14,17,20,0.8);backdrop-filter:blur(10px);}
+  .hero-stat{flex:1;padding:1.5rem 2rem;border-right:1px solid var(--border);}
+  .hero-stat:last-child{border-right:none;}
+  .stat-num{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--red);letter-spacing:0.05em;}
+  .stat-label{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+
+  /* SECTIONS */
+  section{padding:5rem 6rem;}
+  .section-header{margin-bottom:3rem;}
+  .section-tag{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:600;letter-spacing:0.3em;text-transform:uppercase;color:var(--red);margin-bottom:0.75rem;}
+  .section-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);letter-spacing:0.03em;line-height:1;}
+
+  /* EVENTS GRID */
+  .events-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.5px;background:var(--border);border:1px solid var(--border);}
+  .event-card{background:var(--bg2);padding:2rem;position:relative;overflow:hidden;transition:background 0.2s;cursor:default;}
+  .event-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;}
+  .event-card.ongoing::before{background:var(--green);}
+  .event-card.upcoming::before{background:var(--gold);}
+  .event-card:hover{background:var(--bg3);}
+  .event-badge{display:inline-flex;align-items:center;gap:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;padding:4px 10px;margin-bottom:1.25rem;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
+  .event-badge.ongoing{background:rgba(0,230,118,0.15);color:var(--green);}
+  .event-badge.upcoming{background:rgba(245,166,35,0.15);color:var(--gold);}
+  .event-badge::before{content:'';width:6px;height:6px;border-radius:50%;}
+  .event-badge.ongoing::before{background:var(--green);box-shadow:0 0 6px var(--green);}
+  .event-badge.upcoming::before{background:var(--gold);}
+  .event-name{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.04em;margin-bottom:0.5rem;line-height:1;}
+  .event-sim{font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);margin-bottom:1rem;}
+  .event-meta{display:flex;flex-direction:column;gap:6px;margin-bottom:1.5rem;}
+  .event-meta-row{display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--muted);}
+  .event-footer{display:flex;align-items:center;justify-content:space-between;padding-top:1.25rem;border-top:1px solid var(--border);}
+  .drivers-count{font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;}
+  .drivers-count span{color:var(--text);font-size:1rem;}
+  .view-lb-btn{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--red);background:none;border:1px solid rgba(232,0,29,0.3);padding:6px 14px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);cursor:pointer;transition:background 0.2s,color 0.2s;}
+  .view-lb-btn:hover{background:var(--red);color:#fff;}
+
+  /* LEADERBOARD PAGE */
+  #leaderboard{padding-top:64px;min-height:100vh;}
+  .lb-hero{padding:4rem 6rem 0;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(232,0,29,0.05) 0%,transparent 100%);}
+  .lb-event-tabs{display:flex;margin-top:2rem;border-bottom:1px solid var(--border);overflow-x:auto;}
+  .lb-tab{font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:1rem 2rem;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;transition:color 0.2s;}
+  .lb-tab.active{color:var(--text);border-bottom-color:var(--red);}
+  .lb-body{padding:3rem 6rem;}
+  .lb-top3{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:2rem;}
+  .podium-card{background:var(--bg2);padding:2rem;text-align:center;}
+  .podium-card.p1{background:linear-gradient(180deg,rgba(245,166,35,0.1) 0%,var(--bg2) 100%);}
+  .podium-card.p2{background:linear-gradient(180deg,rgba(180,180,180,0.07) 0%,var(--bg2) 100%);}
+  .podium-card.p3{background:linear-gradient(180deg,rgba(180,100,40,0.07) 0%,var(--bg2) 100%);}
+  .podium-pos{font-family:'Bebas Neue',sans-serif;font-size:4rem;line-height:1;margin-bottom:0.5rem;}
+  .p1 .podium-pos{color:var(--gold);}
+  .p2 .podium-pos{color:#B0B0B0;}
+  .p3 .podium-pos{color:#CD7F32;}
+  .podium-name{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.05em;margin-bottom:0.25rem;}
+  .podium-team{font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;}
+  .podium-time{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:700;color:var(--red);letter-spacing:0.1em;}
+  .podium-pts{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--text);margin-top:0.5rem;}
+  .podium-pts-label{font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
+  .lb-table{width:100%;border-collapse:collapse;border:1px solid var(--border);}
+  .lb-table thead tr{background:var(--bg3);border-bottom:1px solid var(--border);}
+  .lb-table th{font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);padding:1rem 1.5rem;text-align:left;}
+  .lb-table tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;}
+  .lb-table tbody tr:hover{background:var(--bg3);}
+  .lb-table td{padding:1rem 1.5rem;font-size:0.95rem;}
+  .td-pos{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--muted);width:60px;}
+  .td-driver{font-weight:500;}
+  .td-driver-team{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+  .td-time{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--red);letter-spacing:0.05em;}
+  .td-pts{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--gold);}
+  .td-gap{font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;color:var(--muted);font-weight:600;}
+
+  /* REGISTER PAGE */
+  #register{padding-top:64px;min-height:100vh;}
+  .reg-layout{display:grid;grid-template-columns:1fr 420px;min-height:calc(100vh - 64px);}
+  .reg-left{padding:5rem 5rem;border-right:1px solid var(--border);}
+  .reg-right{background:var(--bg2);padding:5rem 3rem;position:sticky;top:64px;height:calc(100vh - 64px);overflow-y:auto;}
+  .reg-right-title{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.05em;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border);color:var(--muted);}
+  .event-select-card{padding:1rem;border:1px solid var(--border);margin-bottom:0.75rem;cursor:pointer;transition:border-color 0.2s,background 0.2s;background:var(--bg);}
+  .event-select-card:hover{border-color:rgba(232,0,29,0.4);}
+  .event-select-card.selected{border-color:var(--red);background:rgba(232,0,29,0.05);}
+  .event-select-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1rem;letter-spacing:0.05em;margin-bottom:2px;}
+  .event-select-meta{font-size:0.8rem;color:var(--muted);}
+  .form-section{margin-bottom:3rem;}
+  .form-section-title{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.05em;margin-bottom:1.5rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+  .form-section-title span{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:600;letter-spacing:0.2em;color:var(--red);background:rgba(232,0,29,0.1);padding:3px 10px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+  .form-group{display:flex;flex-direction:column;gap:6px;}
+  .form-group.full{grid-column:1/-1;}
+  label{font-family:'Barlow Condensed',sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
+  input,select,textarea{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'Barlow',sans-serif;font-size:0.95rem;padding:12px 16px;outline:none;transition:border-color 0.2s;width:100%;-webkit-appearance:none;}
+  input:focus,select:focus,textarea:focus{border-color:rgba(232,0,29,0.6);background:rgba(22,26,31,0.8);}
+  select option{background:var(--bg3);}
+  textarea{resize:vertical;min-height:90px;}
+  .checkbox-group{display:flex;align-items:flex-start;gap:12px;margin-top:0.5rem;}
+  .checkbox-group input[type="checkbox"]{width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:var(--red);}
+  .checkbox-group label{font-family:'Barlow',sans-serif;font-size:0.9rem;font-weight:400;letter-spacing:0;text-transform:none;color:var(--muted);cursor:pointer;}
+  .submit-btn{width:100%;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.15em;padding:18px;background:var(--red);color:#fff;border:none;clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);cursor:pointer;transition:background 0.2s,transform 0.15s,opacity 0.2s;margin-top:1rem;}
+  .submit-btn:hover:not(:disabled){background:#ff1f38;transform:translateY(-2px);}
+  .submit-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+  /* STATUS */
+  .status-msg{display:none;padding:1.25rem 1.5rem;font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600;letter-spacing:0.05em;margin-top:1rem;border:1px solid;line-height:1.5;}
+  .status-msg.success{background:rgba(0,230,118,0.1);border-color:rgba(0,230,118,0.3);color:var(--green);}
+  .status-msg.error{background:rgba(232,0,29,0.1);border-color:rgba(232,0,29,0.3);color:#ff6b6b;}
+  .status-msg.loading{background:rgba(255,255,255,0.04);border-color:var(--border);color:var(--muted);}
+
+  /* CONFIG BANNER */
+  .config-banner{background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);color:var(--gold);padding:1rem 1.5rem;font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;font-weight:600;letter-spacing:0.03em;margin-bottom:2rem;line-height:1.6;}
+
+  /* DATA STATE */
+  .data-loading{padding:3rem;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;letter-spacing:0.1em;display:flex;align-items:center;gap:10px;}
+  .data-error{padding:2.5rem;color:#ff6b6b;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;}
+
+  /* SPINNER */
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.15);border-top-color:currentColor;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* FOOTER */
+  footer{background:var(--bg2);border-top:1px solid var(--border);padding:3rem 6rem;display:flex;align-items:center;justify-content:space-between;}
+  .footer-brand{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.08em;color:var(--muted);}
+  .footer-brand span{color:var(--red);}
+  .footer-copy{font-size:0.82rem;color:var(--muted);}
+
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+  @media(max-width:900px){
+    nav{padding:0 1.5rem;}
+    .nav-links{gap:1.2rem;}
+    section,.lb-hero,.lb-body,.reg-left{padding-left:2rem;padding-right:2rem;}
+    .hero-content{padding:0 2rem;}
+    .hero-title{font-size:clamp(3rem,12vw,6rem);}
+    .lb-top3{grid-template-columns:1fr;}
+    .reg-layout{grid-template-columns:1fr;}
+    .reg-right{position:static;height:auto;}
+    footer{flex-direction:column;gap:1rem;text-align:center;}
+    .form-grid{grid-template-columns:1fr;}
+    .form-group.full{grid-column:1;}
+    .hero-stat-strip{flex-wrap:wrap;}
+    .hero-stat{min-width:50%;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════════════════╗
+     ║  CONFIGURATION — Edit these before going live   ║
+     ╚══════════════════════════════════════════════════╝ -->
+<script>
+const CONFIG = {
+  // Step 3 in setup guide: paste your Apps Script web app URL here
+  APPS_SCRIPT_URL: "YOUR_APPS_SCRIPT_URL_HERE",
+
+  // Step 5 in setup guide: paste your published sheet JSON URLs here
+  // Template: https://docs.google.com/spreadsheets/d/SHEET_ID/gviz/tq?tqx=out:json&sheet=Events
+  EVENTS_SHEET_URL:      "YOUR_EVENTS_SHEET_URL_HERE",
+  LEADERBOARD_SHEET_URL: "YOUR_LEADERBOARD_SHEET_URL_HERE",
+
+  // Keep true until URLs above are configured — shows realistic demo data
+  DEMO_MODE: true
+};
+
+/* ── DEMO DATA ───────────────────────────────────────── */
+const DEMO_EVENTS = [
+  {id:"1",name:"Kerala GT3 Challenge",sim:"Assetto Corsa Competizione",status:"ongoing",track:"Mount Panorama / Bathurst",date:"Mar 1 – Mar 15, 2025",format:"Sprint Race · 30 mins",drivers:"28",maxDrivers:"32",rounds:"3",season:"S2 2025"},
+  {id:"2",name:"Tharavadu Open Series",sim:"iRacing",status:"ongoing",track:"Silverstone GP",date:"Feb 20 – Mar 20, 2025",format:"Endurance · 2 hrs",drivers:"22",maxDrivers:"30",rounds:"5",season:"S1 2025"},
+  {id:"3",name:"Formula Monsoon Cup",sim:"Assetto Corsa",status:"upcoming",track:"Spa-Francorchamps",date:"Mar 22, 2025",format:"Qualifying + Race",drivers:"14",maxDrivers:"24",rounds:"1",season:"S2 2025"},
+  {id:"4",name:"Street Warriors Invitational",sim:"Gran Turismo 7",status:"upcoming",track:"Tokyo Expressway",date:"Apr 5, 2025",format:"Sprint Race · 20 mins",drivers:"8",maxDrivers:"20",rounds:"2",season:"S2 2025"},
+  {id:"5",name:"F1 Kerala Grand Prix",sim:"F1 24",status:"upcoming",track:"Bahrain International Circuit",date:"Apr 12, 2025",format:"Full Weekend",drivers:"5",maxDrivers:"20",rounds:"1",season:"S2 2025"}
+];
+const DEMO_LB = {
+  "1":[
+    {pos:"1",driver:"Vishnu Krishnan",tag:"VSH_KR",team:"Red Flag Racing",pts:"87",time:"2:03.412",gap:"Leader"},
+    {pos:"2",driver:"Arun Nair",tag:"ARN_NR",team:"Kochi Raceworks",pts:"74",time:"2:03.891",gap:"+0.479"},
+    {pos:"3",driver:"Devika Menon",tag:"DEV_MN",team:"Malabar Motorsport",pts:"62",time:"2:04.101",gap:"+0.689"},
+    {pos:"4",driver:"Sanjay Pillai",tag:"SJY_PL",team:"Trivandrum Speed",pts:"55",time:"2:04.458",gap:"+1.046"},
+    {pos:"5",driver:"Lakshmi Raj",tag:"LKM_RJ",team:"Red Flag Racing",pts:"47",time:"2:04.701",gap:"+1.289"},
+    {pos:"6",driver:"Muhammed Rafi",tag:"MHD_RF",team:"Independent",pts:"40",time:"2:05.023",gap:"+1.611"}
+  ],
+  "2":[
+    {pos:"1",driver:"Rahul Varma",tag:"RHL_VM",team:"Storm Dynamics",pts:"102",time:"1:44.218",gap:"Leader"},
+    {pos:"2",driver:"Sneha Gopal",tag:"SNH_GP",team:"Trivandrum Speed",pts:"91",time:"1:44.519",gap:"+0.301"},
+    {pos:"3",driver:"Jobin Mathew",tag:"JBN_MT",team:"Independent",pts:"78",time:"1:44.811",gap:"+0.593"},
+    {pos:"4",driver:"Meera Babu",tag:"MR_BBU",team:"Storm Dynamics",pts:"67",time:"1:45.102",gap:"+0.884"},
+    {pos:"5",driver:"Suresh Chandran",tag:"SRS_CH",team:"Kochi Raceworks",pts:"55",time:"1:45.489",gap:"+1.271"}
+  ]
+};
+</script>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo" onclick="showPage('home')">
+    <div class="logo-mark">
+      <svg viewBox="0 0 36 36" fill="none">
+        <polygon points="18,2 34,34 2,34" fill="none" stroke="#E8001D" stroke-width="2"/>
+        <polygon points="18,10 28,30 8,30" fill="#E8001D" opacity="0.3"/>
+        <line x1="18" y1="2" x2="18" y2="34" stroke="#E8001D" stroke-width="1" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="nav-brand">Sim Racing <span>Tharavadu</span></div>
+  </div>
+  <ul class="nav-links">
+    <li><a id="tab-home" onclick="showPage('home')" class="active">Home</a></li>
+    <li><a id="tab-leaderboard" onclick="showPage('leaderboard')">Leaderboard</a></li>
+    <li><a id="tab-register" onclick="showPage('register')" class="nav-cta">Register</a></li>
+  </ul>
+</nav>
+
+<!-- ══ HOME ══ -->
+<div id="home" class="page active">
+  <div class="hero">
+    <div class="hero-bg"></div><div class="hero-grid"></div>
+    <div class="hero-content">
+      <div class="hero-tag">Kerala's Premier Sim Racing Community</div>
+      <h1 class="hero-title">Sim Racing<br><span class="line2">Tharavadu</span><span class="line3">Est. 2021</span></h1>
+      <p class="hero-sub">Where throttle meets tradition. Compete, connect, and conquer the virtual circuit with Kerala's fastest virtual racers.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="showPage('register')">Register Now</button>
+        <button class="btn-outline" onclick="showPage('leaderboard')">View Leaderboard</button>
+      </div>
+    </div>
+    <div class="hero-stat-strip">
+      <div class="hero-stat"><div class="stat-num">240+</div><div class="stat-label">Active Drivers</div></div>
+      <div class="hero-stat"><div class="stat-num">18</div><div class="stat-label">Events Hosted</div></div>
+      <div class="hero-stat"><div class="stat-num">6</div><div class="stat-label">Sim Platforms</div></div>
+      <div class="hero-stat"><div class="stat-num">3</div><div class="stat-label">Championships</div></div>
+    </div>
+  </div>
+  <section>
+    <div class="section-header">
+      <div class="section-tag">// Live &amp; Scheduled</div>
+      <h2 class="section-title">Events</h2>
+    </div>
+    <div id="events-grid" class="events-grid">
+      <div class="data-loading"><span class="spinner"></span> Loading events…</div>
+    </div>
+  </section>
+  <footer>
+    <div class="footer-brand">Sim Racing <span>Tharavadu</span></div>
+    <div class="footer-copy">© 2025 Sim Racing Tharavadu · Kerala, India · All Rights Reserved</div>
+  </footer>
+</div>
+
+<!-- ══ LEADERBOARD ══ -->
+<div id="leaderboard" class="page">
+  <div class="lb-hero">
+    <div class="section-tag">// Season Standings</div>
+    <h2 class="section-title">Leaderboard</h2>
+    <div class="lb-event-tabs" id="lb-tabs"></div>
+  </div>
+  <div class="lb-body" id="lb-body">
+    <div class="data-loading"><span class="spinner"></span> Loading standings…</div>
+  </div>
+</div>
+
+<!-- ══ REGISTER ══ -->
+<div id="register" class="page">
+  <div class="reg-layout">
+    <div class="reg-left">
+      <div class="section-tag" style="margin-bottom:0.75rem">// Join the Grid</div>
+      <h2 class="section-title" style="margin-bottom:2rem">Event Registration</h2>
+      <div id="reg-config-banner" class="config-banner" style="display:none">
+        ⚠ &nbsp;<strong>Demo Mode</strong> — submissions won't be saved yet. Configure <code>APPS_SCRIPT_URL</code> in the CONFIG block at the top of the HTML using the SETUP_GUIDE.html provided.
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Driver Details <span>01</span></div>
+        <div class="form-grid">
+          <div class="form-group"><label>First Name *</label><input type="text" id="f-first" placeholder="Arjun"></div>
+          <div class="form-group"><label>Last Name *</label><input type="text" id="f-last" placeholder="Menon"></div>
+          <div class="form-group"><label>Driver Tag / Callsign *</label><input type="text" id="f-tag" placeholder="ARJ_MNR"></div>
+          <div class="form-group"><label>Nationality</label><input type="text" id="f-nat" placeholder="Indian"></div>
+          <div class="form-group"><label>Email Address *</label><input type="email" id="f-email" placeholder="arjun@example.com"></div>
+          <div class="form-group"><label>WhatsApp Number *</label><input type="tel" id="f-phone" placeholder="+91 98XXXXXXXX"></div>
+          <div class="form-group full"><label>Discord Username</label><input type="text" id="f-discord" placeholder="arjun#1234"></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Sim &amp; Setup <span>02</span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Platform *</label>
+            <select id="f-platform">
+              <option value="">— Select Platform —</option>
+              <option>Assetto Corsa Competizione</option>
+              <option>Assetto Corsa</option>
+              <option>iRacing</option>
+              <option>rFactor 2</option>
+              <option>Gran Turismo 7</option>
+              <option>F1 24</option>
+              <option>Le Mans Ultimate</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Steering Wheel / Controller</label>
+            <select id="f-wheel">
+              <option value="">— Select Hardware —</option>
+              <option>Logitech G29 / G920</option><option>Logitech G923</option>
+              <option>Thrustmaster T300 / T500</option><option>Thrustmaster T-GT II</option>
+              <option>Fanatec CSL DD</option><option>Fanatec Podium</option>
+              <option>SimuCube 2</option><option>Gamepad / DualSense / Xbox</option>
+              <option>Keyboard / Mouse</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Experience (Years)</label>
+            <select id="f-exp">
+              <option value="">— Select —</option>
+              <option>Less than 1 year</option><option>1 – 2 years</option>
+              <option>2 – 4 years</option><option>4+ years</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Skill Level</label>
+            <select id="f-skill">
+              <option value="">— Select —</option>
+              <option>Beginner</option><option>Intermediate</option>
+              <option>Advanced</option><option>Pro / Elite</option>
+            </select>
+          </div>
+          <div class="form-group full"><label>Preferred Car Class</label><input type="text" id="f-carclass" placeholder="GT3, Formula, Touring…"></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Event Selection <span>03</span></div>
+        <p style="font-size:0.88rem;color:var(--muted);margin-bottom:1.25rem;">Select the event you wish to register for.</p>
+        <input type="hidden" id="f-event" value="">
+        <div id="form-event-list" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="data-loading" style="grid-column:1/-1"><span class="spinner"></span> Loading events…</div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Confirmation <span>04</span></div>
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+          <div class="checkbox-group"><input type="checkbox" id="f-rules"><label for="f-rules">I have read and agree to the racing rules and fair-play guidelines of Sim Racing Tharavadu.</label></div>
+          <div class="checkbox-group"><input type="checkbox" id="f-conduct"><label for="f-conduct">I agree to maintain respectful sportsmanship throughout all events.</label></div>
+          <div class="checkbox-group"><input type="checkbox" id="f-updates"><label for="f-updates">I consent to receive WhatsApp / Discord notifications about events and schedules.</label></div>
+        </div>
+        <button class="submit-btn" id="submit-btn" onclick="submitForm()">Confirm Registration →</button>
+        <div class="status-msg" id="status-msg"></div>
+      </div>
+    </div>
+
+    <div class="reg-right">
+      <div class="reg-right-title">Available Events</div>
+      <div id="reg-event-list"><div class="data-loading"><span class="spinner"></span></div></div>
+      <div style="margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;">Need Help?</div>
+        <p style="font-size:0.88rem;color:var(--muted);line-height:1.7;">Join our Discord or WhatsApp for queries.<br><br>
+          <strong style="color:var(--text);">Discord:</strong> discord.gg/srt-kerala<br>
+          <strong style="color:var(--text);">WhatsApp:</strong> +91 98XXXXXXXX
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ████████████ APP LOGIC ████████████ -->
+<script>
+let appEvents = [];
+let appLB = {};
+
+/* ── PAGE NAV ── */
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('tab-' + id)?.classList.add('active');
+  window.scrollTo(0, 0);
+  if (id === 'leaderboard' && appEvents.length) {
+    const first = appEvents.find(e => e.status === 'ongoing');
+    if (first) renderLeaderboard(first.id);
+  }
+}
+
+/* ── DATA LOAD ── */
+async function loadData() {
+  if (CONFIG.DEMO_MODE) {
+    appEvents = DEMO_EVENTS;
+    appLB = DEMO_LB;
+    init();
+    return;
+  }
+  try {
+    const [evData, lbData] = await Promise.all([
+      fetchGSheet(CONFIG.EVENTS_SHEET_URL),
+      fetchGSheet(CONFIG.LEADERBOARD_SHEET_URL)
+    ]);
+    appEvents = parseRows(evData, ['id','name','sim','status','track','date','format','drivers','maxDrivers','rounds','season']);
+    const lbRows = parseRows(lbData, ['eventId','pos','driver','tag','team','pts','time','gap']);
+    appLB = {};
+    lbRows.forEach(r => { if (!appLB[r.eventId]) appLB[r.eventId] = []; appLB[r.eventId].push(r); });
+    init();
+  } catch(e) {
+    document.getElementById('events-grid').innerHTML = `<div class="data-error">⚠ Could not load sheet data.<br><small>${e.message}</small></div>`;
+  }
+}
+
+async function fetchGSheet(url) {
+  const text = await (await fetch(url)).text();
+  const m = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
+  if (!m) throw new Error('Invalid Google Sheets response. Check the URL and that the sheet is published.');
+  return JSON.parse(m[1]);
+}
+
+function parseRows(data, cols) {
+  return data.table.rows
+    .map(row => { const o = {}; cols.forEach((c,i) => o[c] = row.c[i]?.v?.toString() ?? ''); return o; })
+    .filter(r => Object.values(r).some(v => v));
+}
+
+/* ── INIT ── */
+function init() {
+  renderEventsGrid();
+  renderRegisterEvents();
+  if (CONFIG.DEMO_MODE) document.getElementById('reg-config-banner').style.display = 'block';
+  const first = appEvents.find(e => e.status === 'ongoing');
+  if (first) renderLeaderboard(first.id);
+}
+
+/* ── EVENTS GRID ── */
+function renderEventsGrid() {
+  const el = document.getElementById('events-grid');
+  if (!appEvents.length) { el.innerHTML = '<div class="data-error">No events found.</div>'; return; }
+  el.innerHTML = appEvents.map(e => `
+    <div class="event-card ${e.status}">
+      <div class="event-badge ${e.status}">${e.status === 'ongoing' ? 'Live Now' : 'Upcoming'}</div>
+      <div class="event-name">${e.name}</div>
+      <div class="event-sim">${e.sim}</div>
+      <div class="event-meta">
+        <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${e.date}</div>
+        <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>${e.track}</div>
+        <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>${e.format}</div>
+      </div>
+      <div class="event-footer">
+        <div class="drivers-count"><span>${e.drivers}</span> / ${e.maxDrivers} Drivers</div>
+        ${e.status === 'ongoing'
+          ? `<button class="view-lb-btn" onclick="showLB('${e.id}')">Leaderboard →</button>`
+          : `<button class="view-lb-btn" onclick="showPage('register')">Register →</button>`}
+      </div>
+    </div>`).join('');
+}
+
+function showLB(id) { showPage('leaderboard'); renderLeaderboard(id); }
+
+/* ── LEADERBOARD ── */
+function renderLeaderboard(eid) {
+  const ongoing = appEvents.filter(e => e.status === 'ongoing');
+  document.getElementById('lb-tabs').innerHTML = ongoing.map(e =>
+    `<button class="lb-tab ${e.id===eid?'active':''}" onclick="renderLeaderboard('${e.id}')">${e.name}</button>`
+  ).join('') || `<div style="padding:1rem 2rem;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;">No live events right now.</div>`;
+
+  const ev = appEvents.find(e => e.id === eid);
+  if (!ev) return;
+  const data = appLB[eid] || [];
+  const top3 = data.slice(0,3);
+  const rest = data.slice(3);
+
+  const pod = (rank, cls, label) => {
+    const p = top3.find(r => r.pos === String(rank));
+    return p
+      ? `<div class="podium-card ${cls}"><div class="podium-pos">${label}</div><div class="podium-name">${p.driver}</div><div class="podium-team">${p.tag} · ${p.team}</div><div class="podium-time">${p.time}</div><div class="podium-pts">${p.pts}</div><div class="podium-pts-label">Points</div></div>`
+      : `<div class="podium-card ${cls}" style="opacity:0.2"><div class="podium-pos">${label}</div></div>`;
+  };
+
+  document.getElementById('lb-body').innerHTML = `
+    <div style="margin-bottom:2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--red);margin-bottom:4px;">${ev.sim}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.04em;">${ev.track} — ${ev.format}</div>
+      </div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;">${ev.date}</div>
+    </div>
+    ${!data.length ? '<div class="data-error">No standings posted for this event yet.</div>' : `
+    <div class="lb-top3">${pod(2,'p2','P2')}${pod(1,'p1','P1')}${pod(3,'p3','P3')}</div>
+    ${rest.length ? `<table class="lb-table"><thead><tr><th>Pos</th><th>Driver</th><th>Best Lap</th><th>Gap</th><th>Pts</th></tr></thead><tbody>
+    ${rest.map(r=>`<tr><td class="td-pos">${r.pos}</td><td class="td-driver">${r.driver}<div class="td-driver-team">${r.tag} · ${r.team}</div></td><td class="td-time">${r.time}</td><td class="td-gap">${r.gap}</td><td class="td-pts">${r.pts}</td></tr>`).join('')}
+    </tbody></table>` : ''}`}`;
+}
+
+/* ── REGISTER EVENTS ── */
+function renderRegisterEvents() {
+  document.getElementById('reg-event-list').innerHTML = appEvents.map(e => `
+    <div class="event-select-card">
+      <div class="event-select-name">${e.name}</div>
+      <div class="event-select-meta">${e.sim} · ${e.date}</div>
+      <div class="event-select-meta">${e.track} · ${e.format}</div>
+      <div class="event-select-meta" style="margin-top:6px;color:${e.status==='ongoing'?'var(--green)':'var(--gold)'};">
+        ${e.status==='ongoing'?'● Live':'◌ Upcoming'} · ${e.drivers}/${e.maxDrivers} Drivers
+      </div>
+    </div>`).join('');
+
+  document.getElementById('form-event-list').innerHTML = appEvents.map(e => `
+    <div class="event-select-card" id="fev-${e.id}" onclick="selectEvent('${e.id}','${e.name.replace(/'/g,"\\'")}')">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:${e.status==='ongoing'?'var(--green)':'var(--gold)'};margin-bottom:4px;">${e.status==='ongoing'?'● Live':'◌ Upcoming'}</div>
+      <div class="event-select-name">${e.name}</div>
+      <div class="event-select-meta">${e.sim}</div>
+    </div>`).join('');
+}
+
+function selectEvent(id, name) {
+  document.querySelectorAll('#form-event-list .event-select-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('fev-'+id)?.classList.add('selected');
+  document.getElementById('f-event').value = name;
+}
+
+/* ── FORM SUBMIT ── */
+async function submitForm() {
+  const g = id => document.getElementById(id).value.trim();
+  const fields = {
+    firstName:g('f-first'), lastName:g('f-last'), driverTag:g('f-tag'),
+    nationality:g('f-nat'), email:g('f-email'), whatsapp:g('f-phone'),
+    discord:g('f-discord'), platform:g('f-platform'), wheel:g('f-wheel'),
+    experience:g('f-exp'), skillLevel:g('f-skill'), carClass:g('f-carclass'),
+    event:g('f-event'), timestamp:new Date().toISOString()
+  };
+
+  if (!fields.firstName||!fields.lastName||!fields.email||!fields.platform||!fields.whatsapp||!fields.event)
+    return setStatus('error','⚠ Please fill all required fields (*) and select an event.');
+  if (!document.getElementById('f-rules').checked)
+    return setStatus('error','⚠ Please agree to the racing rules to proceed.');
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  setStatus('loading','<span class="spinner"></span> &nbsp;Submitting registration…');
+
+  if (CONFIG.DEMO_MODE) {
+    await new Promise(r=>setTimeout(r,1400));
+    setStatus('success',`✓ [Demo] ${fields.firstName} ${fields.lastName} registered for "${fields.event}". Set DEMO_MODE: false and add your Apps Script URL to enable real submissions.`);
+    btn.disabled = false;
+    return;
+  }
+
+  try {
+    await fetch(CONFIG.APPS_SCRIPT_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(fields)});
+    setStatus('success',`✓ ${fields.firstName} ${fields.lastName}, you're on the grid for "${fields.event}"! We'll reach out on WhatsApp/Discord shortly.`);
+    resetForm();
+  } catch(e) {
+    setStatus('error',`⚠ Submission failed: ${e.message}. Please try again or contact us on WhatsApp.`);
+  }
+  btn.disabled = false;
+}
+
+function setStatus(type, html) {
+  const el = document.getElementById('status-msg');
+  el.className = 'status-msg '+type;
+  el.innerHTML = html;
+  el.style.display = 'block';
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function resetForm() {
+  ['f-first','f-last','f-tag','f-nat','f-email','f-phone','f-discord','f-carclass'].forEach(id=>document.getElementById(id).value='');
+  ['f-platform','f-wheel','f-exp','f-skill'].forEach(id=>document.getElementById(id).selectedIndex=0);
+  ['f-rules','f-conduct','f-updates'].forEach(id=>document.getElementById(id).checked=false);
+  document.getElementById('f-event').value='';
+  document.querySelectorAll('#form-event-list .event-select-card').forEach(c=>c.classList.remove('selected'));
+}
+
+loadData();
+</script>
+</body>
+</html>

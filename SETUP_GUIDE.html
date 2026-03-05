@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setup Guide — Sim Racing Tharavadu</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--red:#E8001D;--gold:#F5A623;--bg:#080A0C;--bg2:#0E1114;--bg3:#161A1F;--border:rgba(255,255,255,0.08);--text:#E8EAF0;--muted:#6B7280;--green:#00E676;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;line-height:1.7;}
+  .wrap{max-width:860px;margin:0 auto;padding:4rem 2rem;}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:3.5rem;letter-spacing:0.04em;line-height:1;margin-bottom:0.5rem;}
+  h1 span{color:var(--red);}
+  .subtitle{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:3rem;}
+  h2{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:0.04em;margin:3rem 0 1rem;display:flex;align-items:center;gap:12px;}
+  .step-num{background:var(--red);color:#fff;font-size:1rem;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);flex-shrink:0;}
+  p{color:rgba(232,234,240,0.8);margin-bottom:1rem;}
+  ul,ol{padding-left:1.5rem;margin-bottom:1rem;}
+  li{color:rgba(232,234,240,0.8);margin-bottom:0.4rem;}
+  strong{color:var(--text);}
+  code{font-family:'JetBrains Mono',monospace;font-size:0.88em;background:var(--bg3);border:1px solid var(--border);padding:2px 7px;border-radius:2px;color:var(--gold);}
+  pre{font-family:'JetBrains Mono',monospace;font-size:0.85rem;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--red);padding:1.5rem;overflow-x:auto;margin:1rem 0;line-height:1.6;color:#c9d1d9;}
+  .note{background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.25);color:var(--gold);padding:1rem 1.25rem;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;font-weight:600;margin:1rem 0;letter-spacing:0.03em;line-height:1.5;}
+  .tip{background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.2);color:var(--green);padding:1rem 1.25rem;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;font-weight:600;margin:1rem 0;letter-spacing:0.03em;line-height:1.5;}
+  .divider{border:none;border-top:1px solid var(--border);margin:3rem 0;}
+  table{width:100%;border-collapse:collapse;margin:1rem 0;}
+  th{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);padding:0.75rem 1rem;text-align:left;background:var(--bg3);border-bottom:1px solid var(--border);}
+  td{padding:0.75rem 1rem;border-bottom:1px solid var(--border);color:rgba(232,234,240,0.8);font-size:0.9rem;}
+  tr:hover td{background:var(--bg2);}
+  .tag{display:inline-block;font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:2px 8px;clip-path:polygon(3px 0%,100% 0%,calc(100% - 3px) 100%,0% 100%);}
+  .tag.required{background:rgba(232,0,29,0.15);color:var(--red);}
+  .tag.optional{background:rgba(107,114,128,0.15);color:var(--muted);}
+  footer{margin-top:4rem;padding-top:2rem;border-top:1px solid var(--border);font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;color:var(--muted);text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div style="font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:var(--red);margin-bottom:1rem;">// Google Sheets Integration</div>
+<h1>Setup <span>Guide</span></h1>
+<div class="subtitle">Sim Racing Tharavadu — Live Data Configuration</div>
+
+<p>This guide walks you through connecting the website to Google Sheets so that registrations are captured automatically and the leaderboard updates whenever your admins edit the spreadsheet. You need a free Google account. No coding experience is required.</p>
+
+<div class="note">⏱ Estimated time: 20–30 minutes, once.</div>
+
+<hr class="divider">
+
+<!-- STEP 1 -->
+<h2><span class="step-num">1</span> Create the Google Spreadsheet</h2>
+<p>Go to <strong>sheets.google.com</strong> and create a new spreadsheet. Name it something like <strong>SRT — Race Management</strong>. You'll need three sheets (tabs) inside it:</p>
+<ol>
+  <li>Click the <strong>+</strong> button at the bottom to add sheets. Rename them: <code>Registrations</code>, <code>Events</code>, <code>Leaderboard</code>.</li>
+</ol>
+
+<p><strong>Events sheet — add these exact column headers in row 1:</strong></p>
+<table>
+  <tr><th>Column</th><th>Header text</th><th>Example value</th><th>Notes</th></tr>
+  <tr><td>A</td><td><code>id</code></td><td>1</td><td>Unique number per event</td></tr>
+  <tr><td>B</td><td><code>name</code></td><td>Kerala GT3 Challenge</td><td>Event display name</td></tr>
+  <tr><td>C</td><td><code>sim</code></td><td>Assetto Corsa Competizione</td><td>Sim platform name</td></tr>
+  <tr><td>D</td><td><code>status</code></td><td>ongoing</td><td>Use exactly: <code>ongoing</code> or <code>upcoming</code></td></tr>
+  <tr><td>E</td><td><code>track</code></td><td>Mount Panorama / Bathurst</td><td></td></tr>
+  <tr><td>F</td><td><code>date</code></td><td>Mar 1 – Mar 15, 2025</td><td>Display string, any format</td></tr>
+  <tr><td>G</td><td><code>format</code></td><td>Sprint Race · 30 mins</td><td></td></tr>
+  <tr><td>H</td><td><code>drivers</code></td><td>28</td><td>Current registered driver count</td></tr>
+  <tr><td>I</td><td><code>maxDrivers</code></td><td>32</td><td>Maximum grid size</td></tr>
+  <tr><td>J</td><td><code>rounds</code></td><td>3</td><td>Number of rounds</td></tr>
+  <tr><td>K</td><td><code>season</code></td><td>S2 2025</td><td>Season label</td></tr>
+</table>
+
+<p><strong>Leaderboard sheet — add these exact column headers in row 1:</strong></p>
+<table>
+  <tr><th>Column</th><th>Header</th><th>Example</th><th>Notes</th></tr>
+  <tr><td>A</td><td><code>eventId</code></td><td>1</td><td>Must match the <code>id</code> in Events sheet</td></tr>
+  <tr><td>B</td><td><code>pos</code></td><td>1</td><td>Position number (1, 2, 3…)</td></tr>
+  <tr><td>C</td><td><code>driver</code></td><td>Vishnu Krishnan</td><td>Full name</td></tr>
+  <tr><td>D</td><td><code>tag</code></td><td>VSH_KR</td><td>Driver callsign</td></tr>
+  <tr><td>E</td><td><code>team</code></td><td>Red Flag Racing</td><td></td></tr>
+  <tr><td>F</td><td><code>pts</code></td><td>87</td><td>Points total</td></tr>
+  <tr><td>G</td><td><code>time</code></td><td>2:03.412</td><td>Best lap time</td></tr>
+  <tr><td>H</td><td><code>gap</code></td><td>+0.479</td><td>Gap to leader, or <code>Leader</code> for P1</td></tr>
+</table>
+
+<p><strong>Registrations sheet — add these headers in row 1</strong> (the Apps Script will write here automatically):</p>
+<pre>Timestamp | First Name | Last Name | Driver Tag | Nationality | Email | WhatsApp | Discord | Platform | Wheel | Experience | Skill Level | Car Class | Event</pre>
+
+<div class="tip">✓ Tip: You can add more rows of event/leaderboard data at any time. The website re-reads the sheet every time a visitor loads the page.</div>
+
+<hr class="divider">
+
+<!-- STEP 2 -->
+<h2><span class="step-num">2</span> Create the Apps Script (Registration Handler)</h2>
+<p>This small script receives form submissions from your website and writes them as rows in the Registrations sheet.</p>
+<ol>
+  <li>In your Google Sheet, go to <strong>Extensions → Apps Script</strong>.</li>
+  <li>Delete any placeholder code and paste the following:</li>
+</ol>
+
+<pre>
+const SHEET_NAME = "Registrations";
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+
+    sheet.appendRow([
+      data.timestamp    || new Date().toISOString(),
+      data.firstName    || "",
+      data.lastName     || "",
+      data.driverTag    || "",
+      data.nationality  || "",
+      data.email        || "",
+      data.whatsapp     || "",
+      data.discord      || "",
+      data.platform     || "",
+      data.wheel        || "",
+      data.experience   || "",
+      data.skillLevel   || "",
+      data.carClass     || "",
+      data.event        || ""
+    ]);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: "ok" }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: "error", message: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// Optional: test this runs without error
+function testSetup() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  Logger.log("Connected to sheet: " + sheet.getName());
+}
+</pre>
+
+<ol start="3">
+  <li>Click <strong>Save</strong> (the floppy disk icon or Ctrl+S). Name the project anything, e.g. <strong>SRT Registration Handler</strong>.</li>
+  <li>Click <strong>Deploy → New deployment</strong>.</li>
+  <li>Click the gear icon next to "Select type" and choose <strong>Web app</strong>.</li>
+  <li>Set <strong>Execute as: Me</strong> and <strong>Who has access: Anyone</strong>.</li>
+  <li>Click <strong>Deploy</strong>. Google will ask you to authorize — click through the permissions.</li>
+  <li>Copy the <strong>Web app URL</strong> that appears. It looks like:<br>
+    <code>https://script.google.com/macros/s/AKfycby.../exec</code>
+  </li>
+</ol>
+
+<div class="note">⚠ Important: Every time you edit the Apps Script code, you must create a <strong>new deployment</strong> for changes to take effect. The URL stays the same.</div>
+
+<hr class="divider">
+
+<!-- STEP 3 -->
+<h2><span class="step-num">3</span> Paste the Apps Script URL into the Website</h2>
+<p>Open <strong>index.html</strong> in any text editor (Notepad, VS Code, etc.). Find the <code>CONFIG</code> block near the top — it looks like this:</p>
+<pre>
+const CONFIG = {
+  APPS_SCRIPT_URL: "YOUR_APPS_SCRIPT_URL_HERE",
+  ...
+};
+</pre>
+<p>Replace <code>"YOUR_APPS_SCRIPT_URL_HERE"</code> with the URL you copied in Step 2. Keep the quotes.</p>
+
+<hr class="divider">
+
+<!-- STEP 4 -->
+<h2><span class="step-num">4</span> Publish the Google Sheet as JSON</h2>
+<p>This lets the website read your Events and Leaderboard data live.</p>
+<ol>
+  <li>In your Google Sheet, go to <strong>File → Share → Publish to web</strong>.</li>
+  <li>In the first dropdown select <strong>Entire Document</strong>, in the second select <strong>Web page</strong>.</li>
+  <li>Click <strong>Publish</strong> and confirm.</li>
+  <li>Close that dialog — you don't need the URL it shows.</li>
+</ol>
+<p>Now construct the JSON feed URLs manually using your sheet's ID. Your sheet URL looks like:<br>
+<code>https://docs.google.com/spreadsheets/d/<strong>YOUR_SHEET_ID</strong>/edit</code></p>
+
+<p>Build your two data URLs like this:</p>
+<pre>
+Events sheet URL:
+https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/gviz/tq?tqx=out:json&amp;sheet=Events
+
+Leaderboard sheet URL:
+https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/gviz/tq?tqx=out:json&amp;sheet=Leaderboard
+</pre>
+<p>Replace <code>YOUR_SHEET_ID</code> with the long string of letters and numbers from your sheet's URL.</p>
+
+<hr class="divider">
+
+<!-- STEP 5 -->
+<h2><span class="step-num">5</span> Add the Sheet URLs to the Website &amp; Go Live</h2>
+<p>Back in <strong>index.html</strong>, fill in the rest of the CONFIG block:</p>
+<pre>
+const CONFIG = {
+  APPS_SCRIPT_URL:      "https://script.google.com/macros/s/AKfyc.../exec",
+  EVENTS_SHEET_URL:     "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/gviz/tq?tqx=out:json&sheet=Events",
+  LEADERBOARD_SHEET_URL:"https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/gviz/tq?tqx=out:json&sheet=Leaderboard",
+
+  DEMO_MODE: false   // ← Change this to false!
+};
+</pre>
+<p>Save the file. Open it in a browser and test a registration — you should see a new row appear in your Registrations sheet within seconds.</p>
+
+<div class="tip">✓ The leaderboard updates automatically every time the page is loaded. No refresh mechanism needed — just edit the Leaderboard sheet and visitors will see the new data on their next page load.</div>
+
+<hr class="divider">
+
+<!-- STEP 6 -->
+<h2><span class="step-num">6</span> Hosting the Website (Free Options)</h2>
+<p>The site is a single HTML file. You can host it for free on any of these platforms:</p>
+<table>
+  <tr><th>Platform</th><th>How</th><th>Custom domain?</th></tr>
+  <tr><td><strong>GitHub Pages</strong></td><td>Push index.html to a GitHub repo, enable Pages in Settings</td><td>Yes (free)</td></tr>
+  <tr><td><strong>Netlify</strong></td><td>Drag and drop the file at netlify.com/drop</td><td>Yes (free)</td></tr>
+  <tr><td><strong>Vercel</strong></td><td>Import from GitHub, auto-deploys on every push</td><td>Yes (free)</td></tr>
+  <tr><td><strong>Cloudflare Pages</strong></td><td>Connect GitHub repo, fast global CDN</td><td>Yes (free)</td></tr>
+</table>
+<p>Netlify Drop is the fastest — no account needed for a quick test. For a permanent URL, GitHub Pages + a free domain from Freenom is a solid zero-cost setup.</p>
+
+<hr class="divider">
+
+<!-- ADMIN TIPS -->
+<h2><span class="step-num">7</span> Day-to-Day Admin Workflow</h2>
+
+<p><strong>Adding a new event:</strong> Add a new row to the Events sheet with a unique <code>id</code>. Set <code>status</code> to <code>upcoming</code>. Save. Done — it appears on the site immediately.</p>
+
+<p><strong>Starting an event (going live):</strong> Change the event's <code>status</code> column from <code>upcoming</code> to <code>ongoing</code>. It will now appear in the Leaderboard tabs.</p>
+
+<p><strong>Updating standings:</strong> Edit the Leaderboard sheet — add or update rows with the correct <code>eventId</code>. Sort by <code>pos</code> ascending. The site always reads the latest data.</p>
+
+<p><strong>Closing an event:</strong> Change the status to <code>completed</code> (or delete the row). It will disappear from the Events grid and Leaderboard tabs.</p>
+
+<p><strong>Viewing registrations:</strong> Open the Registrations sheet anytime to see all submissions as a table. You can sort, filter, or export to CSV from there.</p>
+
+<div class="tip">✓ Pro tip: Add a Google Sheets notification (Tools → Notification rules → "When a row is added") to get an email every time someone registers.</div>
+
+<hr class="divider">
+
+<footer>
+  Sim Racing Tharavadu · Setup Guide · Built with Google Sheets + Vanilla JS
+</footer>
+
+</div>
+</body>
+</html>
