@@ -21,6 +21,7 @@
   .nav-logo{display:flex;align-items:center;gap:12px;cursor:pointer;}
   .logo-mark{width:36px;height:36px;}
   .logo-mark svg{width:100%;height:100%;}
+  .logo-mark img{width:100%;height:100%;object-fit:contain;display:block;}
   .nav-brand{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.08em;color:var(--text);line-height:1;}
   .nav-brand span{color:var(--red);}
   .nav-links{display:flex;align-items:center;gap:2rem;list-style:none;}
@@ -39,7 +40,9 @@
   .hero{position:relative;height:92vh;display:flex;align-items:center;overflow:hidden;}
   .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 70% 50%,rgba(232,0,29,0.12) 0%,transparent 70%),radial-gradient(ellipse 40% 60% at 20% 80%,rgba(245,166,35,0.06) 0%,transparent 60%),linear-gradient(180deg,#080A0C 0%,#0D0F12 100%);}
   .hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(232,0,29,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(232,0,29,0.06) 1px,transparent 1px);background-size:60px 60px;transform:perspective(600px) rotateX(20deg) scaleY(1.4);transform-origin:bottom;opacity:0.6;}
-  .hero-content{position:relative;z-index:2;padding:0 6rem;max-width:900px;}
+  .hero-content{position:relative;z-index:2;padding:0 6rem;max-width:900px;flex:1;}
+  .hero-logo{position:relative;z-index:2;flex:1;display:flex;align-items:center;justify-content:center;padding:0 4rem;}
+  .hero-logo img{max-width:100%;height:auto;max-height:50vh;object-fit:contain;filter:drop-shadow(0 0 40px rgba(232,0,29,0.3));}
   .hero-tag{font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.3em;text-transform:uppercase;color:var(--red);margin-bottom:1.5rem;display:flex;align-items:center;gap:10px;}
   .hero-tag::before{content:'';display:inline-block;width:40px;height:2px;background:var(--red);}
   .hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,10vw,8.5rem);line-height:0.92;letter-spacing:0.02em;margin-bottom:2rem;animation:fadeUp 0.8s ease both;}
@@ -196,15 +199,18 @@
     nav{padding:0 1.5rem;}
     .nav-links{gap:1.2rem;}
     section,.lb-hero,.lb-body,.reg-left{padding-left:2rem;padding-right:2rem;}
-    .hero-content{padding:0 2rem;}
+    .hero{flex-direction:column;height:auto;min-height:auto;padding:3rem 0;}
+    .hero-content{padding:0 2rem;max-width:100%;}
+    .hero-logo{flex:0;padding:1.5rem 2rem;}
+    .hero-logo img{max-height:300px;}
     .hero-title{font-size:clamp(3rem,12vw,6rem);}
+    .hero-stat-strip{position:static;flex-wrap:wrap;}
     .lb-top3{grid-template-columns:1fr;}
     .reg-layout{grid-template-columns:1fr;}
     .reg-right{position:static;height:auto;}
     footer{flex-direction:column;gap:1rem;text-align:center;}
     .form-grid{grid-template-columns:1fr;}
     .form-group.full{grid-column:1;}
-    .hero-stat-strip{flex-wrap:wrap;}
     .hero-stat{min-width:50%;}
   }
 </style>
@@ -259,11 +265,7 @@ const DEMO_LB = {
 <nav>
   <div class="nav-logo" onclick="showPage('home')">
     <div class="logo-mark">
-      <svg viewBox="0 0 36 36" fill="none">
-        <polygon points="18,2 34,34 2,34" fill="none" stroke="#E8001D" stroke-width="2"/>
-        <polygon points="18,10 28,30 8,30" fill="#E8001D" opacity="0.3"/>
-        <line x1="18" y1="2" x2="18" y2="34" stroke="#E8001D" stroke-width="1" opacity="0.5"/>
-      </svg>
+      <img src="srtLogo.png" alt="Sim Racing Tharavadu">
     </div>
     <div class="nav-brand">Sim Racing <span>Tharavadu</span></div>
   </div>
@@ -279,19 +281,22 @@ const DEMO_LB = {
   <div class="hero">
     <div class="hero-bg"></div><div class="hero-grid"></div>
     <div class="hero-content">
-      <div class="hero-tag">Kerala's Premier Sim Racing Community</div>
-      <h1 class="hero-title">Sim Racing<br><span class="line2">Tharavadu</span><span class="line3">Est. 2021</span></h1>
+      <div class="hero-tag">From Backwaters to Podiums</div>
+      <h1 class="hero-title">Sim Racing<span class="line2">Tharavadu</span><span class="line3"></span></h1>
       <p class="hero-sub">Where throttle meets tradition. Compete, connect, and conquer the virtual circuit with Kerala's fastest virtual racers.</p>
       <div class="hero-actions">
         <button class="btn-primary" onclick="showPage('register')">Register Now</button>
         <button class="btn-outline" onclick="showPage('leaderboard')">View Leaderboard</button>
       </div>
     </div>
+    <div class="hero-logo">
+      <img src="srtLogo.png" alt="Sim Racing Tharavadu Logo">
+    </div>
     <div class="hero-stat-strip">
-      <div class="hero-stat"><div class="stat-num">240+</div><div class="stat-label">Active Drivers</div></div>
-      <div class="hero-stat"><div class="stat-num">18</div><div class="stat-label">Events Hosted</div></div>
-      <div class="hero-stat"><div class="stat-num">6</div><div class="stat-label">Sim Platforms</div></div>
-      <div class="hero-stat"><div class="stat-num">3</div><div class="stat-label">Championships</div></div>
+      <div class="hero-stat"><div class="stat-num">80+</div><div class="stat-label">Discord members</div></div>
+      <div class="hero-stat"><div class="stat-num">0</div><div class="stat-label">Events Hosted</div></div>
+      <div class="hero-stat"><div class="stat-num">0</div><div class="stat-label">Wins</div></div>
+      <div class="hero-stat"><div class="stat-num">0</div><div class="stat-label">Podiums</div></div>
     </div>
   </div>
   <section>
@@ -417,9 +422,9 @@ const DEMO_LB = {
       <div id="reg-event-list"><div class="data-loading"><span class="spinner"></span></div></div>
       <div style="margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;">Need Help?</div>
-        <p style="font-size:0.88rem;color:var(--muted);line-height:1.7;">Join our Discord or WhatsApp for queries.<br><br>
-          <strong style="color:var(--text);">Discord:</strong> discord.gg/srt-kerala<br>
-          <strong style="color:var(--text);">WhatsApp:</strong> +91 98XXXXXXXX
+        <p style="font-size:0.88rem;color:var(--muted);line-height:1.7;">Join our Discord or Instagram for queries.<br><br>
+          <strong style="color:var(--text);">Discord:</strong> <a href="https://discord.gg/BG53MSrw" target="_blank" style="color:var(--red);text-decoration:none;border-bottom:1px solid var(--red);">discord.gg/BG53MSrw</a><br>
+          <strong style="color:var(--text);">Instagram:</strong> <a href="https://www.instagram.com/simracingtharavadu" target="_blank" style="color:var(--red);text-decoration:none;border-bottom:1px solid var(--red);">@simracingtharavadu</a>
         </p>
       </div>
     </div>
