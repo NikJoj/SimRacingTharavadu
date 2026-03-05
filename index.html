@@ -138,7 +138,25 @@
   .form-group{display:flex;flex-direction:column;gap:6px;}
   .form-group.full{grid-column:1/-1;}
   label{font-family:'Barlow Condensed',sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
-  input,select,textarea{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'Barlow',sans-serif;font-size:0.95rem;padding:12px 16px;outline:none;transition:border-color 0.2s;width:100%;-webkit-appearance:none;}
+  input,select,textarea{
+    background:var(--bg3);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-family:'Barlow',sans-serif;
+    font-size:0.95rem;
+    padding:12px 16px;
+    outline:none;
+    transition:border-color 0.2s;
+    width:100%;
+    -webkit-appearance:none;
+  }
+  /* checkboxes should keep their native appearance and size */
+  input[type="checkbox"]{
+    width:auto;
+    padding:0;
+    -webkit-appearance:checkbox;
+    appearance:checkbox;
+  }
   input:focus,select:focus,textarea:focus{border-color:rgba(232,0,29,0.6);background:rgba(22,26,31,0.8);}
   select option{background:var(--bg3);}
   textarea{resize:vertical;min-height:90px;}
@@ -199,15 +217,15 @@
 <script>
 const CONFIG = {
   // Step 3 in setup guide: paste your Apps Script web app URL here
-  APPS_SCRIPT_URL: "YOUR_APPS_SCRIPT_URL_HERE",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxiA_RCwbQrp1OitvYeficXLDGGhXXbbc3EyluaYwtgeHR1lwwk43DjRf7RcoEa51h9jA/exec",
 
   // Step 5 in setup guide: paste your published sheet JSON URLs here
-  // Template: https://docs.google.com/spreadsheets/d/SHEET_ID/gviz/tq?tqx=out:json&sheet=Events
-  EVENTS_SHEET_URL:      "YOUR_EVENTS_SHEET_URL_HERE",
-  LEADERBOARD_SHEET_URL: "YOUR_LEADERBOARD_SHEET_URL_HERE",
+  // Template: https://docs.google.com/spreadsheets/d/1vFLLZFCIlboKZWQy5diB5dcLKtjwPe-Bfoz1xSxV-F4/gviz/tq?tqx=out:json&sheet=Events
+  EVENTS_SHEET_URL:      "https://docs.google.com/spreadsheets/d/1vFLLZFCIlboKZWQy5diB5dcLKtjwPe-Bfoz1xSxV-F4/gviz/tq?tqx=out:json&sheet=Events",
+  LEADERBOARD_SHEET_URL: "https://docs.google.com/spreadsheets/d/1vFLLZFCIlboKZWQy5diB5dcLKtjwPe-Bfoz1xSxV-F4/gviz/tq?tqx=out:json&sheet=Leaderboard",
 
   // Keep true until URLs above are configured — shows realistic demo data
-  DEMO_MODE: true
+  DEMO_MODE: false
 };
 
 /* ── DEMO DATA ───────────────────────────────────────── */
@@ -435,10 +453,10 @@ async function loadData() {
     return;
   }
   try {
-    const [evData, lbData] = await Promise.all([
-      fetchGSheet(CONFIG.EVENTS_SHEET_URL),
-      fetchGSheet(CONFIG.LEADERBOARD_SHEET_URL)
-    ]);
+    // fetch events first, then leaderboard (avoids callback race conditions)
+    const evData = await fetchGSheet(CONFIG.EVENTS_SHEET_URL);
+    const lbData = await fetchGSheet(CONFIG.LEADERBOARD_SHEET_URL);
+
     appEvents = parseRows(evData, ['id','name','sim','status','track','date','format','drivers','maxDrivers','rounds','season']);
     const lbRows = parseRows(lbData, ['eventId','pos','driver','tag','team','pts','time','gap']);
     appLB = {};
@@ -450,10 +468,25 @@ async function loadData() {
 }
 
 async function fetchGSheet(url) {
-  const text = await (await fetch(url)).text();
-  const m = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
-  if (!m) throw new Error('Invalid Google Sheets response. Check the URL and that the sheet is published.');
-  return JSON.parse(m[1]);
+  // Google visualization endpoint always calls
+  // `google.visualization.Query.setResponse(data)` when the script loads.
+  // We temporarily override that function and resolve the promise when
+  // it’s invoked. Sequential loading (events → leaderboard) avoids races.
+  return new Promise((resolve, reject) => {
+    // ensure google namespace exists
+    window.google = window.google || {};
+    window.google.visualization = window.google.visualization || {};
+    window.google.visualization.Query = window.google.visualization.Query || {};
+
+    window.google.visualization.Query.setResponse = data => {
+      resolve(data);
+    };
+
+    const s = document.createElement('script');
+    s.src = url;
+    s.onerror = () => reject(new Error('Failed to load Google Sheets JSONP'));
+    document.body.appendChild(s);
+  });
 }
 
 function parseRows(data, cols) {
