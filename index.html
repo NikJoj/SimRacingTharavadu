@@ -98,6 +98,43 @@
   .view-details-btn{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);background:none;border:1px solid rgba(245,166,35,0.3);padding:6px 14px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);cursor:pointer;transition:background 0.2s,color 0.2s;}
   .view-details-btn:hover{background:var(--gold);color:#000;}
 
+/* MOBILE FIX */
+@media (max-width: 768px){
+
+  .events-grid{
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+
+  .event-card{
+    flex-direction:column;
+    padding:1rem;
+    gap:1rem;
+  }
+
+  .event-poster{
+    width:100%;
+    height:auto;
+  }
+
+  .event-poster img{
+    width:100%;
+    height:auto;
+    object-fit:contain;
+  }
+
+  .event-name{
+    font-size:1.4rem;
+  }
+
+  .event-footer{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+  }
+
+}
+
   /* LEADERBOARD PAGE */
   #leaderboard{padding-top:64px;min-height:100vh;}
   .lb-hero{padding:4rem 6rem 0;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(232,0,29,0.05) 0%,transparent 100%);}
@@ -229,12 +266,12 @@
     .event-card{flex-direction:column;}
     .event-poster{width:100%;height:200px;}
   }
-}
+
 
 /* MODAL */
-.modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
-.modal-content { background-color: var(--bg2); position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; padding: 2rem; border: 1px solid var(--border); width: 90%; max-width: 1000px; border-radius: 8px; }
-.close { color: var(--muted); position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+/* .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); } */
+/* .modal-content { background-color: var(--bg2); position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; padding: 2rem; border: 1px solid var(--border); width: 90%; max-width: 1000px; border-radius: 8px; } */
+.close { color: var(--muted); position: absolute; top: 10px; right: 20px; font-size: 68px; font-weight: bold; cursor: pointer; }
 .close:hover { color: var(--text); }
 .event-card-modal { display: flex; gap: 2rem; }
 .event-poster-modal { flex-shrink: 0; width: 400px; height: 500px; background: var(--bg3); border: 1px solid var(--border); overflow: hidden; }
@@ -243,11 +280,78 @@
 .event-description { font-size: 1rem; color: var(--muted); line-height: 1.6; }
 .event-links { font-size: 1rem; color: var(--muted); line-height: 1.6; }
 
-@media(max-width:900px){
+/* @media(max-width:900px){
   .modal-content { width: 95%; padding: 1.5rem; }
   .event-card-modal { flex-direction: column; }
   .event-poster-modal { width: 100%; height: 300px; }
+} */
+
+/* MODAL */
+.modal{
+  display:none;
+  position:fixed;
+  z-index:10000;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.85);
+  overflow-y:auto;
 }
+
+.modal-content{
+  background:var(--bg2);
+  margin:5vh auto;
+  padding:2rem;
+  width:90%;
+  max-width:900px;
+  border:1px solid var(--border);
+  border-radius:8px;
+}
+
+/* MOBILE MODAL FIX */
+@media (max-width: 700px){
+
+  .event-card-modal{
+    display:flex;
+    flex-direction:column;
+    padding:1rem;
+  }
+
+  .event-poster-modal{
+    width:100%;
+    margin-bottom:1rem;
+  }
+
+  #modal-poster{
+    width:100%;
+    height:auto;
+    border-radius:6px;
+  }
+
+  .event-content-modal{
+    width:100%;
+  }
+
+}
+
+@media (max-width:700px){
+
+  .modal-content{
+    position:relative;
+    top:auto;
+    left:auto;
+    transform:none;
+    margin:2rem auto;
+    max-width:95%;
+  }
+
+  .modal{
+    overflow-y:auto;
+  }
+
+}
+
 </style>
 </head>
 <body>
@@ -757,6 +861,7 @@ window.onclick = function(event) {
   const modal = document.getElementById('event-modal');
   if (event.target === modal) {
     modal.style.display = 'none';
+    closeModal();
   }
 }
 
