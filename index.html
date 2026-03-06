@@ -67,18 +67,25 @@
   .section-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,5vw,4rem);letter-spacing:0.03em;line-height:1;}
 
   /* EVENTS GRID */
-  .events-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.5px;background:var(--border);border:1px solid var(--border);}
-  .event-card{background:var(--bg2);padding:2rem;position:relative;overflow:hidden;transition:background 0.2s;cursor:default;}
+  .events-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(580px,1fr));gap:1.5px;background:var(--border);border:1px solid var(--border);}
+  .event-card{background:var(--bg2);padding:1.5rem;position:relative;overflow:hidden;transition:background 0.2s;cursor:default;display:flex;gap:1.5rem;}
   .event-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;}
   .event-card.ongoing::before{background:var(--green);}
   .event-card.upcoming::before{background:var(--gold);}
   .event-card:hover{background:var(--bg3);}
+  .event-card.closed { opacity: 0.7; }
+  .event-card.closed::before { background: #666; }
+  .event-poster{flex-shrink:0;width:300px;height:355px;background:var(--bg3);border:1px solid var(--border);overflow:hidden;}
+  .event-poster img{width:100%;height:100%;object-fit:contain;}
+  .event-content{flex:1;display:flex;flex-direction:column;gap:0.75rem;}
   .event-badge{display:inline-flex;align-items:center;gap:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;padding:4px 10px;margin-bottom:1.25rem;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
   .event-badge.ongoing{background:rgba(0,230,118,0.15);color:var(--green);}
   .event-badge.upcoming{background:rgba(245,166,35,0.15);color:var(--gold);}
   .event-badge::before{content:'';width:6px;height:6px;border-radius:50%;}
   .event-badge.ongoing::before{background:var(--green);box-shadow:0 0 6px var(--green);}
   .event-badge.upcoming::before{background:var(--gold);}
+  .event-badge.closed{background:rgba(128,128,128,0.15);color:#666;}
+  .event-badge.closed::before{background:#666;}
   .event-name{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.04em;margin-bottom:0.5rem;line-height:1;}
   .event-sim{font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);margin-bottom:1rem;}
   .event-meta{display:flex;flex-direction:column;gap:6px;margin-bottom:1.5rem;}
@@ -88,6 +95,8 @@
   .drivers-count span{color:var(--text);font-size:1rem;}
   .view-lb-btn{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--red);background:none;border:1px solid rgba(232,0,29,0.3);padding:6px 14px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);cursor:pointer;transition:background 0.2s,color 0.2s;}
   .view-lb-btn:hover{background:var(--red);color:#fff;}
+  .view-details-btn{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);background:none;border:1px solid rgba(245,166,35,0.3);padding:6px 14px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);cursor:pointer;transition:background 0.2s,color 0.2s;}
+  .view-details-btn:hover{background:var(--gold);color:#000;}
 
   /* LEADERBOARD PAGE */
   #leaderboard{padding-top:64px;min-height:100vh;}
@@ -132,6 +141,7 @@
   .event-select-card{padding:1rem;border:1px solid var(--border);margin-bottom:0.75rem;cursor:pointer;transition:border-color 0.2s,background 0.2s;background:var(--bg);}
   .event-select-card:hover{border-color:rgba(232,0,29,0.4);}
   .event-select-card.selected{border-color:var(--red);background:rgba(232,0,29,0.05);}
+  .event-select-card.closed { opacity: 0.5; }
   .event-select-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1rem;letter-spacing:0.05em;margin-bottom:2px;}
   .event-select-meta{font-size:0.8rem;color:var(--muted);}
   .form-section{margin-bottom:3rem;}
@@ -192,6 +202,10 @@
   .footer-brand{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.08em;color:var(--muted);}
   .footer-brand span{color:var(--red);}
   .footer-copy{font-size:0.82rem;color:var(--muted);}
+  .footer-social{display:flex;gap:1rem;align-items:center;}
+  .footer-social a{color:var(--muted);text-decoration:none;transition:color 0.2s;}
+  .footer-social a:hover{color:var(--red);}
+  .footer-social svg{width:20px;height:20px;}
 
   @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
 
@@ -212,7 +226,28 @@
     .form-grid{grid-template-columns:1fr;}
     .form-group.full{grid-column:1;}
     .hero-stat{min-width:50%;}
+    .event-card{flex-direction:column;}
+    .event-poster{width:100%;height:200px;}
   }
+}
+
+/* MODAL */
+.modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
+.modal-content { background-color: var(--bg2); position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; padding: 2rem; border: 1px solid var(--border); width: 90%; max-width: 1000px; border-radius: 8px; }
+.close { color: var(--muted); position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+.close:hover { color: var(--text); }
+.event-card-modal { display: flex; gap: 2rem; }
+.event-poster-modal { flex-shrink: 0; width: 400px; height: 500px; background: var(--bg3); border: 1px solid var(--border); overflow: hidden; }
+.event-poster-modal img { width: 100%; height: 100%; object-fit: contain; }
+.event-content-modal { flex: 1; display: flex; flex-direction: column; gap: 0.75rem; }
+.event-description { font-size: 1rem; color: var(--muted); line-height: 1.6; }
+.event-links { font-size: 1rem; color: var(--muted); line-height: 1.6; }
+
+@media(max-width:900px){
+  .modal-content { width: 95%; padding: 1.5rem; }
+  .event-card-modal { flex-direction: column; }
+  .event-poster-modal { width: 100%; height: 300px; }
+}
 </style>
 </head>
 <body>
@@ -236,11 +271,11 @@ const CONFIG = {
 
 /* ── DEMO DATA ───────────────────────────────────────── */
 const DEMO_EVENTS = [
-  {id:"1",name:"Kerala GT3 Challenge",sim:"Assetto Corsa Competizione",status:"ongoing",track:"Mount Panorama / Bathurst",date:"Mar 1 – Mar 15, 2025",format:"Sprint Race · 30 mins",drivers:"28",maxDrivers:"32",rounds:"3",season:"S2 2025"},
-  {id:"2",name:"Tharavadu Open Series",sim:"iRacing",status:"ongoing",track:"Silverstone GP",date:"Feb 20 – Mar 20, 2025",format:"Endurance · 2 hrs",drivers:"22",maxDrivers:"30",rounds:"5",season:"S1 2025"},
-  {id:"3",name:"Formula Monsoon Cup",sim:"Assetto Corsa",status:"upcoming",track:"Spa-Francorchamps",date:"Mar 22, 2025",format:"Qualifying + Race",drivers:"14",maxDrivers:"24",rounds:"1",season:"S2 2025"},
-  {id:"4",name:"Street Warriors Invitational",sim:"Gran Turismo 7",status:"upcoming",track:"Tokyo Expressway",date:"Apr 5, 2025",format:"Sprint Race · 20 mins",drivers:"8",maxDrivers:"20",rounds:"2",season:"S2 2025"},
-  {id:"5",name:"F1 Kerala Grand Prix",sim:"F1 24",status:"upcoming",track:"Bahrain International Circuit",date:"Apr 12, 2025",format:"Full Weekend",drivers:"5",maxDrivers:"20",rounds:"1",season:"S2 2025"}
+  {id:"1",name:"Kerala GT3 Challenge",sim:"Assetto Corsa Competizione",status:"ongoing",track:"Mount Panorama / Bathurst",startDate:"2026-03-01T00:00:00Z",endDate:"2026-03-15T23:59:59Z",format:"Sprint Race · 30 mins",drivers:"32",maxDrivers:"32",rounds:"3",season:"S2 2026",description:"Experience the thrill of GT3 racing on the iconic Mount Panorama circuit. This endurance event features multiple rounds with professional setups and competitive matchmaking."},
+  {id:"2",name:"Tharavadu Open Series",sim:"iRacing",status:"ongoing",track:"Silverstone GP",startDate:"2026-02-20T00:00:00Z",endDate:"2026-03-20T23:59:59Z",format:"Endurance · 2 hrs",drivers:"22",maxDrivers:"30",rounds:"5",season:"S1 2026",description:"A comprehensive open series on iRacing featuring endurance racing at Silverstone. Perfect for drivers of all skill levels with detailed race strategies and team coordination."},
+  {id:"3",name:"Formula Monsoon Cup",sim:"Assetto Corsa",status:"upcoming",track:"Spa-Francorchamps",startDate:"2026-03-22T14:00:00Z",endDate:"2026-03-22T16:00:00Z",format:"Qualifying + Race",drivers:"14",maxDrivers:"24",rounds:"1",season:"S2 2026",description:"Dive into formula racing at the legendary Spa circuit. This cup features monsoon weather conditions and requires precise driving skills for optimal lap times."},
+  {id:"4",name:"Street Warriors Invitational",sim:"Gran Turismo 7",status:"upcoming",track:"Tokyo Expressway",startDate:"2026-04-05T15:00:00Z",endDate:"2026-04-05T16:00:00Z",format:"Sprint Race · 20 mins",drivers:"8",maxDrivers:"20",rounds:"2",season:"S2 2026",description:"An invitational event for street racing enthusiasts on Gran Turismo 7. Navigate the bustling Tokyo Expressway with custom tuned cars and aggressive racing lines."},
+  {id:"5",name:"F1 Kerala Grand Prix",sim:"F1 24",status:"upcoming",track:"Bahrain International Circuit",startDate:"2026-04-12T10:00:00Z",endDate:"2026-04-12T18:00:00Z",format:"Full Weekend",drivers:"5",maxDrivers:"20",rounds:"1",season:"S2 2026",description:"The premier F1 event of the season at Bahrain. Experience a full F1 weekend simulation with practice, qualifying, and the main race under authentic conditions."}
 ];
 const DEMO_LB = {
   "1":[
@@ -259,6 +294,37 @@ const DEMO_LB = {
     {pos:"5",driver:"Suresh Chandran",tag:"SRS_CH",team:"Kochi Raceworks",pts:"55",time:"1:45.489",gap:"+1.271"}
   ]
 };
+
+/* ── HELPER FUNCTIONS ── */
+function formatEventDate(start, end) {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const isSameDay = startDate.toDateString() === endDate.toDateString();
+
+  const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+
+  if (isSameDay) {
+    return startDate.toLocaleDateString(undefined, dateOptions);
+  } else {
+    const localStart = startDate.toLocaleDateString(undefined, dateOptions);
+    const localEnd = endDate.toLocaleDateString(undefined, dateOptions);
+    return `${localStart} – ${localEnd}`;
+  }
+}
+
+function formatEventTime(start, end) {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const isAllDay = startDate.getUTCHours() === 0 && startDate.getUTCMinutes() === 0 && startDate.getUTCSeconds() === 0 &&
+                   endDate.getUTCHours() === 23 && endDate.getUTCMinutes() === 59 && endDate.getUTCSeconds() === 59;
+
+  if (isAllDay) return null;
+
+  const timeOptions = { hour: '2-digit', minute: '2-digit' };
+  const localStartTime = startDate.toLocaleTimeString(undefined, timeOptions);
+  const localEndTime = endDate.toLocaleTimeString(undefined, timeOptions);
+  return `${localStartTime} – ${localEndTime}`;
+}
 </script>
 
 <!-- NAV -->
@@ -271,8 +337,8 @@ const DEMO_LB = {
   </div>
   <ul class="nav-links">
     <li><a id="tab-home" onclick="showPage('home')" class="active">Home</a></li>
-    <li><a id="tab-leaderboard" onclick="showPage('leaderboard')">Leaderboard</a></li>
-    <li><a id="tab-register" onclick="showPage('register')" class="nav-cta">Register</a></li>
+    <!-- <li><a id="tab-leaderboard" onclick="showPage('leaderboard')">Leaderboard</a></li> -->
+    <!-- <li><a id="tab-register" onclick="showPage('register')" class="nav-cta">Register</a></li> -->
   </ul>
 </nav>
 
@@ -285,18 +351,18 @@ const DEMO_LB = {
       <h1 class="hero-title">Sim Racing<span class="line2">Tharavadu</span><span class="line3"></span></h1>
       <p class="hero-sub">Where throttle meets tradition. Compete, connect, and conquer the virtual circuit with Kerala's fastest virtual racers.</p>
       <div class="hero-actions">
-        <button class="btn-primary" onclick="showPage('register')">Register Now</button>
-        <button class="btn-outline" onclick="showPage('leaderboard')">View Leaderboard</button>
+        <button class="btn-primary" onclick="showPage('register')">Register For Events</button>
+        <!-- <button class="btn-outline" onclick="showPage('leaderboard')">View Leaderboard</button> -->
       </div>
     </div>
     <div class="hero-logo">
       <img src="srtLogo.png" alt="Sim Racing Tharavadu Logo">
     </div>
     <div class="hero-stat-strip">
-      <div class="hero-stat"><div class="stat-num">80+</div><div class="stat-label">Discord members</div></div>
-      <div class="hero-stat"><div class="stat-num">0</div><div class="stat-label">Events Hosted</div></div>
-      <div class="hero-stat"><div class="stat-num">0</div><div class="stat-label">Wins</div></div>
-      <div class="hero-stat"><div class="stat-num">0</div><div class="stat-label">Podiums</div></div>
+      <div class="hero-stat"><div class="stat-num">90+</div><div class="stat-label">Discord members</div></div>
+      <div class="hero-stat"><div class="stat-num">20+</div><div class="stat-label">Endurance Races completed</div></div>
+      <div class="hero-stat"><div class="stat-num">5+</div><div class="stat-label">Top 10 Finishes</div></div>
+      <!-- <div class="hero-stat"><div class="stat-num">0</div><div class="stat-label">Podiums</div></div> -->
     </div>
   </div>
   <section>
@@ -310,6 +376,18 @@ const DEMO_LB = {
   </section>
   <footer>
     <div class="footer-brand">Sim Racing <span>Tharavadu</span></div>
+    <div class="footer-social">
+      <a href="https://discord.gg/BG53MSrw" target="_blank" title="Join our Discord">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+        </svg>
+      </a>
+      <a href="https://www.instagram.com/simracingtharavadu" target="_blank" title="Follow us on Instagram">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+        </svg>
+      </a>
+    </div>
     <div class="footer-copy">© 2025 Sim Racing Tharavadu · Kerala, India · All Rights Reserved</div>
   </footer>
 </div>
@@ -337,19 +415,30 @@ const DEMO_LB = {
       </div>
 
       <div class="form-section">
-        <div class="form-section-title">Driver Details <span>01</span></div>
+        <div class="form-section-title">Driver Details <span></span></div>
         <div class="form-grid">
-          <div class="form-group"><label>First Name *</label><input type="text" id="f-first" placeholder="Arjun"></div>
-          <div class="form-group"><label>Last Name *</label><input type="text" id="f-last" placeholder="Menon"></div>
-          <div class="form-group"><label>Driver Tag / Callsign *</label><input type="text" id="f-tag" placeholder="ARJ_MNR"></div>
-          <div class="form-group"><label>Nationality</label><input type="text" id="f-nat" placeholder="Indian"></div>
-          <div class="form-group"><label>Email Address *</label><input type="email" id="f-email" placeholder="arjun@example.com"></div>
-          <div class="form-group"><label>WhatsApp Number *</label><input type="tel" id="f-phone" placeholder="+91 98XXXXXXXX"></div>
-          <div class="form-group full"><label>Discord Username</label><input type="text" id="f-discord" placeholder="arjun#1234"></div>
+          <!-- <div class="form-group"><label>First Name *</label><input type="text" id="f-first" placeholder="Arjun"></div> -->
+          <!-- <div class="form-group"><label>Last Name *</label><input type="text" id="f-last" placeholder="Menon"></div> -->
+          <div class="form-group"><label>Driver Name *</label><input type="text" id="f-tag" placeholder="Nikhil"></div>
+          <!-- <div class="form-group"><label>Nationality</label><input type="text" id="f-nat" placeholder="Indian"></div> -->
+          <!-- <div class="form-group"><label>Email Address *</label><input type="email" id="f-email" placeholder="arjun@example.com"></div> -->
+          <!-- <div class="form-group"><label>WhatsApp Number *</label><input type="tel" id="f-phone" placeholder="+91 98XXXXXXXX"></div> -->
+          <div class="form-group"><label>Discord Username *</label><input type="text" id="f-discord" placeholder="econ"></div>
+          <div class="form-group">
+            <label>Preferred Car *</label>
+            <select id="f-carclass">
+              <option value="">— Select Car —</option>
+              <option>Alfa Giulietta TCR</option><option>Audi RS3 TCR</option>
+              <option>Cupra TCR</option><option>Honda Civic TCR</option>
+              <option>Hyundai Elantra N TCR</option><option>Hyundai i30N TCR</option>
+              <option>Lynk 03 2022 TCR</option><option>Peugeot 308 TCR</option>
+              <option>VW Golf TCR</option>
+            </select>
+          </div>          
         </div>
       </div>
 
-      <div class="form-section">
+      <!-- <div class="form-section">
         <div class="form-section-title">Sim &amp; Setup <span>02</span></div>
         <div class="form-grid">
           <div class="form-group">
@@ -394,10 +483,10 @@ const DEMO_LB = {
           </div>
           <div class="form-group full"><label>Preferred Car Class</label><input type="text" id="f-carclass" placeholder="GT3, Formula, Touring…"></div>
         </div>
-      </div>
+      </div> -->
 
       <div class="form-section">
-        <div class="form-section-title">Event Selection <span>03</span></div>
+        <div class="form-section-title">Event Selection <span></span></div>
         <p style="font-size:0.88rem;color:var(--muted);margin-bottom:1.25rem;">Select the event you wish to register for.</p>
         <input type="hidden" id="f-event" value="">
         <div id="form-event-list" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
@@ -406,11 +495,11 @@ const DEMO_LB = {
       </div>
 
       <div class="form-section">
-        <div class="form-section-title">Confirmation <span>04</span></div>
+        <div class="form-section-title">Confirmation <span></span></div>
         <div style="display:flex;flex-direction:column;gap:1rem;">
-          <div class="checkbox-group"><input type="checkbox" id="f-rules"><label for="f-rules">I have read and agree to the racing rules and fair-play guidelines of Sim Racing Tharavadu.</label></div>
+          <!-- <div class="checkbox-group"><input type="checkbox" id="f-rules"><label for="f-rules">I have read and agree to the racing rules and fair-play guidelines of Sim Racing Tharavadu.</label></div> -->
           <div class="checkbox-group"><input type="checkbox" id="f-conduct"><label for="f-conduct">I agree to maintain respectful sportsmanship throughout all events.</label></div>
-          <div class="checkbox-group"><input type="checkbox" id="f-updates"><label for="f-updates">I consent to receive WhatsApp / Discord notifications about events and schedules.</label></div>
+          <!-- <div class="checkbox-group"><input type="checkbox" id="f-updates"><label for="f-updates">I consent to receive WhatsApp / Discord notifications about events and schedules.</label></div> -->
         </div>
         <button class="submit-btn" id="submit-btn" onclick="submitForm()">Confirm Registration →</button>
         <div class="status-msg" id="status-msg"></div>
@@ -426,6 +515,29 @@ const DEMO_LB = {
           <strong style="color:var(--text);">Discord:</strong> <a href="https://discord.gg/BG53MSrw" target="_blank" style="color:var(--red);text-decoration:none;border-bottom:1px solid var(--red);">discord.gg/BG53MSrw</a><br>
           <strong style="color:var(--text);">Instagram:</strong> <a href="https://www.instagram.com/simracingtharavadu" target="_blank" style="color:var(--red);text-decoration:none;border-bottom:1px solid var(--red);">@simracingtharavadu</a>
         </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EVENT DETAILS MODAL -->
+<div id="event-modal" class="modal" style="display:none;">
+  <div class="modal-content event-card-modal">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <div class="event-poster-modal">
+      <img id="modal-poster" src="" alt="">
+    </div>
+    <div class="event-content-modal">
+      <div id="modal-badge" class="event-badge"></div>
+      <div id="modal-name" class="event-name"></div>
+      <div id="modal-sim" class="event-sim"></div>
+      <div id="modal-meta" class="event-meta"></div>
+      <div id="modal-description" class="event-description"></div>
+      <div id="modal-tracklinks" class="event-links"></div>
+      <div id="modal-carlinks" class="event-links"></div>
+      <div class="event-footer">
+        <div id="modal-drivers" class="drivers-count"></div>
+        <div id="modal-buttons"></div>
       </div>
     </div>
   </div>
@@ -453,6 +565,9 @@ function showPage(id) {
 async function loadData() {
   if (CONFIG.DEMO_MODE) {
     appEvents = DEMO_EVENTS;
+    appEvents.forEach(e => {
+      if (parseInt(e.drivers) >= parseInt(e.maxDrivers)) e.status = 'closed';
+    });
     appLB = DEMO_LB;
     init();
     return;
@@ -462,7 +577,10 @@ async function loadData() {
     const evData = await fetchGSheet(CONFIG.EVENTS_SHEET_URL);
     const lbData = await fetchGSheet(CONFIG.LEADERBOARD_SHEET_URL);
 
-    appEvents = parseRows(evData, ['id','name','sim','status','track','date','format','drivers','maxDrivers','rounds','season']);
+    appEvents = parseRows(evData, ['id','name','sim','status','track','startDate','endDate','format','drivers','maxDrivers','rounds','season','description','trackMod','carMod']);
+    appEvents.forEach(e => {
+      if (parseInt(e.drivers) >= parseInt(e.maxDrivers)) e.status = 'closed';
+    });
     const lbRows = parseRows(lbData, ['eventId','pos','driver','tag','team','pts','time','gap']);
     appLB = {};
     lbRows.forEach(r => { if (!appLB[r.eventId]) appLB[r.eventId] = []; appLB[r.eventId].push(r); });
@@ -515,19 +633,28 @@ function renderEventsGrid() {
   if (!appEvents.length) { el.innerHTML = '<div class="data-error">No events found.</div>'; return; }
   el.innerHTML = appEvents.map(e => `
     <div class="event-card ${e.status}">
-      <div class="event-badge ${e.status}">${e.status === 'ongoing' ? 'Live Now' : 'Upcoming'}</div>
-      <div class="event-name">${e.name}</div>
-      <div class="event-sim">${e.sim}</div>
-      <div class="event-meta">
-        <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${e.date}</div>
-        <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>${e.track}</div>
-        <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>${e.format}</div>
+      <div class="event-poster">
+        <img src="poster${e.id}.png" alt="${e.name} Poster" onerror="this.src='srtLogo.png';">
       </div>
-      <div class="event-footer">
-        <div class="drivers-count"><span>${e.drivers}</span> / ${e.maxDrivers} Drivers</div>
-        ${e.status === 'ongoing'
-          ? `<button class="view-lb-btn" onclick="showLB('${e.id}')">Leaderboard →</button>`
-          : `<button class="view-lb-btn" onclick="showPage('register')">Register →</button>`}
+      <div class="event-content">
+        <div class="event-badge ${e.status}">${e.status === 'ongoing' ? 'Live Now' : e.status === 'upcoming' ? 'Upcoming' : 'Closed'}</div>
+        <div class="event-name">${e.name}</div>
+        <div class="event-sim">${e.sim}</div>
+        <div class="event-meta">
+          <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${formatEventDate(e.startDate, e.endDate)}</div>
+          ${formatEventTime(e.startDate, e.endDate) ? `<div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${formatEventTime(e.startDate, e.endDate)}</div>` : ''}
+          <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>${e.track}</div>
+          <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>${e.format}</div>
+        </div>
+        <div class="event-footer">
+          <div class="drivers-count"><span>${e.drivers}</span> / ${e.maxDrivers} Drivers</div>
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <button class="view-details-btn" onclick="showEventDetails('${e.id}')">View Details</button>
+            ${e.status === 'ongoing'
+              ? `<button class="view-lb-btn" onclick="showLB('${e.id}')">Leaderboard →</button>`
+              : e.status === 'upcoming' ? `<button class="view-lb-btn" onclick="showPage('register')">Register →</button>` : `<div style="color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.1em;">Registration Closed</div>`}
+          </div>
+        </div>
       </div>
     </div>`).join('');
 }
@@ -560,7 +687,7 @@ function renderLeaderboard(eid) {
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--red);margin-bottom:4px;">${ev.sim}</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.04em;">${ev.track} — ${ev.format}</div>
       </div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;">${ev.date}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;">${formatEventDate(ev.startDate, ev.endDate)}</div>
     </div>
     ${!data.length ? '<div class="data-error">No standings posted for this event yet.</div>' : `
     <div class="lb-top3">${pod(1,'p1','P1')}${pod(2,'p2','P2')}${pod(3,'p3','P3')}</div>
@@ -569,27 +696,96 @@ function renderLeaderboard(eid) {
     </tbody></table>` : ''}`}`;
 }
 
+function showEventDetails(id) {
+  const event = appEvents.find(e => e.id === id);
+  if (!event) return;
+
+  // Poster
+  document.getElementById('modal-poster').src = `poster${event.id}.png`;
+  document.getElementById('modal-poster').onerror = function() { this.src = 'srtLogo.png'; };
+
+  // Badge
+  document.getElementById('modal-badge').className = `event-badge ${event.status}`;
+  document.getElementById('modal-badge').innerHTML = `${event.status === 'ongoing' ? 'Live Now' : event.status === 'upcoming' ? 'Upcoming' : 'Closed'}`;
+
+  // Name and Sim
+  document.getElementById('modal-name').textContent = event.name;
+  document.getElementById('modal-sim').textContent = event.sim;
+
+  // Meta
+  const metaHTML = `
+    <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${formatEventDate(event.startDate, event.endDate)}</div>
+    ${formatEventTime(event.startDate, event.endDate) ? `<div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${formatEventTime(event.startDate, event.endDate)}</div>` : ''}
+    <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>${event.track}</div>
+    <div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>${event.format}</div>
+  `;
+  document.getElementById('modal-meta').innerHTML = metaHTML;
+
+  // Description
+  document.getElementById('modal-description').textContent = event.description;
+
+  // Mod-links
+  document.getElementById('modal-tracklinks').innerHTML = event.trackMod ? `<a href="${event.trackMod}" target="_blank" rel="noopener noreferrer">Link to Track Mod</a>` : '';
+  document.getElementById('modal-carlinks').innerHTML = event.carMod ? `<a href="${event.carMod}" target="_blank" rel="noopener noreferrer">Link to Car Mod</a>` : '';
+
+  // Drivers
+  document.getElementById('modal-drivers').innerHTML = `<span>${event.drivers}</span> / ${event.maxDrivers} Drivers`;
+
+  // Buttons
+  const buttonsHTML = event.status === 'ongoing'
+    ? `<button class="view-lb-btn" onclick="closeModal(); showLB('${event.id}')">Leaderboard →</button>`
+    : event.status === 'upcoming' ? `<button class="view-lb-btn" onclick="closeModal(); showPage('register')">Register →</button>` : `<div style="color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.1em;">Registration Closed</div>`;
+  document.getElementById('modal-buttons').innerHTML = buttonsHTML;
+
+  // Dim the background page
+  const activePage = document.querySelector('.page.active');
+  if (activePage) activePage.style.filter = 'brightness(0.1)';
+
+  document.getElementById('event-modal').style.display = 'block';
+}
+
+function closeModal() {
+  // Restore background
+  const activePage = document.querySelector('.page.active');
+  if (activePage) activePage.style.filter = '';
+
+  document.getElementById('event-modal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('event-modal');
+  if (event.target === modal) {
+    modal.style.display = 'none';
+  }
+}
+
 /* ── REGISTER EVENTS ── */
 function renderRegisterEvents() {
   document.getElementById('reg-event-list').innerHTML = appEvents.map(e => `
-    <div class="event-select-card">
+    <div class="event-select-card ${e.status === 'closed' ? 'closed' : ''}">
       <div class="event-select-name">${e.name}</div>
-      <div class="event-select-meta">${e.sim} · ${e.date}</div>
+      <div class="event-select-meta">${e.sim} · ${formatEventDate(e.startDate, e.endDate)}</div>
       <div class="event-select-meta">${e.track} · ${e.format}</div>
-      <div class="event-select-meta" style="margin-top:6px;color:${e.status==='ongoing'?'var(--green)':'var(--gold)'};">
-        ${e.status==='ongoing'?'● Live':'◌ Upcoming'} · ${e.drivers}/${e.maxDrivers} Drivers
+      <div class="event-select-meta" style="margin-top:6px;color:${e.status==='ongoing'?'var(--green)':e.status==='upcoming'?'var(--gold)':'var(--muted)'};">
+        ${e.status==='ongoing'?'● Live':e.status==='upcoming'?'◌ Upcoming':'● Closed'} · ${e.drivers}/${e.maxDrivers} Drivers
       </div>
     </div>`).join('');
 
   document.getElementById('form-event-list').innerHTML = appEvents.map(e => `
-    <div class="event-select-card" id="fev-${e.id}" onclick="selectEvent('${e.id}','${e.name.replace(/'/g,"\\'")}')">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:${e.status==='ongoing'?'var(--green)':'var(--gold)'};margin-bottom:4px;">${e.status==='ongoing'?'● Live':'◌ Upcoming'}</div>
+    <div class="event-select-card ${e.status === 'closed' ? 'closed' : ''}" id="fev-${e.id}" onclick="selectEvent('${e.id}','${e.name.replace(/'/g,"\\'")}')">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:${e.status==='ongoing'?'var(--green)':e.status==='upcoming'?'var(--gold)':'var(--muted)'};margin-bottom:4px;">${e.status==='ongoing'?'● Live':e.status==='upcoming'?'◌ Upcoming':'● Closed'}</div>
       <div class="event-select-name">${e.name}</div>
       <div class="event-select-meta">${e.sim}</div>
     </div>`).join('');
 }
 
 function selectEvent(id, name) {
+  const event = appEvents.find(e => e.id === id);
+  if (event && event.status === 'closed') {
+    alert('Registration for this event is closed.');
+    return;
+  }
   document.querySelectorAll('#form-event-list .event-select-card').forEach(c => c.classList.remove('selected'));
   document.getElementById('fev-'+id)?.classList.add('selected');
   document.getElementById('f-event').value = name;
@@ -598,17 +794,30 @@ function selectEvent(id, name) {
 /* ── FORM SUBMIT ── */
 async function submitForm() {
   const g = id => document.getElementById(id).value.trim();
-  const fields = {
-    firstName:g('f-first'), lastName:g('f-last'), driverTag:g('f-tag'),
-    nationality:g('f-nat'), email:g('f-email'), whatsapp:g('f-phone'),
-    discord:g('f-discord'), platform:g('f-platform'), wheel:g('f-wheel'),
-    experience:g('f-exp'), skillLevel:g('f-skill'), carClass:g('f-carclass'),
-    event:g('f-event'), timestamp:new Date().toISOString()
-  };
+  // const fields = {
+  //   firstName:g('f-first'), lastName:g('f-last'), driverTag:g('f-tag'),
+  //   nationality:g('f-nat'), email:g('f-email'), whatsapp:g('f-phone'),
+  //   discord:g('f-discord'), platform:g('f-platform'), wheel:g('f-wheel'),
+  //   experience:g('f-exp'), skillLevel:g('f-skill'), carClass:g('f-carclass'),
+  //   event:g('f-event'), timestamp:new Date().toISOString()
+  // };
 
-  if (!fields.firstName||!fields.lastName||!fields.email||!fields.platform||!fields.whatsapp||!fields.event)
-    return setStatus('error','⚠ Please fill all required fields (*) and select an event.');
-  if (!document.getElementById('f-rules').checked)
+  const fields = {
+    // firstName:g('f-first'), lastName:g('f-last'), 
+    driverTag:g('f-tag'),
+    // nationality:g('f-nat'), email:g('f-email'), whatsapp:g('f-phone'),
+    discord:g('f-discord'), 
+    // platform:g('f-platform'), wheel:g('f-wheel'),
+    // experience:g('f-exp'), skillLevel:g('f-skill'), 
+    carClass:g('f-carclass'),
+    event:g('f-event'), timestamp:new Date().toISOString()
+  };  
+
+  // if (!fields.firstName||!fields.lastName||!fields.email||!fields.platform||!fields.whatsapp||!fields.event)
+  //   return setStatus('error','⚠ Please fill all required fields (*) and select an event.');
+  if (!fields.discord||!fields.driverTag||!fields.carClass||!fields.event)
+    return setStatus('error','⚠ Please fill all required fields (*) and select an event.');  
+  if (!document.getElementById('f-conduct').checked)
     return setStatus('error','⚠ Please agree to the racing rules to proceed.');
 
   const btn = document.getElementById('submit-btn');
@@ -624,7 +833,7 @@ async function submitForm() {
 
   try {
     await fetch(CONFIG.APPS_SCRIPT_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(fields)});
-    setStatus('success',`✓ ${fields.firstName} ${fields.lastName}, you're on the grid for "${fields.event}"! We'll reach out on WhatsApp/Discord shortly.`);
+    setStatus('success',`✓ ${fields.driverTag}, you're on the grid for "${fields.event}"! Look out for updates on Sim Racing Tharavadu Discord channel.`);
     resetForm();
   } catch(e) {
     setStatus('error',`⚠ Submission failed: ${e.message}. Please try again or contact us on WhatsApp.`);
@@ -641,9 +850,11 @@ function setStatus(type, html) {
 }
 
 function resetForm() {
-  ['f-first','f-last','f-tag','f-nat','f-email','f-phone','f-discord','f-carclass'].forEach(id=>document.getElementById(id).value='');
-  ['f-platform','f-wheel','f-exp','f-skill'].forEach(id=>document.getElementById(id).selectedIndex=0);
-  ['f-rules','f-conduct','f-updates'].forEach(id=>document.getElementById(id).checked=false);
+  // ['f-first','f-last','f-tag','f-nat','f-email','f-phone','f-discord','f-carclass'].forEach(id=>document.getElementById(id).value='');
+  // ['f-platform','f-wheel','f-exp','f-skill'].forEach(id=>document.getElementById(id).selectedIndex=0);
+  // ['f-rules','f-conduct','f-updates'].forEach(id=>document.getElementById(id).checked=false);
+  ['f-tag','f-discord','f-carclass'].forEach(id=>document.getElementById(id).value='');
+  ['f-conduct'].forEach(id=>document.getElementById(id).checked=false);  
   document.getElementById('f-event').value='';
   document.querySelectorAll('#form-event-list .event-select-card').forEach(c=>c.classList.remove('selected'));
 }
