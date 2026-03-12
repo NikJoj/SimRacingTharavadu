@@ -755,9 +755,11 @@ function renderEventsGrid() {
           <div class="drivers-count"><span>${e.drivers}</span> / ${e.maxDrivers} Drivers</div>
           <div style="display:flex;gap:0.5rem;align-items:center;">
             <button class="view-details-btn" onclick="showEventDetails('${e.id}')">View Details</button>
-            ${e.status === 'ongoing'
-              ? `<button class="view-lb-btn" onclick="showLB('${e.id}')">Leaderboard →</button>`
-              : e.status === 'upcoming' ? `<button class="view-lb-btn" onclick="showPage('register')">Register →</button>` : `<div style="color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.1em;">Registration Closed</div>`}
+          ${e.status === 'ongoing'
+            ? `<button class="view-lb-btn" onclick="showLB('${e.id}')">Leaderboard →</button>`
+            : e.status === 'upcoming'
+            ? `<button class="view-lb-btn" onclick="showPage('register')">Register →</button>`
+            : `<button class="view-lb-btn" onclick="showLB('${e.id}')">View Results →</button>`}
           </div>
         </div>
       </div>
