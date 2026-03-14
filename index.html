@@ -457,7 +457,7 @@ function formatEventTime(start, end) {
       <p class="hero-sub">Where throttle meets tradition. Compete, connect, and conquer the virtual circuit with Kerala's fastest virtual racers.</p>
       <div class="hero-actions">
         <button class="btn-primary" onclick="showPage('register')">Register For Events</button>
-        <!-- <button class="btn-outline" onclick="showPage('leaderboard')">View Leaderboard</button> -->
+        <button class="btn-outline" onclick="window.open('https://discord.gg/yQH6mRyy84', '_blank')">Join Discord</button>
       </div>
     </div>
     <div class="hero-logo">
@@ -482,7 +482,7 @@ function formatEventTime(start, end) {
   <footer>
     <div class="footer-brand">Sim Racing <span>Tharavadu</span></div>
     <div class="footer-social">
-      <a href="https://discord.gg/BG53MSrw" target="_blank" title="Join our Discord">
+      <a href="https://discord.gg/yQH6mRyy84" target="_blank" title="Join our Discord">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
           <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
         </svg>
@@ -520,6 +520,15 @@ function formatEventTime(start, end) {
       </div>
 
       <div class="form-section">
+        <div class="form-section-title">Event Selection <span></span></div>
+        <p style="font-size:0.88rem;color:var(--muted);margin-bottom:1.25rem;">Select the event you wish to register for first, so we can show the correct car list.</p>
+        <input type="hidden" id="f-event" value="">
+        <div id="form-event-list" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="data-loading" style="grid-column:1/-1"><span class="spinner"></span> Loading events…</div>
+        </div>
+      </div>
+
+      <div class="form-section">
         <div class="form-section-title">Driver Details <span></span></div>
         <div class="form-grid">
           <!-- <div class="form-group"><label>First Name *</label><input type="text" id="f-first" placeholder="Arjun"></div> -->
@@ -531,72 +540,18 @@ function formatEventTime(start, end) {
           <div class="form-group"><label>Discord Username *</label><input type="text" id="f-discord" placeholder="Your discord username"></div>
           <div class="form-group">
             <label>Preferred Car *</label>
-            <select id="f-carclass">
-              <option value="">— Select Car —</option>
-              <option>Alfa Giulietta TCR</option><option>Audi RS3 TCR</option>
-              <option>Cupra TCR</option><option>Honda Civic TCR</option>
-              <option>Hyundai Elantra N TCR</option><option>Hyundai i30N TCR</option>
-              <option>Lynk 03 2022 TCR</option><option>Peugeot 308 TCR</option>
-              <option>VW Golf TCR</option>
+            <select id="f-carclass" disabled>
+              <option value="">— Select Event First —</option>
             </select>
           </div>          
         </div>
       </div>
 
-      <!-- <div class="form-section">
-        <div class="form-section-title">Sim &amp; Setup <span>02</span></div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Platform *</label>
-            <select id="f-platform">
-              <option value="">— Select Platform —</option>
-              <option>Assetto Corsa Competizione</option>
-              <option>Assetto Corsa</option>
-              <option>iRacing</option>
-              <option>rFactor 2</option>
-              <option>Gran Turismo 7</option>
-              <option>F1 24</option>
-              <option>Le Mans Ultimate</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Steering Wheel / Controller</label>
-            <select id="f-wheel">
-              <option value="">— Select Hardware —</option>
-              <option>Logitech G29 / G920</option><option>Logitech G923</option>
-              <option>Thrustmaster T300 / T500</option><option>Thrustmaster T-GT II</option>
-              <option>Fanatec CSL DD</option><option>Fanatec Podium</option>
-              <option>SimuCube 2</option><option>Gamepad / DualSense / Xbox</option>
-              <option>Keyboard / Mouse</option><option>Other</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Experience (Years)</label>
-            <select id="f-exp">
-              <option value="">— Select —</option>
-              <option>Less than 1 year</option><option>1 – 2 years</option>
-              <option>2 – 4 years</option><option>4+ years</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Skill Level</label>
-            <select id="f-skill">
-              <option value="">— Select —</option>
-              <option>Beginner</option><option>Intermediate</option>
-              <option>Advanced</option><option>Pro / Elite</option>
-            </select>
-          </div>
-          <div class="form-group full"><label>Preferred Car Class</label><input type="text" id="f-carclass" placeholder="GT3, Formula, Touring…"></div>
-        </div>
-      </div> -->
-
       <div class="form-section">
-        <div class="form-section-title">Event Selection <span></span></div>
-        <p style="font-size:0.88rem;color:var(--muted);margin-bottom:1.25rem;">Select the event you wish to register for.</p>
-        <input type="hidden" id="f-event" value="">
-        <div id="form-event-list" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
-          <div class="data-loading" style="grid-column:1/-1"><span class="spinner"></span> Loading events…</div>
-        </div>
+        <!-- <div class="form-section-title" onclick="window.open('https://discord.gg/BG53MSrw','_blank')">Stay Connected <span></span></div> -->
+        <button class="btn-outline" type="button" onclick="window.open('https://discord.gg/BG53MSrw','_blank')">
+          Join our Discord Server
+        </button>
       </div>
 
       <div class="form-section">
@@ -604,7 +559,7 @@ function formatEventTime(start, end) {
         <div style="display:flex;flex-direction:column;gap:1rem;">
           <!-- <div class="checkbox-group"><input type="checkbox" id="f-rules"><label for="f-rules">I have read and agree to the racing rules and fair-play guidelines of Sim Racing Tharavadu.</label></div> -->
           <div class="checkbox-group"><input type="checkbox" id="f-conduct"><label for="f-conduct">I agree to maintain respectful sportsmanship throughout all events.</label></div>
-          <!-- <div class="checkbox-group"><input type="checkbox" id="f-updates"><label for="f-updates">I consent to receive WhatsApp / Discord notifications about events and schedules.</label></div> -->
+          <div class="checkbox-group"><input type="checkbox" id="f-discord-join"><label for="f-discord-join">I have joined the Discord server for easier communication with admins and other race briefing details.</label></div>
         </div>
         <button class="submit-btn" id="submit-btn" onclick="submitForm()">Confirm Registration →</button>
         <div class="status-msg" id="status-msg"></div>
@@ -617,7 +572,7 @@ function formatEventTime(start, end) {
       <div style="margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;">Need Help?</div>
         <p style="font-size:0.88rem;color:var(--muted);line-height:1.7;">Join our Discord or Instagram for queries.<br><br>
-          <strong style="color:var(--text);">Discord:</strong> <a href="https://discord.gg/BG53MSrw" target="_blank" style="color:var(--red);text-decoration:none;border-bottom:1px solid var(--red);">discord.gg/BG53MSrw</a><br>
+          <strong style="color:var(--text);">Discord:</strong> <a href="https://discord.gg/yQH6mRyy84" target="_blank" style="color:var(--red);text-decoration:none;border-bottom:1px solid var(--red);">discord.gg/yQH6mRyy84</a><br>
           <strong style="color:var(--text);">Instagram:</strong> <a href="https://www.instagram.com/simracingtharavadu" target="_blank" style="color:var(--red);text-decoration:none;border-bottom:1px solid var(--red);">@simracingtharavadu</a>
         </p>
       </div>
@@ -640,6 +595,7 @@ function formatEventTime(start, end) {
       <div id="modal-description" class="event-description"></div>
       <div id="modal-tracklinks" class="event-links"></div>
       <div id="modal-carlinks" class="event-links"></div>
+      <div id="modal-practice" class="event-links"></div>
       <div class="event-footer">
         <div id="modal-drivers" class="drivers-count"></div>
         <div id="modal-buttons"></div>
@@ -682,7 +638,7 @@ async function loadData() {
     const evData = await fetchGSheet(CONFIG.EVENTS_SHEET_URL);
     const lbData = await fetchGSheet(CONFIG.LEADERBOARD_SHEET_URL);
 
-    appEvents = parseRows(evData, ['id','name','sim','status','track','startDate','endDate','format','drivers','maxDrivers','rounds','season','description','trackMod','carMod']);
+    appEvents = parseRows(evData, ['id','name','sim','status','track','startDate','endDate','format','drivers','maxDrivers','rounds','season','description','trackMod','carMod','practiceServer','carOptions']);
     appEvents.forEach(e => {
       if (parseInt(e.drivers) >= parseInt(e.maxDrivers)) e.status = 'closed';
     });
@@ -834,6 +790,7 @@ function showEventDetails(id) {
   // Mod-links
   document.getElementById('modal-tracklinks').innerHTML = event.trackMod ? `<a href="${event.trackMod}" target="_blank" rel="noopener noreferrer">Link to Track Mod</a>` : '';
   document.getElementById('modal-carlinks').innerHTML = event.carMod ? `<a href="${event.carMod}" target="_blank" rel="noopener noreferrer">Link to Car Mod</a>` : '';
+  document.getElementById('modal-practice').innerHTML = event.practiceServer ? `<a href="${event.practiceServer}" target="_blank" rel="noopener noreferrer">Practice Server</a>` : '';
 
   // Drivers
   document.getElementById('modal-drivers').innerHTML = `<span>${event.drivers}</span> / ${event.maxDrivers} Drivers`;
@@ -897,6 +854,24 @@ function selectEvent(id, name) {
   document.querySelectorAll('#form-event-list .event-select-card').forEach(c => c.classList.remove('selected'));
   document.getElementById('fev-'+id)?.classList.add('selected');
   document.getElementById('f-event').value = name;
+
+  const carSelect = document.getElementById('f-carclass');
+  const optionsStr = event && event.carOptions ? event.carOptions : '';
+  if (carSelect && optionsStr) {
+    const cars = optionsStr.split(',').map(s => s.trim()).filter(Boolean);
+    carSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '— Select Car —';
+    carSelect.appendChild(placeholder);
+    cars.forEach(car => {
+      const opt = document.createElement('option');
+      opt.value = car;
+      opt.textContent = car;
+      carSelect.appendChild(opt);
+    });
+    carSelect.disabled = false;
+  }
 }
 
 /* ── FORM SUBMIT ── */
@@ -923,10 +898,14 @@ async function submitForm() {
 
   // if (!fields.firstName||!fields.lastName||!fields.email||!fields.platform||!fields.whatsapp||!fields.event)
   //   return setStatus('error','⚠ Please fill all required fields (*) and select an event.');
-  if (!fields.discord||!fields.driverTag||!fields.carClass||!fields.event)
-    return setStatus('error','⚠ Please fill all required fields (*) and select an event.');  
+  if (!fields.event)
+    return setStatus('error','⚠ Please select an event first.');  
+  if (!fields.discord||!fields.driverTag||!fields.carClass)
+    return setStatus('error','⚠ Please fill all required fields (*).');  
   if (!document.getElementById('f-conduct').checked)
     return setStatus('error','⚠ Please agree to the racing rules to proceed.');
+  if (!document.getElementById('f-discord-join').checked)
+    return setStatus('error','⚠ Please confirm you will join the Discord server for race updates and communication.');
 
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
@@ -962,9 +941,18 @@ function resetForm() {
   // ['f-platform','f-wheel','f-exp','f-skill'].forEach(id=>document.getElementById(id).selectedIndex=0);
   // ['f-rules','f-conduct','f-updates'].forEach(id=>document.getElementById(id).checked=false);
   ['f-tag','f-discord','f-carclass'].forEach(id=>document.getElementById(id).value='');
-  ['f-conduct'].forEach(id=>document.getElementById(id).checked=false);  
+  ['f-conduct','f-discord-join'].forEach(id=>document.getElementById(id).checked=false);  
   document.getElementById('f-event').value='';
   document.querySelectorAll('#form-event-list .event-select-card').forEach(c=>c.classList.remove('selected'));
+  const carSelect = document.getElementById('f-carclass');
+  if (carSelect) {
+    carSelect.disabled = true;
+    carSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '— Select Event First —';
+    carSelect.appendChild(placeholder);
+  }
 }
 
 loadData();
