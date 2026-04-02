@@ -617,6 +617,11 @@ function formatEventTime(start, end) {
 let appEvents = [];
 let appLB = {};
 
+function normalizeRaceName(v) {
+  const s = (v ?? '').toString().trim();
+  return s || 'Race 1';
+}
+
 /* ── PAGE NAV ── */
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -650,9 +655,16 @@ async function loadData() {
     appEvents.forEach(e => {
       if (parseInt(e.drivers) >= parseInt(e.maxDrivers)) e.status = 'closed';
     });
-    const lbRows = parseRows(lbData, ['eventId','pos','driver','tag','team','pts','time','gap']);
+    const lbRows = parseRows(lbData, ['eventId','race','pos','driver','tag','team','pts','time','gap']);
     appLB = {};
-    lbRows.forEach(r => { if (!appLB[r.eventId]) appLB[r.eventId] = []; appLB[r.eventId].push(r); });
+    // Backward compatible: if the sheet doesn't have "race" column yet,
+    // we treat everything as Race 1.
+    lbRows.forEach(r => {
+      const race = normalizeRaceName(r.race);
+      if (!appLB[r.eventId]) appLB[r.eventId] = {};
+      if (!appLB[r.eventId][race]) appLB[r.eventId][race] = [];
+      appLB[r.eventId][race].push(r);
+    });
     init();
   } catch(e) {
     document.getElementById('events-grid').innerHTML = `<div class="data-error">⚠ Could not load sheet data.<br><small>${e.message}</small></div>`;
@@ -741,15 +753,44 @@ function renderLeaderboard(eid) {
 
   const ev = appEvents.find(e => e.id === eid);
   if (!ev) return;
-  const data = appLB[eid] || [];
-  const top3 = data.slice(0,3);
-  const rest = data.slice(3);
 
-  const pod = (rank, cls, label) => {
-    const p = top3.find(r => r.pos === String(rank));
-    return p
-      ? `<div class="podium-card ${cls}"><div class="podium-pos">${label}</div><div class="podium-name">${p.driver}</div><div class="podium-team">${p.tag} · ${p.team}</div><div class="podium-time">${p.time}</div><div class="podium-pts">${p.pts}</div><div class="podium-pts-label">Points</div></div>`
-      : `<div class="podium-card ${cls}" style="opacity:0.2"><div class="podium-pos">${label}</div></div>`;
+  const eventData = appLB[eid] || {};
+
+  // Support older DEMO_LB shape (array) as a single race.
+  const racesMap = Array.isArray(eventData) ? {'Race 1': eventData} : eventData;
+  const raceNames = Object.keys(racesMap).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+  const toNum = (s) => {
+    const n = parseInt((s ?? '').toString(), 10);
+    return Number.isFinite(n) ? n : 9999;
+  };
+
+  const renderRaceBlock = (raceName, rows) => {
+    const sorted = [...(rows || [])].sort((a, b) => toNum(a.pos) - toNum(b.pos));
+    const top3 = sorted.filter(r => ['1','2','3'].includes((r.pos ?? '').toString()));
+    const rest = sorted.filter(r => !['1','2','3'].includes((r.pos ?? '').toString()));
+
+    const pod = (rank, cls, label) => {
+      const p = top3.find(r => (r.pos ?? '').toString() === String(rank));
+      return p
+        ? `<div class="podium-card ${cls}"><div class="podium-pos">${label}</div><div class="podium-name">${p.driver}</div><div class="podium-team">${p.tag} · ${p.team}</div><div class="podium-time">${p.time}</div><div class="podium-pts">${p.pts}</div><div class="podium-pts-label">Points</div></div>`
+        : `<div class="podium-card ${cls}" style="opacity:0.2"><div class="podium-pos">${label}</div></div>`;
+    };
+
+    return `
+      <div style="margin-top:2.25rem;">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.06em;">${raceName}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);">Race Results</div>
+        </div>
+        ${!sorted.length ? '<div class="data-error">No results posted for this race yet.</div>' : `
+          <div class="lb-top3">${pod(1,'p1','P1')}${pod(2,'p2','P2')}${pod(3,'p3','P3')}</div>
+          ${rest.length ? `<table class="lb-table"><thead><tr><th>Pos</th><th>Driver</th><th>Best Lap</th><th>Gap</th><th>Pts</th></tr></thead><tbody>
+            ${rest.map(r=>`<tr><td class="td-pos">${r.pos}</td><td class="td-driver">${r.driver}<div class="td-driver-team">${r.tag} · ${r.team}</div></td><td class="td-time">${r.time}</td><td class="td-gap">${r.gap}</td><td class="td-pts">${r.pts}</td></tr>`).join('')}
+          </tbody></table>` : ''}
+        `}
+      </div>
+    `;
   };
 
   document.getElementById('lb-body').innerHTML = `
@@ -760,11 +801,8 @@ function renderLeaderboard(eid) {
       </div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;">${formatEventDate(ev.startDate, ev.endDate)}</div>
     </div>
-    ${!data.length ? '<div class="data-error">No standings posted for this event yet.</div>' : `
-    <div class="lb-top3">${pod(1,'p1','P1')}${pod(2,'p2','P2')}${pod(3,'p3','P3')}</div>
-    ${rest.length ? `<table class="lb-table"><thead><tr><th>Pos</th><th>Driver</th><th>Best Lap</th><th>Gap</th><th>Pts</th></tr></thead><tbody>
-    ${rest.map(r=>`<tr><td class="td-pos">${r.pos}</td><td class="td-driver">${r.driver}<div class="td-driver-team">${r.tag} · ${r.team}</div></td><td class="td-time">${r.time}</td><td class="td-gap">${r.gap}</td><td class="td-pts">${r.pts}</td></tr>`).join('')}
-    </tbody></table>` : ''}`}`;
+    ${!raceNames.length ? '<div class="data-error">No standings posted for this event yet.</div>' : raceNames.map(rn => renderRaceBlock(rn, racesMap[rn])).join('')}
+  `;
 }
 
 function showEventDetails(id) {
