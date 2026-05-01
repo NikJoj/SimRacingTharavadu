@@ -99,6 +99,13 @@
   .view-details-btn{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);background:none;border:1px solid rgba(245,166,35,0.3);padding:6px 14px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);cursor:pointer;transition:background 0.2s,color 0.2s;}
   .view-details-btn:hover{background:var(--gold);color:#000;}
 
+  /* EVENTS PAGINATION */
+  .events-pagination{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:1rem;flex-wrap:wrap;}
+  .events-page-info{font-family:'Barlow Condensed',sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);}
+  .events-page-btn{font-family:'Barlow Condensed',sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;background:transparent;color:var(--text);border:1px solid var(--border);padding:8px 14px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);cursor:pointer;transition:border-color 0.2s,transform 0.15s,opacity 0.2s;}
+  .events-page-btn:hover:not(:disabled){border-color:rgba(255,255,255,0.28);transform:translateY(-1px);}
+  .events-page-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
 /* MOBILE FIX */
 @media (max-width: 768px){
 
@@ -472,9 +479,9 @@ function formatEventTime(start, end) {
       <img src="srtLogo.png" alt="Sim Racing Tharavadu Logo">
     </div>
     <div class="hero-stat-strip">
-      <div class="hero-stat"><div class="stat-num">100+</div><div class="stat-label">Discord members</div></div>
-      <div class="hero-stat"><div class="stat-num">20+</div><div class="stat-label">Endurance Races completed</div></div>
-      <div class="hero-stat"><div class="stat-num">5+</div><div class="stat-label">Top 10 Finishes</div></div>
+      <div class="hero-stat"><div class="stat-num">150+</div><div class="stat-label">Discord members</div></div>
+      <div class="hero-stat"><div class="stat-num">10+</div><div class="stat-label">Races hosted</div></div>
+      <div class="hero-stat"><div class="stat-num">24/7</div><div class="stat-label">Practise Servers</div></div>
       <!-- <div class="hero-stat"><div class="stat-num">0</div><div class="stat-label">Podiums</div></div> -->
     </div>
   </div>
@@ -486,6 +493,7 @@ function formatEventTime(start, end) {
     <div id="events-grid" class="events-grid">
       <div class="data-loading"><span class="spinner"></span> Loading events…</div>
     </div>
+    <div id="events-pagination" class="events-pagination" style="display:none;"></div>
   </section>
   <footer>
     <div class="footer-brand">Sim Racing <span>Tharavadu</span></div>
@@ -617,6 +625,10 @@ function formatEventTime(start, end) {
 let appEvents = [];
 let appLB = {};
 
+// Events grid pagination
+const EVENTS_PAGE_SIZE = 3;
+let eventsPage = 1;
+
 function normalizeRaceName(v) {
   const s = (v ?? '').toString().trim();
   return s || 'Race 1';
@@ -709,10 +721,19 @@ function init() {
 }
 
 /* ── EVENTS GRID ── */
-function renderEventsGrid() {
-  const el = document.getElementById('events-grid');
-  if (!appEvents.length) { el.innerHTML = '<div class="data-error">No events found.</div>'; return; }
-  el.innerHTML = appEvents.map(e => `
+function getEventsSortedLatestFirst() {
+  return [...appEvents].sort((a, b) => {
+    const ad = Date.parse(a.startDate || '') || 0;
+    const bd = Date.parse(b.startDate || '') || 0;
+    if (bd !== ad) return bd - ad; // newest start first
+    const ai = parseInt(a.id || '0', 10) || 0;
+    const bi = parseInt(b.id || '0', 10) || 0;
+    return bi - ai;
+  });
+}
+
+function buildEventCardHTML(e) {
+  return `
     <div class="event-card ${e.status}">
       <div class="event-poster">
         <img src="poster${e.id}.png" alt="${e.name} Poster" onerror="this.src='srtLogo.png';">
@@ -739,7 +760,46 @@ function renderEventsGrid() {
           </div>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+}
+
+function setEventsPage(nextPage) {
+  const all = getEventsSortedLatestFirst();
+  const totalPages = Math.max(1, Math.ceil(all.length / EVENTS_PAGE_SIZE));
+  eventsPage = Math.min(Math.max(1, nextPage), totalPages);
+  renderEventsGrid();
+}
+
+function renderEventsGrid() {
+  const el = document.getElementById('events-grid');
+  const pager = document.getElementById('events-pagination');
+  if (!appEvents.length) {
+    el.innerHTML = '<div class="data-error">No events found.</div>';
+    if (pager) pager.style.display = 'none';
+    return;
+  }
+
+  const all = getEventsSortedLatestFirst();
+  const totalPages = Math.max(1, Math.ceil(all.length / EVENTS_PAGE_SIZE));
+  if (eventsPage > totalPages) eventsPage = totalPages;
+  if (eventsPage < 1) eventsPage = 1;
+
+  const start = (eventsPage - 1) * EVENTS_PAGE_SIZE;
+  const pageItems = all.slice(start, start + EVENTS_PAGE_SIZE);
+  el.innerHTML = pageItems.map(buildEventCardHTML).join('');
+
+  if (pager) {
+    if (totalPages <= 1) {
+      pager.style.display = 'none';
+    } else {
+      pager.style.display = 'flex';
+      pager.innerHTML = `
+        <button class="events-page-btn" onclick="setEventsPage(${eventsPage - 1})" ${eventsPage <= 1 ? 'disabled' : ''}>← Prev</button>
+        <div class="events-page-info">Page ${eventsPage} / ${totalPages}</div>
+        <button class="events-page-btn" onclick="setEventsPage(${eventsPage + 1})" ${eventsPage >= totalPages ? 'disabled' : ''}>Next →</button>
+      `;
+    }
+  }
 }
 
 function showLB(id) { showPage('leaderboard'); renderLeaderboard(id); }
@@ -873,22 +933,24 @@ window.onclick = function(event) {
 
 /* ── REGISTER EVENTS ── */
 function renderRegisterEvents() {
-  document.getElementById('reg-event-list').innerHTML = appEvents.map(e => `
-    <div class="event-select-card ${e.status === 'closed' ? 'closed' : ''}">
+  const upcoming = appEvents.filter(e => e.status === 'upcoming');
+
+  document.getElementById('reg-event-list').innerHTML = upcoming.length ? upcoming.map(e => `
+    <div class="event-select-card">
       <div class="event-select-name">${e.name}</div>
       <div class="event-select-meta">${e.sim} · ${formatEventDate(e.startDate, e.endDate)}</div>
       <div class="event-select-meta">${e.track} · ${e.format}</div>
       <div class="event-select-meta" style="margin-top:6px;color:${e.status==='ongoing'?'var(--green)':e.status==='upcoming'?'var(--gold)':'var(--muted)'};">
         ${e.status==='ongoing'?'● Live':e.status==='upcoming'?'◌ Upcoming':'● Closed'} · ${e.drivers}/${e.maxDrivers} Drivers
       </div>
-    </div>`).join('');
+    </div>`).join('') : `<div class="data-error">No upcoming events right now.</div>`;
 
-  document.getElementById('form-event-list').innerHTML = appEvents.map(e => `
-    <div class="event-select-card ${e.status === 'closed' ? 'closed' : ''}" id="fev-${e.id}" onclick="selectEvent('${e.id}','${e.name.replace(/'/g,"\\'")}')">
+  document.getElementById('form-event-list').innerHTML = upcoming.length ? upcoming.map(e => `
+    <div class="event-select-card" id="fev-${e.id}" onclick="selectEvent('${e.id}','${e.name.replace(/'/g,"\\'")}')">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:${e.status==='ongoing'?'var(--green)':e.status==='upcoming'?'var(--gold)':'var(--muted)'};margin-bottom:4px;">${e.status==='ongoing'?'● Live':e.status==='upcoming'?'◌ Upcoming':'● Closed'}</div>
       <div class="event-select-name">${e.name}</div>
       <div class="event-select-meta">${e.sim}</div>
-    </div>`).join('');
+    </div>`).join('') : `<div class="data-error" style="grid-column:1/-1">No upcoming events right now.</div>`;
 }
 
 function selectEvent(id, name) {
