@@ -83,8 +83,144 @@ fetch('/api/results')
   .then(data => console.log(data));
 ```
 
-**Response:** List of completed race results  
+**Response:** List of completed race results
 **Cache:** 2 minutes
+
+---
+
+### 6. Individual Race Result
+**Endpoint:** `/api/race-result`
+**Method:** `GET`
+**Parameters:**
+- `file` (required) - The race result filename (e.g., `2020_7_28_19_48_RACE.json`)
+
+**Example:**
+```javascript
+fetch('/api/race-result?file=2020_7_28_19_48_RACE.json')
+  .then(res => res.json())
+  .then(data => console.log(data));
+```
+
+**Response:** Detailed race result data for a specific race
+**Cache:** 5 minutes
+
+---
+
+### 7. Store Latest Race Result
+**Endpoint:** `/api/store-latest-result`
+**Method:** `GET` or `POST`
+**Parameters:**
+- `league` (required) - League name/identifier (e.g., `SRT-GT3-Season-1`)
+
+**Example:**
+```javascript
+fetch('/api/store-latest-result?league=SRT-GT3-Season-1', { method: 'POST' })
+  .then(res => res.json())
+  .then(data => console.log(data));
+```
+
+**Response:** Stores the latest RACE result in Vercel Blob Store organized by league
+**Features:**
+- Automatically fetches the latest race result from `/api/results/list.json`
+- Filters for RACE sessions only (excludes PRACTICE and QUALIFYING)
+- Stores with league-specific path: `{league}/race-{timestamp}.json`
+- Includes league metadata for filtering
+- Each race stored with unique timestamp
+- Returns blob URLs for stored data
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "message": "Latest race result stored successfully",
+  "league": "SRT-GT3-Season-1",
+  "metadata": {
+    "league": "SRT-GT3-Season-1",
+    "track": "spa",
+    "session_type": "RACE",
+    "date": "2020-07-28T19:48:00+01:00",
+    "results_json_url": "/results/download/2020_7_28_19_48_RACE.json",
+    "results_page_url": "/results/2020_7_28_19_48_RACE",
+    "stored_at": "2026-05-06T09:30:00.000Z",
+    "blob_url": "https://...",
+    "race_timestamp": 1595959680000
+  },
+  "blob_urls": {
+    "result": "https://...",
+    "metadata": "https://..."
+  }
+}
+```
+
+---
+
+### 8. Get Stored Race Results
+**Endpoint:** `/api/get-stored-result`
+**Method:** `GET`
+**Parameters:**
+- `list` (optional) - Set to `leagues` to list all available leagues
+- `league` (optional) - League name to filter results
+- `timestamp` (optional) - Specific race timestamp (use with `league`)
+
+**Examples:**
+
+**List all leagues:**
+```javascript
+fetch('/api/get-stored-result?list=leagues')
+  .then(res => res.json())
+  .then(data => console.log(data));
+// Returns: { success: true, leagues: ["SRT-GT3-Season-1", "SRT-Formula-Series"] }
+```
+
+**Get all races for a league:**
+```javascript
+fetch('/api/get-stored-result?league=SRT-GT3-Season-1')
+  .then(res => res.json())
+  .then(data => console.log(data));
+```
+
+**Response Format (all races):**
+```json
+{
+  "success": true,
+  "league": "SRT-GT3-Season-1",
+  "count": 5,
+  "races": [
+    {
+      "timestamp": 1595959680000,
+      "date": "2020-07-28T19:48:00+01:00",
+      "track": "spa",
+      "session_type": "RACE",
+      "blob_url": "https://...",
+      "metadata_url": "https://..."
+    }
+  ]
+}
+```
+
+**Get specific race:**
+```javascript
+fetch('/api/get-stored-result?league=SRT-GT3-Season-1&timestamp=1595959680000')
+  .then(res => res.json())
+  .then(data => console.log(data));
+```
+
+**Response Format (specific race):**
+```json
+{
+  "success": true,
+  "league": "SRT-GT3-Season-1",
+  "timestamp": "1595959680000",
+  "metadata": {
+    "league": "SRT-GT3-Season-1",
+    "track": "spa",
+    "date": "2020-07-28T19:48:00+01:00"
+  },
+  "data": { /* full race result data */ }
+}
+```
+
+**Cache:** 1-5 minutes depending on query type
 
 ---
 
