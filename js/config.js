@@ -30,7 +30,8 @@ const CONFIG = {
     CHAMPIONSHIPS: "/api/championships",   // List all championships
     LIVE_LEADERBOARD: "/api/live-leaderboard", // Live timing leaderboard
     LIVE_BASIC: "/api/live-basic",        // Basic live timing info
-    RESULTS: "/api/results"               // Race results list
+    RESULTS: "/api/results",              // Race results list
+    RACE_RESULT: "/api/race-result"       // Individual race result
   },
   
   // Legacy settings (no longer needed with serverless functions)
