@@ -1,0 +1,15 @@
+https://wiki.emperorservers.com/assetto-corsa-server-manager/web-api#championship-standings
+
+https://wiki.emperorservers.com/assetto-corsa-server-manager/results
+
+
+https://sg.assettohosting.com:10027/
+
+https://sg.assettohosting.com:10027/championship/1bb2f11c-d4db-45e8-9505-97cd6ec1e806/standings.json
+https://sg.assettohosting.com:10027/api/championships/list.json
+https://sg.assettohosting.com:10027/api/live-timings/leaderboard.json
+https://sg.assettohosting.com:10027/api/live-timings/basic.json
+
+https://sg.assettohosting.com:10027/api/results/list.json
+
+https://sg.assettohosting.com:10027/results/2026_4_29_10_38_RACE

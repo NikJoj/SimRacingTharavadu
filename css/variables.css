@@ -1,0 +1,23 @@
+/* ═══════════════════════════════════════════════════
+   CSS VARIABLES - Color Scheme & Design Tokens
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  /* Brand Colors */
+  --red: #E8001D;
+  --red-dim: #9b0014;
+  --gold: #F5A623;
+  
+  /* Background Colors */
+  --bg: #080A0C;
+  --bg2: #0E1114;
+  --bg3: #161A1F;
+  
+  /* UI Colors */
+  --border: rgba(255, 255, 255, 0.07);
+  --text: #E8EAF0;
+  --muted: #6B7280;
+  --green: #00E676;
+}
+
+/* Made with Bob */

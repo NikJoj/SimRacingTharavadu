@@ -1,0 +1,51 @@
+/* ═══════════════════════════════════════════════════
+   FOOTER - Site Footer
+   ═══════════════════════════════════════════════════ */
+
+footer {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 3rem 6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-brand {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.footer-brand span {
+  color: var(--red);
+}
+
+.footer-copy {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.footer-social {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.footer-social a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-social a:hover {
+  color: var(--red);
+}
+
+.footer-social svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Made with Bob */

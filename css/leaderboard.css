@@ -1,0 +1,214 @@
+/* ═══════════════════════════════════════════════════
+   LEADERBOARD - Tables, Podium, Tabs
+   ═══════════════════════════════════════════════════ */
+
+#leaderboard {
+  padding-top: 64px;
+  min-height: 100vh;
+}
+
+.lb-hero {
+  padding: 4rem 6rem 0;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(232, 0, 29, 0.05) 0%, transparent 100%);
+}
+
+.lb-event-tabs {
+  display: flex;
+  margin-top: 2rem;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.lb-tab {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 1rem 2rem;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  transition: color 0.2s;
+}
+
+.lb-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--red);
+}
+
+.lb-body {
+  padding: 3rem 6rem;
+}
+
+.lb-top3 {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.podium-card {
+  background: var(--bg2);
+  padding: 2rem;
+  text-align: center;
+}
+
+.podium-card.p1 {
+  background: linear-gradient(180deg, rgba(245, 166, 35, 0.1) 0%, var(--bg2) 100%);
+}
+
+.podium-card.p2 {
+  background: linear-gradient(180deg, rgba(180, 180, 180, 0.07) 0%, var(--bg2) 100%);
+}
+
+.podium-card.p3 {
+  background: linear-gradient(180deg, rgba(180, 100, 40, 0.07) 0%, var(--bg2) 100%);
+}
+
+.podium-pos {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 4rem;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.p1 .podium-pos {
+  color: var(--gold);
+}
+
+.p2 .podium-pos {
+  color: #b0b0b0;
+}
+
+.p3 .podium-pos {
+  color: #cd7f32;
+}
+
+.podium-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.podium-team {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.podium-time {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--red);
+  letter-spacing: 0.1em;
+}
+
+.podium-pts {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem;
+  color: var(--text);
+  margin-top: 0.5rem;
+}
+
+.podium-pts-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+}
+
+.lb-table thead tr {
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+
+.lb-table th {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 1rem 1.5rem;
+  text-align: left;
+}
+
+.lb-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.lb-table tbody tr:hover {
+  background: var(--bg3);
+}
+
+.lb-table td {
+  padding: 1rem 1.5rem;
+  font-size: 0.95rem;
+}
+
+.td-pos {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  color: var(--muted);
+  width: 60px;
+}
+
+.td-driver {
+  font-weight: 500;
+}
+
+.td-driver-team {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.td-time {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--red);
+  letter-spacing: 0.05em;
+}
+
+.td-pts {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  color: var(--gold);
+}
+
+.td-gap {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Made with Bob */
