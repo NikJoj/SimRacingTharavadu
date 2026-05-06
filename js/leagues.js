@@ -42,14 +42,8 @@ function buildLeagueCardHTML(l) {
           ${formatEventTime(l.startDate, l.endDate) ? `<div class="event-meta-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${formatEventTime(l.startDate, l.endDate)}</div>` : ''}
         </div>
         <div class="league-footer">
-          <div class="drivers-count"><span>${l.drivers}</span> / ${l.maxDrivers} Drivers</div>
           <div class="league-actions">
-            <button class="view-details-btn" onclick="showLeagueDetails('${l.id}')">View Details</button>
-            ${l.status === 'upcoming'
-              ? `<button class="view-lb-btn" onclick="showPage('league-register')">Register →</button>`
-              : l.status === 'ongoing'
-              ? `<button class="view-lb-btn" onclick="showLB('${l.id}')">Leaderboard →</button>`
-              : `<span style="color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:0.1em;">Registration Closed</span>`}
+            <button class="view-lb-btn" onclick="showLeagueDetails('${l.id}')">View Details →</button>
           </div>
         </div>
       </div>
@@ -165,6 +159,9 @@ function switchLeagueTab(tabName) {
       break;
     case 'live':
       loadLiveTiming();
+      break;
+    case 'signup':
+      loadSignupIframe();
       break;
   }
 }
@@ -751,6 +748,26 @@ function getPenaltyDetails(penalty) {
 function backToRaces() {
   showPage('league-details');
   switchLeagueTab('races');
+}
+
+/**
+ * Load signup iframe with championship registration page
+ */
+function loadSignupIframe() {
+  const iframe = document.getElementById('signup-iframe');
+  
+  if (!iframe) {
+    console.error('Signup iframe not found');
+    return;
+  }
+  
+  // Build the signup URL using the championship ID from config
+  const signupUrl = `https://sg.assettohosting.com:10027/championship/${CONFIG.ASSETTO_CHAMPIONSHIP_ID}`;
+  
+  // Set the iframe source
+  iframe.src = signupUrl;
+  
+  console.log('Loading signup page:', signupUrl);
 }
 
 

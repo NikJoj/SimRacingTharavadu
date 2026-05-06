@@ -8,6 +8,29 @@
   min-height: 100vh;
 }
 
+.back-btn {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 1.5rem;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+}
+
+.back-btn:hover {
+  color: var(--text);
+  border-color: var(--red);
+  background: rgba(232, 0, 29, 0.05);
+  transform: translateX(-4px);
+}
+
 .reg-layout {
   display: grid;
   grid-template-columns: 1fr 420px;
