@@ -124,8 +124,8 @@ function showLeagueDetails(leagueId) {
   // Show the page
   showPage('league-details');
   
-  // Load initial tab content
-  switchLeagueTab('standings');
+  // Load initial tab content - default to signup tab
+  switchLeagueTab('signup');
 }
 
 /**
