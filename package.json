@@ -15,6 +15,9 @@
   ],
   "author": "SimRacingTharavadu",
   "license": "MIT",
+  "dependencies": {
+    "@vercel/blob": "^0.23.0"
+  },
   "devDependencies": {
     "vercel": "^33.0.0"
   }
