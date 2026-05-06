@@ -103,4 +103,301 @@ function renderLeaguesGrid() {
   }
 }
 
+/* ═══════════════════════════════════════════════════
+   LEAGUE DETAILS PAGE - Tab Management & Data Loading
+   ═══════════════════════════════════════════════════ */
+
+// Store current league ID and tab
+let currentLeagueId = null;
+let currentLeagueTab = 'standings';
+
+/**
+ * Show league details page (called from Leaderboard button)
+ * @param {string} leagueId - League ID
+ */
+function showLB(leagueId) {
+  currentLeagueId = leagueId;
+  const league = appLeagues.find(l => l.id === leagueId);
+  
+  if (!league) {
+    console.error('League not found:', leagueId);
+    return;
+  }
+  
+  // Update page title
+  document.getElementById('league-details-title').textContent = league.name;
+  
+  // Show the page
+  showPage('league-details');
+  
+  // Load initial tab content
+  switchLeagueTab('standings');
+}
+
+/**
+ * Switch between league tabs
+ * @param {string} tabName - Tab name (standings, races, live)
+ */
+function switchLeagueTab(tabName) {
+  currentLeagueTab = tabName;
+  
+  // Update tab buttons
+  document.querySelectorAll('.league-tab').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('data-tab') === tabName) {
+      btn.classList.add('active');
+    }
+  });
+  
+  // Update tab panels
+  document.querySelectorAll('.league-tab-panel').forEach(panel => {
+    panel.classList.remove('active');
+  });
+  document.getElementById(`league-tab-${tabName}`).classList.add('active');
+  
+  // Load content based on tab
+  switch(tabName) {
+    case 'standings':
+      loadLeagueStandings();
+      break;
+    case 'races':
+      loadLeagueRaces();
+      break;
+    case 'live':
+      loadLiveTiming();
+      break;
+  }
+}
+
+/**
+ * Load championship standings
+ */
+async function loadLeagueStandings() {
+  const container = document.getElementById('league-standings-content');
+  container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading standings…</div>';
+  
+  try {
+    const response = await fetch(`${CONFIG.ASSETTO_API.STANDINGS}?championshipId=${CONFIG.ASSETTO_CHAMPIONSHIP_ID}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      container.innerHTML = `<div class="data-error">⚠ ${data.error}</div>`;
+      return;
+    }
+    
+    // Check if we have standings data
+    if (!data.standings || data.standings.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🏆</div>
+          <div class="empty-state-text">No standings available yet</div>
+        </div>
+      `;
+      return;
+    }
+    
+    // Render standings table
+    container.innerHTML = buildStandingsTable(data.standings);
+  } catch (error) {
+    console.error('Error loading standings:', error);
+    container.innerHTML = '<div class="data-error">⚠ Failed to load standings. Please try again later.</div>';
+  }
+}
+
+/**
+ * Load race details list
+ */
+async function loadLeagueRaces() {
+  const container = document.getElementById('league-races-content');
+  container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading races…</div>';
+  
+  try {
+    const response = await fetch(CONFIG.ASSETTO_API.RESULTS);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      container.innerHTML = `<div class="data-error">⚠ ${data.error}</div>`;
+      return;
+    }
+    
+    // Check if we have results data
+    if (!data.results || data.results.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🏁</div>
+          <div class="empty-state-text">No races available yet</div>
+        </div>
+      `;
+      return;
+    }
+    
+    // Render race list
+    container.innerHTML = buildRaceList(data.results);
+  } catch (error) {
+    console.error('Error loading races:', error);
+    container.innerHTML = '<div class="data-error">⚠ Failed to load races. Please try again later.</div>';
+  }
+}
+
+/**
+ * Load live timing data
+ */
+async function loadLiveTiming() {
+  const container = document.getElementById('league-live-content');
+  container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading live timings…</div>';
+  
+  try {
+    const response = await fetch(CONFIG.ASSETTO_API.LIVE_BASIC);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      container.innerHTML = `<div class="data-error">⚠ ${data.error}</div>`;
+      return;
+    }
+    
+    // Check if session is active
+    if (!data.sessionActive) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">⏱️</div>
+          <div class="empty-state-text">No active session</div>
+        </div>
+      `;
+      return;
+    }
+    
+    // Render live timing
+    container.innerHTML = buildLiveTimingDisplay(data);
+  } catch (error) {
+    console.error('Error loading live timing:', error);
+    container.innerHTML = '<div class="data-error">⚠ Failed to load live timing. Please try again later.</div>';
+  }
+}
+
+/**
+ * Build standings table HTML
+ * @param {Array} standings - Array of standing entries
+ * @returns {string} HTML string
+ */
+function buildStandingsTable(standings) {
+  let html = '<div class="lb-table"><table><thead><tr>';
+  html += '<th>Pos</th><th>Driver</th><th>Team</th><th>Points</th><th>Best Time</th>';
+  html += '</tr></thead><tbody>';
+  
+  standings.forEach((entry, idx) => {
+    const posClass = idx === 0 ? 'pos-1' : idx === 1 ? 'pos-2' : idx === 2 ? 'pos-3' : '';
+    html += `<tr class="${posClass}">
+      <td class="pos-cell">${idx + 1}</td>
+      <td class="driver-cell">
+        <div class="driver-name">${entry.driverName || 'Unknown Driver'}</div>
+        ${entry.tag ? `<div class="driver-tag">${entry.tag}</div>` : ''}
+      </td>
+      <td class="team-cell">${entry.team || '-'}</td>
+      <td class="pts-cell">${entry.points || 0}</td>
+      <td class="time-cell">${entry.bestLap || '-'}</td>
+    </tr>`;
+  });
+  
+  html += '</tbody></table></div>';
+  return html;
+}
+
+/**
+ * Build race list HTML
+ * @param {Array} results - Array of race results
+ * @returns {string} HTML string
+ */
+function buildRaceList(results) {
+  let html = '<div class="race-list">';
+  
+  results.forEach(race => {
+    const raceDate = race.date ? new Date(race.date).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    }) : 'Date TBA';
+    
+    html += `
+      <div class="race-item" onclick="showRaceResults('${race.id}')">
+        <div class="race-info">
+          <div class="race-name">${race.name || 'Race ' + (results.indexOf(race) + 1)}</div>
+          <div class="race-meta">${race.track || 'Track TBA'} • ${raceDate}</div>
+        </div>
+        <div class="race-arrow">→</div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  return html;
+}
+
+/**
+ * Build live timing display HTML
+ * @param {Object} data - Live timing data
+ * @returns {string} HTML string
+ */
+function buildLiveTimingDisplay(data) {
+  let html = `
+    <div class="live-timing-header">
+      <div class="live-status">
+        <span class="live-indicator"></span>
+        <span>LIVE</span>
+      </div>
+      <div class="session-info">
+        ${data.sessionType || 'Session'} • ${data.track || 'Track'}
+      </div>
+    </div>
+  `;
+  
+  html += '<div class="lb-table"><table><thead><tr>';
+  html += '<th>Pos</th><th>Driver</th><th>Gap</th><th>Last Lap</th><th>Best Lap</th>';
+  html += '</tr></thead><tbody>';
+  
+  if (data.entries && data.entries.length > 0) {
+    data.entries.forEach(entry => {
+      html += `<tr>
+        <td class="pos-cell">${entry.position || '-'}</td>
+        <td class="driver-cell">
+          <div class="driver-name">${entry.driverName || 'Unknown'}</div>
+        </td>
+        <td class="gap-cell">${entry.gap || '-'}</td>
+        <td class="time-cell">${entry.lastLap || '-'}</td>
+        <td class="time-cell">${entry.bestLap || '-'}</td>
+      </tr>`;
+    });
+  } else {
+    html += '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">No timing data available</td></tr>';
+  }
+  
+  html += '</tbody></table></div>';
+  return html;
+}
+
+/**
+ * Show race results (placeholder for future implementation)
+ * @param {string} raceId - Race ID
+ */
+function showRaceResults(raceId) {
+  console.log('Show results for race:', raceId);
+  // TODO: Implement race results modal or detailed view
+  alert('Race results view will be implemented in the next phase.\n\nRace ID: ' + raceId);
+}
+
+
 // Made with Bob

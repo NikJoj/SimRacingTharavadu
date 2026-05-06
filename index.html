@@ -238,6 +238,46 @@
     </div>
   </div>
 </div>
+<!-- ══ LEAGUE DETAILS ══ -->
+<div id="league-details" class="page">
+  <div class="lb-hero">
+    <button class="back-btn" onclick="showPage('home')">← Back to Leagues</button>
+    <div class="section-tag">// Championship Details</div>
+    <h2 class="section-title" id="league-details-title">League Name</h2>
+    
+    <!-- Tab Navigation -->
+    <div class="league-tabs">
+      <button class="league-tab active" data-tab="standings" onclick="switchLeagueTab('standings')">Championship Standings</button>
+      <button class="league-tab" data-tab="races" onclick="switchLeagueTab('races')">Race Details</button>
+      <button class="league-tab" data-tab="live" onclick="switchLeagueTab('live')">Live Timings</button>
+    </div>
+  </div>
+
+  <!-- Tab Content Areas -->
+  <div class="league-tab-content">
+    <!-- Standings Tab -->
+    <div id="league-tab-standings" class="league-tab-panel active">
+      <div id="league-standings-content">
+        <div class="data-loading"><span class="spinner"></span> Loading standings…</div>
+      </div>
+    </div>
+
+    <!-- Races Tab -->
+    <div id="league-tab-races" class="league-tab-panel">
+      <div id="league-races-content">
+        <div class="data-loading"><span class="spinner"></span> Loading races…</div>
+      </div>
+    </div>
+
+    <!-- Live Timings Tab -->
+    <div id="league-tab-live" class="league-tab-panel">
+      <div id="league-live-content">
+        <div class="data-loading"><span class="spinner"></span> Loading live timings…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- EVENT DETAILS MODAL -->
 <div id="event-modal" class="modal" style="display:none;">
