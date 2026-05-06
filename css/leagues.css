@@ -200,16 +200,31 @@
 
 /* Tab Content */
 .league-tab-content {
-  padding: 3rem 6rem;
+  padding: 0;
 }
 
 .league-tab-panel {
   display: none;
   animation: fadeIn 0.3s ease-in;
+  padding: 3rem 6rem;
 }
 
 .league-tab-panel.active {
   display: block;
+}
+
+/* Full width for specific tabs */
+#league-tab-standings,
+#league-tab-live,
+#league-tab-races {
+  padding: 2rem 0;
+}
+
+#league-tab-standings .live-timing-info-banner,
+#league-tab-live .live-timing-info-banner,
+#league-tab-standings .live-timing-header,
+#league-tab-live .live-timing-header {
+  margin: 0 6rem 1rem 6rem;
 }
 
 @keyframes fadeIn {
