@@ -73,7 +73,7 @@ async function loadData() {
     appEvents.forEach(e => {
       if (parseInt(e.drivers) >= parseInt(e.maxDrivers)) e.status = 'closed';
     });
-    appLeagues = parseRows(lgData, ['id','name','sim','status','track','startDate','endDate','format','drivers','maxDrivers','rounds','season','description','trackMod','carMod','practiceServer','carOptions']);
+    appLeagues = parseRows(lgData, ['id','name','sim','status','track','startDate','endDate','format','drivers','maxDrivers','rounds','season','description','trackMod','carMod','practiceServer','carOptions','blobStore']);
     appLeagues.forEach(l => {
       if (parseInt(l.drivers) >= parseInt(l.maxDrivers)) l.status = 'closed';
     });

@@ -214,32 +214,71 @@ async function loadLeagueRaces() {
   container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading races…</div>';
   
   try {
-    const response = await fetch(CONFIG.ASSETTO_API.RESULTS);
+    // Get the current league
+    const league = appLeagues.find(l => l.id === currentLeagueId);
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (!league) {
+      throw new Error('League not found');
     }
     
-    const data = await response.json();
-    
-    if (data.error) {
-      container.innerHTML = `<div class="data-error">⚠ ${data.error}</div>`;
-      return;
+    // Check if league has a blob store configured
+    if (league.blobStore) {
+      // Fetch from blob store
+      const response = await fetch(`/api/get-stored-result?league=${encodeURIComponent(league.blobStore)}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        container.innerHTML = `<div class="data-error">⚠ ${data.error}</div>`;
+        return;
+      }
+      
+      // Check if we have races data
+      if (!data.races || data.races.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🏁</div>
+            <div class="empty-state-text">No races available yet</div>
+          </div>
+        `;
+        return;
+      }
+      
+      // Render race list from blob store
+      container.innerHTML = buildRaceListFromBlobStore(data.races, league.blobStore);
+    } else {
+      // Fallback to Assetto API
+      const response = await fetch(CONFIG.ASSETTO_API.RESULTS);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        container.innerHTML = `<div class="data-error">⚠ ${data.error}</div>`;
+        return;
+      }
+      
+      // Check if we have results data
+      if (!data.results || data.results.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🏁</div>
+            <div class="empty-state-text">No races available yet</div>
+          </div>
+        `;
+        return;
+      }
+      
+      // Render race list from Assetto API
+      container.innerHTML = buildRaceList(data.results);
     }
-    
-    // Check if we have results data
-    if (!data.results || data.results.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">🏁</div>
-          <div class="empty-state-text">No races available yet</div>
-        </div>
-      `;
-      return;
-    }
-    
-    // Render race list
-    container.innerHTML = buildRaceList(data.results);
   } catch (error) {
     console.error('Error loading races:', error);
     container.innerHTML = '<div class="data-error">⚠ Failed to load races. Please try again later.</div>';
@@ -385,6 +424,80 @@ function buildRaceList(results) {
   
   html += '</div>';
   return html;
+
+/**
+ * Build race list HTML from blob store data
+ * @param {Array} races - Array of race metadata from blob store
+ * @param {string} blobStore - Blob store name
+ * @returns {string} HTML string
+ */
+function buildRaceListFromBlobStore(races, blobStore) {
+  let html = '<div class="race-list">';
+  
+  races.forEach((race) => {
+    // Format track name (convert underscore to space and capitalize)
+    const trackName = race.track ? race.track.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Track';
+    
+    // Format date and time
+    const raceDate = race.date ? new Date(race.date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }) : 'Date TBA';
+    
+    const raceTime = race.date ? new Date(race.date).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }) : '';
+    
+    // Format session type
+    const sessionType = race.session_type || 'Session';
+    
+    // Create race identifier for blob store
+    const raceId = `blob:${blobStore}:${race.timestamp}`;
+    
+    html += `
+      <div class="race-item" onclick="showRaceResults('${raceId}')">
+        <div class="race-item-content">
+          <div class="race-item-main">
+            <div class="race-name">${trackName}</div>
+            <div class="race-track">${sessionType}</div>
+            <div class="race-details">
+              <div class="race-detail-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span>${raceDate}</span>
+              </div>
+              ${raceTime ? `
+                <div class="race-detail-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span>${raceTime}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+          <div class="race-arrow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  return html;
+}
 }
 
 /**
@@ -431,7 +544,7 @@ function buildLiveTimingDisplay(data) {
 
 /**
  * Show race results detail page
- * @param {string} resultsUrl - URL or path to the race results JSON
+ * @param {string} resultsUrl - URL or path to the race results JSON, or blob store identifier
  */
 async function showRaceResults(resultsUrl) {
   console.log('Loading race results from:', resultsUrl);
@@ -443,8 +556,43 @@ async function showRaceResults(resultsUrl) {
   container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading race results…</div>';
   
   try {
-    // Convert relative path to API endpoint if needed
     let apiUrl = resultsUrl;
+    
+    // Check if it's a blob store identifier (format: blob:storeName:timestamp)
+    if (resultsUrl.startsWith('blob:')) {
+      const parts = resultsUrl.split(':');
+      if (parts.length === 3) {
+        const blobStore = parts[1];
+        const timestamp = parts[2];
+        
+        // Use blob store API endpoint
+        apiUrl = `/api/get-stored-result?league=${encodeURIComponent(blobStore)}&timestamp=${encodeURIComponent(timestamp)}`;
+        console.log('Using blob store API:', apiUrl);
+        
+        // Fetch from blob store
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.error) {
+          throw new Error(result.error);
+        }
+        
+        // Extract the actual race data
+        const data = result.data;
+        
+        // Update page title and metadata
+        updateRaceResultsHeader(data);
+        
+        // Render race results
+        container.innerHTML = buildRaceResultsDisplay(data);
+        return;
+      }
+    }
     
     // Check if it's a relative path from Assetto API (e.g., /results/2026_4_29_10_38_RACE)
     if (resultsUrl.startsWith('/results/')) {
