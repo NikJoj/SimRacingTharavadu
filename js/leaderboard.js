@@ -7,6 +7,16 @@
  * @param {string} id - Event/League ID
  */
 async function showLB(id) {
+  // Check if it's a league - redirect to new league details page
+  const league = appLeagues.find(l => l.id === id);
+  
+  if (league) {
+    // Use the new league details page
+    showLeagueDetails(id);
+    return;
+  }
+  
+  // For events, use the old leaderboard page
   showPage('leaderboard');
   await renderLeaderboard(id);
 }
