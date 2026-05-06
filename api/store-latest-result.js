@@ -54,17 +54,29 @@ export default async function handler(req, res) {
 
     const resultsList = await listResponse.json();
 
-    // Step 2: Find the last race result (not practice or qualifying)
-    const lastRaceResult = resultsList.find(result => result.session_type === 'RACE');
+    // Step 2: Ensure resultsList is an array
+    const resultsArray = Array.isArray(resultsList) ? resultsList : (resultsList.results || []);
+
+    if (!Array.isArray(resultsArray) || resultsArray.length === 0) {
+      return res.status(404).json({
+        error: 'No results found',
+        message: 'The results list is empty or invalid format',
+        debug: typeof resultsList
+      });
+    }
+
+    // Step 3: Find the last race result (not practice or qualifying)
+    const lastRaceResult = resultsArray.find(result => result.session_type === 'RACE');
 
     if (!lastRaceResult) {
       return res.status(404).json({
         error: 'No race results found',
-        message: 'No RACE session found in the results list'
+        message: 'No RACE session found in the results list',
+        available_sessions: resultsArray.map(r => r.session_type)
       });
     }
 
-    // Step 3: Fetch the actual race result JSON
+    // Step 4: Fetch the actual race result JSON
     const raceResultUrl = `https://sg.assettohosting.com:10027${lastRaceResult.results_json_url}`;
     
     const raceResponse = await fetch(raceResultUrl, {
@@ -81,12 +93,12 @@ export default async function handler(req, res) {
 
     const raceData = await raceResponse.json();
 
-    // Step 4: Create unique filename with timestamp and league
+    // Step 5: Create unique filename with timestamp and league
     const timestamp = new Date(lastRaceResult.date).getTime();
     const raceFileName = `${sanitizedLeague}/race-${timestamp}.json`;
     const metadataFileName = `${sanitizedLeague}/metadata-${timestamp}.json`;
 
-    // Step 5: Store in Vercel Blob Store with league-specific path and metadata
+    // Step 6: Store in Vercel Blob Store with league-specific path and metadata
     const blob = await put(raceFileName, JSON.stringify(raceData, null, 2), {
       access: 'public',
       contentType: 'application/json',
@@ -99,7 +111,7 @@ export default async function handler(req, res) {
       }
     });
 
-    // Step 6: Store metadata about the race
+    // Step 7: Store metadata about the race
     const metadata = {
       league: league,
       track: lastRaceResult.track,
