@@ -205,8 +205,34 @@ async function loadLeagueStandings() {
       return;
     }
     
+    // Parse the DriverStandings structure from Assetto API
+    let standings = [];
+    
+    if (data.DriverStandings) {
+      // DriverStandings is an object with class names as keys
+      // Extract all drivers from all classes and flatten into a single array
+      for (const className in data.DriverStandings) {
+        const classDrivers = data.DriverStandings[className];
+        if (Array.isArray(classDrivers)) {
+          classDrivers.forEach(entry => {
+            standings.push({
+              driverName: entry.Car?.Driver?.Name || 'Unknown Driver',
+              team: entry.Car?.Driver?.Team || '',
+              points: entry.Points || 0,
+              bestLap: formatBestLapFromStandings(entry),
+              tag: '', // Not provided in this API format
+              className: className
+            });
+          });
+        }
+      }
+    }
+    
+    // Sort by points descending
+    standings.sort((a, b) => b.points - a.points);
+    
     // Check if we have standings data
-    if (!data.standings || data.standings.length === 0) {
+    if (standings.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">🏆</div>
@@ -217,11 +243,21 @@ async function loadLeagueStandings() {
     }
     
     // Render standings table
-    container.innerHTML = buildStandingsTable(data.standings);
+    container.innerHTML = buildStandingsTable(standings);
   } catch (error) {
     console.error('Error loading standings:', error);
     container.innerHTML = '<div class="data-error">⚠ Failed to load standings. Please try again later.</div>';
   }
+}
+
+/**
+ * Format best lap from standings entry
+ * @param {Object} entry - Standings entry
+ * @returns {string} Formatted best lap or '-'
+ */
+function formatBestLapFromStandings(entry) {
+  // The API doesn't provide best lap in standings, return placeholder
+  return '-';
 }
 
 /**
@@ -324,8 +360,8 @@ async function loadLiveTiming() {
       return;
     }
     
-    // Check if session is active
-    if (!data.sessionActive) {
+    // Check if we have connected drivers (session is active)
+    if (!data.ConnectedDrivers || data.ConnectedDrivers.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">⏱️</div>
@@ -531,33 +567,61 @@ function buildLiveTimingDisplay(data) {
         <span>LIVE</span>
       </div>
       <div class="session-info">
-        ${data.sessionType || 'Session'} • ${data.track || 'Track'}
+        ${data.ConnectedDrivers.length} Driver${data.ConnectedDrivers.length !== 1 ? 's' : ''} Connected
       </div>
     </div>
   `;
   
   html += '<div class="lb-table"><table><thead><tr>';
-  html += '<th>Pos</th><th>Driver</th><th>Gap</th><th>Last Lap</th><th>Best Lap</th>';
+  html += '<th>Pos</th><th>Driver</th><th>Team</th><th>Car</th><th>Laps</th><th>Last Lap</th><th>Best Lap</th><th>Status</th>';
   html += '</tr></thead><tbody>';
   
-  if (data.entries && data.entries.length > 0) {
-    data.entries.forEach(entry => {
-      html += `<tr>
-        <td class="pos-cell">${entry.position || '-'}</td>
+  if (data.ConnectedDrivers && data.ConnectedDrivers.length > 0) {
+    // Sort by position
+    const sortedDrivers = [...data.ConnectedDrivers].sort((a, b) => a.Position - b.Position);
+    
+    sortedDrivers.forEach(driver => {
+      const posClass = driver.Position === 1 ? 'pos-1' : driver.Position === 2 ? 'pos-2' : driver.Position === 3 ? 'pos-3' : '';
+      const lastLap = driver.LastLap ? formatLapTimeFromNanoseconds(driver.LastLap) : '-';
+      const bestLap = driver.BestLap ? formatLapTimeFromNanoseconds(driver.BestLap) : '-';
+      const status = driver.IsInPits ? '🔧 In Pits' : driver.BlueFlag ? '🔵 Blue Flag' : '🏁 Racing';
+      
+      html += `<tr class="${posClass}">
+        <td class="pos-cell">${driver.Position || '-'}</td>
         <td class="driver-cell">
-          <div class="driver-name">${entry.driverName || 'Unknown'}</div>
+          <div class="driver-name">${driver.DriverName || 'Unknown'}</div>
         </td>
-        <td class="gap-cell">${entry.gap || '-'}</td>
-        <td class="time-cell">${entry.lastLap || '-'}</td>
-        <td class="time-cell">${entry.bestLap || '-'}</td>
+        <td class="team-cell">${driver.TeamName || '-'}</td>
+        <td class="team-cell">${driver.CarName || '-'}</td>
+        <td class="pts-cell">${driver.NumLaps || 0}</td>
+        <td class="time-cell">${lastLap}</td>
+        <td class="time-cell">${bestLap}</td>
+        <td class="gap-cell">${status}</td>
       </tr>`;
     });
   } else {
-    html += '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">No timing data available</td></tr>';
+    html += '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem;">No timing data available</td></tr>';
   }
   
   html += '</tbody></table></div>';
   return html;
+}
+
+/**
+ * Format lap time from nanoseconds to MM:SS.mmm
+ * @param {number} ns - Time in nanoseconds
+ * @returns {string} Formatted time string
+ */
+function formatLapTimeFromNanoseconds(ns) {
+  if (!ns || ns === 0) return '-';
+  
+  const ms = ns / 1000000; // Convert nanoseconds to milliseconds
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const milliseconds = Math.floor(ms % 1000);
+  
+  return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
 }
 
 /**
