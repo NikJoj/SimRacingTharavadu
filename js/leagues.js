@@ -385,25 +385,25 @@ async function loadLiveTiming() {
  * @returns {string} HTML string
  */
 function buildStandingsTable(standings) {
-  let html = '<div class="lb-table"><table><thead><tr>';
+  let html = '<table class="lb-table"><thead><tr>';
   html += '<th>Pos</th><th>Driver</th><th>Team</th><th>Points</th><th>Best Time</th>';
   html += '</tr></thead><tbody>';
   
   standings.forEach((entry, idx) => {
     const posClass = idx === 0 ? 'pos-1' : idx === 1 ? 'pos-2' : idx === 2 ? 'pos-3' : '';
     html += `<tr class="${posClass}">
-      <td class="pos-cell">${idx + 1}</td>
-      <td class="driver-cell">
-        <div class="driver-name">${entry.driverName || 'Unknown Driver'}</div>
-        ${entry.tag ? `<div class="driver-tag">${entry.tag}</div>` : ''}
+      <td class="td-pos">${idx + 1}</td>
+      <td class="td-driver">
+        ${entry.driverName || 'Unknown Driver'}
+        ${entry.tag ? `<div class="td-driver-team">${entry.tag}</div>` : ''}
       </td>
-      <td class="team-cell">${entry.team || '-'}</td>
-      <td class="pts-cell">${entry.points || 0}</td>
-      <td class="time-cell">${entry.bestLap || '-'}</td>
+      <td class="td-driver-team">${entry.team || '-'}</td>
+      <td class="td-pts">${entry.points || 0}</td>
+      <td class="td-time">${entry.bestLap || '-'}</td>
     </tr>`;
   });
   
-  html += '</tbody></table></div>';
+  html += '</tbody></table>';
   return html;
 }
 
@@ -572,7 +572,7 @@ function buildLiveTimingDisplay(data) {
     </div>
   `;
   
-  html += '<div class="lb-table"><table><thead><tr>';
+  html += '<table class="lb-table"><thead><tr>';
   html += '<th>Pos</th><th>Driver</th><th>Team</th><th>Car</th><th>Laps</th><th>Last Lap</th><th>Best Lap</th><th>Status</th>';
   html += '</tr></thead><tbody>';
   
@@ -587,23 +587,21 @@ function buildLiveTimingDisplay(data) {
       const status = driver.IsInPits ? '🔧 In Pits' : driver.BlueFlag ? '🔵 Blue Flag' : '🏁 Racing';
       
       html += `<tr class="${posClass}">
-        <td class="pos-cell">${driver.Position || '-'}</td>
-        <td class="driver-cell">
-          <div class="driver-name">${driver.DriverName || 'Unknown'}</div>
-        </td>
-        <td class="team-cell">${driver.TeamName || '-'}</td>
-        <td class="team-cell">${driver.CarName || '-'}</td>
-        <td class="pts-cell">${driver.NumLaps || 0}</td>
-        <td class="time-cell">${lastLap}</td>
-        <td class="time-cell">${bestLap}</td>
-        <td class="gap-cell">${status}</td>
+        <td class="td-pos">${driver.Position || '-'}</td>
+        <td class="td-driver">${driver.DriverName || 'Unknown'}</td>
+        <td class="td-driver-team">${driver.TeamName || '-'}</td>
+        <td class="td-driver-team">${driver.CarName || '-'}</td>
+        <td class="td-pts">${driver.NumLaps || 0}</td>
+        <td class="td-time">${lastLap}</td>
+        <td class="td-time">${bestLap}</td>
+        <td class="td-gap">${status}</td>
       </tr>`;
     });
   } else {
     html += '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem;">No timing data available</td></tr>';
   }
   
-  html += '</tbody></table></div>';
+  html += '</tbody></table>';
   return html;
 }
 
