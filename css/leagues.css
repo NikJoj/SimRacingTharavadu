@@ -206,23 +206,11 @@
 .league-tab-panel {
   display: none;
   animation: fadeIn 0.3s ease-in;
-  padding: 3rem 6rem;
+  padding: 0;
 }
 
 .league-tab-panel.active {
   display: block;
-}
-
-/* Full width for specific tabs */
-#league-tab-standings,
-#league-tab-live,
-#league-tab-races {
-  padding: 0;
-}
-
-/* Sign up tab keeps padding */
-#league-tab-signup {
-  padding: 3rem 6rem;
 }
 
 @keyframes fadeIn {
