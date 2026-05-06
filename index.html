@@ -47,8 +47,8 @@
       <h1 class="hero-title">Sim Racing<span class="line2">Tharavadu</span><span class="line3"></span></h1>
       <p class="hero-sub">Where throttle meets tradition. Compete, connect, and conquer the virtual circuit with Kerala's fastest virtual racers.</p>
       <div class="hero-actions">
-        <button class="btn-primary" onclick="showPage('register')">Register For Events</button>
-        <button class="btn-outline" onclick="window.open('https://discord.gg/yQH6mRyy84', '_blank')">Join Discord</button>
+        <!-- <button class="btn-primary" onclick="showPage('register')">Register For Events</button> -->
+        <button class="btn-primary" onclick="window.open('https://discord.gg/yQH6mRyy84', '_blank')">Join Discord</button>
       </div>
     </div>
     <div class="hero-logo">
@@ -115,6 +115,7 @@
 <div id="register" class="page">
   <div class="reg-layout">
     <div class="reg-left">
+      <button class="back-btn" onclick="showPage('home')">← Back to Events</button>
       <div class="section-tag" style="margin-bottom:0.75rem">// Join the Grid</div>
       <h2 class="section-title" style="margin-bottom:2rem">Event Registration</h2>
       <div id="reg-config-banner" class="config-banner" style="display:none">
@@ -179,6 +180,7 @@
 <div id="league-register" class="page">
   <div class="reg-layout">
     <div class="reg-left">
+      <button class="back-btn" onclick="showPage('home')">← Back to Leagues</button>
       <div class="section-tag" style="margin-bottom:0.75rem">// Join the Championship</div>
       <h2 class="section-title" style="margin-bottom:2rem">League Registration</h2>
       <div id="league-reg-config-banner" class="config-banner" style="display:none">
@@ -241,15 +243,33 @@
 <!-- ══ LEAGUE DETAILS ══ -->
 <div id="league-details" class="page">
   <div class="lb-hero">
-
+    <button class="back-btn" onclick="showPage('home')">← Back to Leagues</button>
     <div class="section-tag">// Championship Details</div>
     <h2 class="section-title" id="league-details-title">League Name</h2>
     
     <!-- Tab Navigation -->
     <div class="league-tabs">
+      <button class="league-tab" data-tab="signup" onclick="switchLeagueTab('signup')">Sign up</button>
+      <button class="league-tab" data-tab="live" onclick="switchLeagueTab('live')">Live Timings</button>
       <button class="league-tab active" data-tab="standings" onclick="switchLeagueTab('standings')">Championship Standings</button>
       <button class="league-tab" data-tab="races" onclick="switchLeagueTab('races')">Race Details</button>
-      <button class="league-tab" data-tab="live" onclick="switchLeagueTab('live')">Live Timings</button>
+    </div>
+  </div>
+
+  <!-- Sign up Tab -->
+  <div id="league-tab-signup" class="league-tab-panel">
+    <div id="league-signup-content">
+      <div class="signup-banner">
+        ℹ️ &nbsp;<strong>Steam Users:</strong> If registering with Steam, open the "Register with Steam" url in a new window.
+      </div>
+      <iframe id="signup-iframe" class="signup-iframe" frameborder="0"></iframe>
+    </div>
+  </div>
+
+  <!-- Live Timings Tab -->
+  <div id="league-tab-live" class="league-tab-panel">
+    <div id="league-live-content">
+      <div class="data-loading"><span class="spinner"></span> Loading live timings…</div>
     </div>
   </div>
 
@@ -266,13 +286,6 @@
     <div id="league-tab-races" class="league-tab-panel">
       <div id="league-races-content">
         <div class="data-loading"><span class="spinner"></span> Loading races…</div>
-      </div>
-    </div>
-
-    <!-- Live Timings Tab -->
-    <div id="league-tab-live" class="league-tab-panel">
-      <div id="league-live-content">
-        <div class="data-loading"><span class="spinner"></span> Loading live timings…</div>
       </div>
     </div>
   </div>

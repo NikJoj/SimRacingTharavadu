@@ -135,6 +135,7 @@
   cursor: pointer;
   transition: all 0.2s;
   margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
   clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
   position: relative;
   overflow: hidden;
@@ -681,4 +682,33 @@
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+/* Sign up iframe styling */
+.signup-banner {
+  background: rgba(52, 152, 219, 0.08);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+  color: #5dade2;
+  padding: 1rem 1.5rem;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.signup-iframe {
+  width: 100%;
+  min-height: 800px;
+  height: calc(100vh - 400px);
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  display: block;
+}
+
+#league-signup-content {
+  width: 100%;
+  position: relative;
 }
