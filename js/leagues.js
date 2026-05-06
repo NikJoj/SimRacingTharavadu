@@ -528,12 +528,12 @@ function updateRaceResultsHeader(data) {
  * @returns {string} HTML string
  */
 function buildRaceResultsDisplay(data) {
-  let html = '';
+  let html = '<div class="lb-body">';
   
   // Podium (Top 3)
   if (data.Result && data.Result.length > 0) {
     html += '<div class="race-results-section">';
-    html += '<h3 class="race-results-section-title">🏆 Podium</h3>';
+    html += '<h3 class="race-results-section-title">🏆 PODIUM</h3>';
     html += '<div class="podium-display">';
     
     const podium = data.Result.slice(0, 3);
@@ -551,15 +551,15 @@ function buildRaceResultsDisplay(data) {
           <div class="podium-car">${carModel}</div>
           <div class="podium-stats">
             <div class="podium-stat">
-              <span class="podium-stat-label">Best Lap:</span>
+              <span class="podium-stat-label">Best Lap</span>
               <span class="podium-stat-value">${bestLap}</span>
             </div>
             <div class="podium-stat">
-              <span class="podium-stat-label">Total Time:</span>
+              <span class="podium-stat-label">Total Time</span>
               <span class="podium-stat-value">${totalTime}</span>
             </div>
             <div class="podium-stat">
-              <span class="podium-stat-label">Laps:</span>
+              <span class="podium-stat-label">Laps</span>
               <span class="podium-stat-value">${driver.NumLaps || 0}</span>
             </div>
           </div>
@@ -580,7 +580,7 @@ function buildRaceResultsDisplay(data) {
       html += `
         <div class="fastest-lap-highlight">
           <div class="fastest-lap-info">
-            <div class="fastest-lap-label">⚡ Fastest Lap</div>
+            <div class="fastest-lap-label">⚡ FASTEST LAP</div>
             <div class="fastest-lap-driver">${fastestDriver.DriverName || 'Unknown Driver'}</div>
           </div>
           <div class="fastest-lap-time">${formatLapTime(fastestDriver.BestLap)}</div>
@@ -592,8 +592,8 @@ function buildRaceResultsDisplay(data) {
   // Full Results Table
   if (data.Result && data.Result.length > 0) {
     html += '<div class="race-results-section">';
-    html += '<h3 class="race-results-section-title">📊 Full Results</h3>';
-    html += '<div class="lb-table"><table><thead><tr>';
+    html += '<h3 class="race-results-section-title">📊 FULL RESULTS</h3>';
+    html += '<table class="lb-table"><thead><tr>';
     html += '<th>Pos</th><th>Driver</th><th>Car</th><th>Laps</th><th>Best Lap</th><th>Total Time</th>';
     html += '</tr></thead><tbody>';
     
@@ -615,9 +615,37 @@ function buildRaceResultsDisplay(data) {
       </tr>`;
     });
     
-    html += '</tbody></table></div></div>';
+    html += '</tbody></table></div>';
   }
   
+  // Penalties Section
+  if (data.Penalties && data.Penalties.length > 0) {
+    html += '<div class="race-results-section">';
+    html += '<h3 class="race-results-section-title">⚠️ PENALTIES</h3>';
+    html += '<table class="lb-table"><thead><tr>';
+    html += '<th>Driver</th><th>Lap</th><th>Infraction</th><th>Penalty</th><th>Details</th>';
+    html += '</tr></thead><tbody>';
+    
+    data.Penalties.forEach(penalty => {
+      const infractionType = getPenaltyInfractionType(penalty.InfractionType);
+      const penaltyType = getPenaltyType(penalty.PenaltyType);
+      const details = getPenaltyDetails(penalty);
+      
+      html += `<tr>
+        <td class="driver-cell">
+          <div class="driver-name">${penalty.DriverName || 'Unknown Driver'}</div>
+        </td>
+        <td class="pts-cell">${penalty.GivenOnLap || '-'}</td>
+        <td class="team-cell">${infractionType}</td>
+        <td class="team-cell">${penaltyType}</td>
+        <td class="time-cell">${details}</td>
+      </tr>`;
+    });
+    
+    html += '</tbody></table></div>';
+  }
+  
+  html += '</div>'; // Close lb-body
   return html;
 }
 
@@ -646,6 +674,75 @@ function getPositionSuffix(position) {
   const suffixes = ['th', 'st', 'nd', 'rd'];
   const v = position % 100;
   return position + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
+}
+
+/**
+ * Get penalty infraction type description
+ * @param {number} type - Infraction type code
+ * @returns {string} Infraction description
+ */
+function getPenaltyInfractionType(type) {
+  const types = {
+    0: 'Track Limits',
+    1: 'Cutting',
+    2: 'Speeding',
+    3: 'Pit Lane',
+    4: 'False Start',
+    5: 'Ignoring Blue Flags',
+    6: 'Causing Collision',
+    7: 'Illegal Overtake',
+    8: 'Illegal Blocking',
+    9: 'Unsafe Rejoin',
+    10: 'Ignoring Penalties'
+  };
+  return types[type] || `Infraction ${type}`;
+}
+
+/**
+ * Get penalty type description
+ * @param {number} type - Penalty type code
+ * @returns {string} Penalty description
+ */
+function getPenaltyType(type) {
+  const types = {
+    0: 'Warning',
+    1: 'Disqualification',
+    2: 'Time Penalty',
+    3: 'Mandatory Pit Stop',
+    4: 'Drive Through',
+    5: 'Stop & Go',
+    6: 'Post-Race Time Penalty',
+    7: 'BoP Adjustment'
+  };
+  return types[type] || `Penalty ${type}`;
+}
+
+/**
+ * Get penalty details
+ * @param {Object} penalty - Penalty object
+ * @returns {string} Penalty details
+ */
+function getPenaltyDetails(penalty) {
+  const details = [];
+  
+  if (penalty.TimePenaltyDuration && penalty.TimePenaltyDuration > 0) {
+    const seconds = Math.floor(penalty.TimePenaltyDuration / 1000000000);
+    details.push(`+${seconds}s`);
+  }
+  
+  if (penalty.DriveThroughNumLaps && penalty.DriveThroughNumLaps > 0) {
+    details.push(`${penalty.DriveThroughNumLaps} lap(s)`);
+  }
+  
+  if (penalty.BoPAmount && penalty.BoPAmount !== 0) {
+    details.push(`BoP: ${penalty.BoPAmount > 0 ? '+' : ''}${penalty.BoPAmount}`);
+  }
+  
+  if (penalty.BoPClearedInNumLaps && penalty.BoPClearedInNumLaps > 0) {
+    details.push(`Cleared in ${penalty.BoPClearedInNumLaps} lap(s)`);
+  }
+  
+  return details.length > 0 ? details.join(', ') : '-';
 }
 
 /**
