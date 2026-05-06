@@ -15,18 +15,27 @@ const CONFIG = {
   // Keep true until URLs above are configured — shows realistic demo data
   DEMO_MODE: false,
 
-  // Assetto Corsa Championship API
-  ASSETTO_CHAMPIONSHIP_API: "https://sg.assettohosting.com:10027/championship/1bb2f11c-d4db-45e8-9505-97cd6ec1e806/standings.json",
+  // Assetto Corsa API Configuration
+  // Championship ID for standings API
+  ASSETTO_CHAMPIONSHIP_ID: "1bb2f11c-d4db-45e8-9505-97cd6ec1e806",
   
-  // Use CORS proxy for Assetto Corsa API (required for browser requests)
-  USE_CORS_PROXY: true,
+  // Serverless API Endpoints (deployed on Vercel)
+  // For local development: use http://localhost:3000/api/...
+  // For production: use your Vercel deployment URL or relative paths
+  API_BASE_URL: "/api", // Relative path works when deployed together
   
-  // Multiple CORS proxy options (will try in order)
-  CORS_PROXIES: [
-    "https://corsproxy.io/?",
-    "https://api.allorigins.win/raw?url=",
-    "https://cors-anywhere.herokuapp.com/"
-  ]
+  // API Endpoints
+  ASSETTO_API: {
+    STANDINGS: "/api/standings",           // Championship standings
+    CHAMPIONSHIPS: "/api/championships",   // List all championships
+    LIVE_LEADERBOARD: "/api/live-leaderboard", // Live timing leaderboard
+    LIVE_BASIC: "/api/live-basic",        // Basic live timing info
+    RESULTS: "/api/results"               // Race results list
+  },
+  
+  // Legacy settings (no longer needed with serverless functions)
+  USE_CORS_PROXY: false,
+  CORS_PROXIES: [] // Not needed anymore!
 };
 
 /* ── DEMO DATA ───────────────────────────────────────── */
