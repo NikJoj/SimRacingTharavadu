@@ -115,7 +115,7 @@ let currentLeagueTab = 'standings';
  * Show league details page (called from Leaderboard button)
  * @param {string} leagueId - League ID
  */
-function showLB(leagueId) {
+function showLeagueDetails(leagueId) {
   currentLeagueId = leagueId;
   const league = appLeagues.find(l => l.id === leagueId);
   
