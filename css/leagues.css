@@ -116,3 +116,206 @@
 }
 
 /* Made with Bob */
+
+/* ═══════════════════════════════════════════════════
+   LEAGUE DETAILS PAGE - Tabs, Standings, Races, Live
+   ═══════════════════════════════════════════════════ */
+
+/* Back Button */
+.back-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 1rem;
+  border-radius: 2px;
+}
+
+.back-btn:hover {
+  background: var(--bg3);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* League Tabs */
+.league-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.league-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: 0.75rem 1.5rem;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.league-tab:hover {
+  color: var(--text);
+  background: var(--bg3);
+}
+
+.league-tab.active {
+  color: var(--red);
+  border-bottom-color: var(--red);
+}
+
+/* Tab Content */
+.league-tab-content {
+  margin-top: 2rem;
+}
+
+.league-tab-panel {
+  display: none;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.league-tab-panel.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Race List Styling */
+.race-list {
+  display: grid;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+.race-item {
+  background: var(--bg2);
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 3px solid transparent;
+}
+
+.race-item:hover {
+  background: var(--bg3);
+  border-left-color: var(--red);
+}
+
+.race-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.race-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.race-meta {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.85rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.race-arrow {
+  color: var(--red);
+  font-size: 1.5rem;
+  transition: transform 0.2s;
+}
+
+.race-item:hover .race-arrow {
+  transform: translateX(5px);
+}
+
+/* Live Timing Specific Styles */
+.live-timing-header {
+  background: var(--bg2);
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.live-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.live-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.session-info {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.85rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+/* Standings Table Adjustments */
+#league-standings-content .lb-table {
+  margin-top: 0;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--muted);
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.empty-state-text {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
