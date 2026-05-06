@@ -319,26 +319,69 @@ function buildStandingsTable(standings) {
 
 /**
  * Build race list HTML
- * @param {Array} results - Array of race results
+ * @param {Array} results - Array of race results from API
  * @returns {string} HTML string
  */
 function buildRaceList(results) {
   let html = '<div class="race-list">';
   
-  results.forEach(race => {
-    const raceDate = race.date ? new Date(race.date).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+  results.forEach((race, index) => {
+    // Format track name (convert underscore to space and capitalize)
+    const trackName = race.track ? race.track.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Track';
+    
+    // Format date and time
+    const raceDate = race.date ? new Date(race.date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
     }) : 'Date TBA';
     
+    const raceTime = race.date ? new Date(race.date).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }) : '';
+    
+    // Format session type
+    const sessionType = race.session_type || 'Session';
+    
+    // Create a unique ID from the results page URL or use index
+    const raceId = race.results_page_url || `race-${index}`;
+    
     html += `
-      <div class="race-item" onclick="showRaceResults('${race.id}')">
-        <div class="race-info">
-          <div class="race-name">${race.name || 'Race ' + (results.indexOf(race) + 1)}</div>
-          <div class="race-meta">${race.track || 'Track TBA'} • ${raceDate}</div>
+      <div class="race-item" onclick="showRaceResults('${raceId}')">
+        <div class="race-item-content">
+          <div class="race-item-main">
+            <div class="race-name">${trackName}</div>
+            <div class="race-track">${sessionType}</div>
+            <div class="race-details">
+              <div class="race-detail-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span>${raceDate}</span>
+              </div>
+              ${raceTime ? `
+                <div class="race-detail-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span>${raceTime}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+          <div class="race-arrow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </div>
         </div>
-        <div class="race-arrow">→</div>
       </div>
     `;
   });
@@ -390,13 +433,213 @@ function buildLiveTimingDisplay(data) {
 }
 
 /**
- * Show race results (placeholder for future implementation)
- * @param {string} raceId - Race ID
+ * Show race results detail page
+ * @param {string} resultsUrl - URL to the race results JSON
  */
-function showRaceResults(raceId) {
-  console.log('Show results for race:', raceId);
-  // TODO: Implement race results modal or detailed view
-  alert('Race results view will be implemented in the next phase.\n\nRace ID: ' + raceId);
+async function showRaceResults(resultsUrl) {
+  console.log('Loading race results from:', resultsUrl);
+  
+  // Show the race results page
+  showPage('race-results');
+  
+  const container = document.getElementById('race-results-content');
+  container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading race results…</div>';
+  
+  try {
+    // Fetch the race results JSON
+    const response = await fetch(resultsUrl);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Update page title and metadata
+    updateRaceResultsHeader(data);
+    
+    // Render race results
+    container.innerHTML = buildRaceResultsDisplay(data);
+  } catch (error) {
+    console.error('Error loading race results:', error);
+    container.innerHTML = '<div class="data-error">⚠ Failed to load race results. Please try again later.</div>';
+  }
+}
+
+/**
+ * Update race results header with metadata
+ * @param {Object} data - Race results data
+ */
+function updateRaceResultsHeader(data) {
+  // Update title
+  const trackName = data.TrackName ? data.TrackName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Track';
+  const trackConfig = data.TrackConfig ? ` (${data.TrackConfig})` : '';
+  document.getElementById('race-results-title').textContent = `${trackName}${trackConfig}`;
+  
+  // Build metadata
+  const metaContainer = document.getElementById('race-results-meta');
+  const sessionType = data.Type || 'Race';
+  const date = data.Date ? new Date(data.Date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }) : 'N/A';
+  
+  const totalLaps = data.Laps ? data.Laps.length : 0;
+  const totalDrivers = data.Result ? data.Result.length : 0;
+  
+  metaContainer.innerHTML = `
+    <div class="race-meta-item">
+      <div class="race-meta-label">Session Type</div>
+      <div class="race-meta-value">${sessionType}</div>
+    </div>
+    <div class="race-meta-item">
+      <div class="race-meta-label">Date</div>
+      <div class="race-meta-value">${date}</div>
+    </div>
+    <div class="race-meta-item">
+      <div class="race-meta-label">Total Laps</div>
+      <div class="race-meta-value">${totalLaps}</div>
+    </div>
+    <div class="race-meta-item">
+      <div class="race-meta-label">Drivers</div>
+      <div class="race-meta-value">${totalDrivers}</div>
+    </div>
+  `;
+}
+
+/**
+ * Build race results display HTML
+ * @param {Object} data - Race results data
+ * @returns {string} HTML string
+ */
+function buildRaceResultsDisplay(data) {
+  let html = '';
+  
+  // Podium (Top 3)
+  if (data.Result && data.Result.length > 0) {
+    html += '<div class="race-results-section">';
+    html += '<h3 class="race-results-section-title">🏆 Podium</h3>';
+    html += '<div class="podium-display">';
+    
+    const podium = data.Result.slice(0, 3);
+    podium.forEach((driver, index) => {
+      const position = index + 1;
+      const posClass = `p${position}`;
+      const carModel = driver.CarModel ? driver.CarModel.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Car';
+      const bestLap = driver.BestLap ? formatLapTime(driver.BestLap) : 'N/A';
+      const totalTime = driver.TotalTime ? formatLapTime(driver.TotalTime) : 'N/A';
+      
+      html += `
+        <div class="podium-card ${posClass}">
+          <div class="podium-position">${getPositionSuffix(position)}</div>
+          <div class="podium-driver">${driver.DriverName || 'Unknown Driver'}</div>
+          <div class="podium-car">${carModel}</div>
+          <div class="podium-stats">
+            <div class="podium-stat">
+              <span class="podium-stat-label">Best Lap:</span>
+              <span class="podium-stat-value">${bestLap}</span>
+            </div>
+            <div class="podium-stat">
+              <span class="podium-stat-label">Total Time:</span>
+              <span class="podium-stat-value">${totalTime}</span>
+            </div>
+            <div class="podium-stat">
+              <span class="podium-stat-label">Laps:</span>
+              <span class="podium-stat-value">${driver.NumLaps || 0}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div></div>';
+  }
+  
+  // Fastest Lap
+  if (data.Result && data.Result.length > 0) {
+    const fastestDriver = data.Result.reduce((prev, current) => {
+      return (prev.BestLap && current.BestLap && prev.BestLap < current.BestLap) ? prev : current;
+    });
+    
+    if (fastestDriver && fastestDriver.BestLap) {
+      html += `
+        <div class="fastest-lap-highlight">
+          <div class="fastest-lap-info">
+            <div class="fastest-lap-label">⚡ Fastest Lap</div>
+            <div class="fastest-lap-driver">${fastestDriver.DriverName || 'Unknown Driver'}</div>
+          </div>
+          <div class="fastest-lap-time">${formatLapTime(fastestDriver.BestLap)}</div>
+        </div>
+      `;
+    }
+  }
+  
+  // Full Results Table
+  if (data.Result && data.Result.length > 0) {
+    html += '<div class="race-results-section">';
+    html += '<h3 class="race-results-section-title">📊 Full Results</h3>';
+    html += '<div class="lb-table"><table><thead><tr>';
+    html += '<th>Pos</th><th>Driver</th><th>Car</th><th>Laps</th><th>Best Lap</th><th>Total Time</th>';
+    html += '</tr></thead><tbody>';
+    
+    data.Result.forEach((driver, index) => {
+      const posClass = index === 0 ? 'pos-1' : index === 1 ? 'pos-2' : index === 2 ? 'pos-3' : '';
+      const carModel = driver.CarModel ? driver.CarModel.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Car';
+      const bestLap = driver.BestLap ? formatLapTime(driver.BestLap) : 'N/A';
+      const totalTime = driver.TotalTime ? formatLapTime(driver.TotalTime) : 'N/A';
+      
+      html += `<tr class="${posClass}">
+        <td class="pos-cell">${index + 1}</td>
+        <td class="driver-cell">
+          <div class="driver-name">${driver.DriverName || 'Unknown Driver'}</div>
+        </td>
+        <td class="team-cell">${carModel}</td>
+        <td class="pts-cell">${driver.NumLaps || 0}</td>
+        <td class="time-cell">${bestLap}</td>
+        <td class="time-cell">${totalTime}</td>
+      </tr>`;
+    });
+    
+    html += '</tbody></table></div></div>';
+  }
+  
+  return html;
+}
+
+/**
+ * Format lap time from milliseconds to MM:SS.mmm
+ * @param {number} ms - Time in milliseconds
+ * @returns {string} Formatted time string
+ */
+function formatLapTime(ms) {
+  if (!ms || ms === 0) return 'N/A';
+  
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const milliseconds = ms % 1000;
+  
+  return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+}
+
+/**
+ * Get position suffix (1st, 2nd, 3rd, etc.)
+ * @param {number} position - Position number
+ * @returns {string} Position with suffix
+ */
+function getPositionSuffix(position) {
+  const suffixes = ['th', 'st', 'nd', 'rd'];
+  const v = position % 100;
+  return position + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
+}
+
+/**
+ * Go back to races tab in league details
+ */
+function backToRaces() {
+  showPage('league-details');
+  switchLeagueTab('races');
 }
 
 
