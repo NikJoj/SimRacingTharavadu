@@ -49,8 +49,8 @@ const DEMO_EVENTS = [
 ];
 
 const DEMO_LEAGUES = [
-  {id:"1",name:"SRT League — GT3 Season",sim:"Assetto Corsa Competizione",status:"upcoming",track:"Multi-Track Season",startDate:"2026-05-10T00:00:00Z",endDate:"2026-06-28T23:59:59Z",format:"Weekly Rounds",drivers:"0",maxDrivers:"36",rounds:"8",season:"2026",description:"A structured GT3 league season with weekly rounds, stewarding, and points standings.",carOptions:"GT3",blobStore:"SRT-GT3-Season-1"},
-  {id:"2",name:"SRT League — Formula Series",sim:"Assetto Corsa",status:"upcoming",track:"Multi-Track Season",startDate:"2026-05-17T00:00:00Z",endDate:"2026-07-12T23:59:59Z",format:"Weekly Rounds",drivers:"0",maxDrivers:"24",rounds:"9",season:"2026",description:"A clean and competitive open-wheel season with consistent weekly racing and leaderboard points.",carOptions:"Formula",blobStore:"SRT-Formula-Season-1"}
+  {id:"1",name:"SRT League — GT3 Season",sim:"Assetto Corsa Competizione",status:"upcoming",track:"Multi-Track Season",startDate:"2026-05-10T00:00:00Z",endDate:"2026-06-28T23:59:59Z",format:"Weekly Rounds",drivers:"0",maxDrivers:"36",rounds:"8",season:"2026",description:"A structured GT3 league season with weekly rounds, stewarding, and points standings.",carOptions:"GT3",blobStore:"SRT-GT3-Season-1",championshipId:"1bb2f11c-d4db-45e8-9505-97cd6ec1e806"},
+  {id:"2",name:"SRT League — Formula Series",sim:"Assetto Corsa",status:"upcoming",track:"Multi-Track Season",startDate:"2026-05-17T00:00:00Z",endDate:"2026-07-12T23:59:59Z",format:"Weekly Rounds",drivers:"0",maxDrivers:"24",rounds:"9",season:"2026",description:"A clean and competitive open-wheel season with consistent weekly racing and leaderboard points.",carOptions:"Formula",blobStore:"SRT-Formula-Season-1",championshipId:""}
 ];
 
 const DEMO_LB = {

@@ -174,7 +174,25 @@ async function loadLeagueStandings() {
   container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading standings…</div>';
   
   try {
-    const response = await fetch(`${CONFIG.ASSETTO_API.STANDINGS}?championshipId=${CONFIG.ASSETTO_CHAMPIONSHIP_ID}`);
+    // Get the current league
+    const league = appLeagues.find(l => l.id === currentLeagueId);
+    
+    if (!league) {
+      throw new Error('League not found');
+    }
+    
+    // Check if league has a championship ID configured
+    if (!league.championshipId) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🏆</div>
+          <div class="empty-state-text">No championship configured for this league</div>
+        </div>
+      `;
+      return;
+    }
+    
+    const response = await fetch(`${CONFIG.ASSETTO_API.STANDINGS}?championshipId=${league.championshipId}`);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -909,8 +927,29 @@ function loadSignupIframe() {
     return;
   }
   
-  // Build the signup URL using the championship ID from config
-  const signupUrl = `https://sg.assettohosting.com:10027/championship/${CONFIG.ASSETTO_CHAMPIONSHIP_ID}`;
+  // Get the current league
+  const league = appLeagues.find(l => l.id === currentLeagueId);
+  
+  if (!league) {
+    console.error('League not found');
+    return;
+  }
+  
+  // Check if league has a championship ID configured
+  if (!league.championshipId) {
+    iframe.srcdoc = `
+      <div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:system-ui;color:#666;">
+        <div style="text-align:center;">
+          <div style="font-size:48px;margin-bottom:16px;">🏆</div>
+          <div>No championship configured for this league</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  // Build the signup URL using the league's championship ID
+  const signupUrl = `https://sg.assettohosting.com:10027/championship/${league.championshipId}`;
   
   // Set the iframe source
   iframe.src = signupUrl;
