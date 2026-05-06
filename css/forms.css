@@ -1,0 +1,263 @@
+/* ═══════════════════════════════════════════════════
+   FORMS - Registration Forms, Inputs, Buttons
+   ═══════════════════════════════════════════════════ */
+
+#register,
+#league-register {
+  padding-top: 64px;
+  min-height: 100vh;
+}
+
+.reg-layout {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  min-height: calc(100vh - 64px);
+}
+
+.reg-left {
+  padding: 5rem 5rem;
+  border-right: 1px solid var(--border);
+}
+
+.reg-right {
+  background: var(--bg2);
+  padding: 5rem 3rem;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+.reg-right-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.event-select-card {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: var(--bg);
+}
+
+.event-select-card:hover {
+  border-color: rgba(232, 0, 29, 0.4);
+}
+
+.event-select-card.selected {
+  border-color: var(--red);
+  background: rgba(232, 0, 29, 0.05);
+}
+
+.event-select-card.closed {
+  opacity: 0.5;
+}
+
+.event-select-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.event-select-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.form-section {
+  margin-bottom: 3rem;
+}
+
+.form-section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-section-title span {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--red);
+  background: rgba(232, 0, 29, 0.1);
+  padding: 3px 10px;
+  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group.full {
+  grid-column: 1/-1;
+}
+
+label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+input,
+select,
+textarea {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.95rem;
+  padding: 12px 16px;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Checkboxes should keep their native appearance and size */
+input[type='checkbox'] {
+  width: auto;
+  padding: 0;
+  -webkit-appearance: checkbox;
+  appearance: checkbox;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(232, 0, 29, 0.6);
+  background: rgba(22, 26, 31, 0.8);
+}
+
+select option {
+  background: var(--bg3);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 0.5rem;
+}
+
+.checkbox-group input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--red);
+}
+
+.checkbox-group label {
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.submit-btn {
+  width: 100%;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.15em;
+  padding: 18px;
+  background: var(--red);
+  color: #fff;
+  border: none;
+  clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, opacity 0.2s;
+  margin-top: 1rem;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #ff1f38;
+  transform: translateY(-2px);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Status Messages */
+.status-msg {
+  display: none;
+  padding: 1.25rem 1.5rem;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-top: 1rem;
+  border: 1px solid;
+  line-height: 1.5;
+}
+
+.status-msg.success {
+  background: rgba(0, 230, 118, 0.1);
+  border-color: rgba(0, 230, 118, 0.3);
+  color: var(--green);
+}
+
+.status-msg.error {
+  background: rgba(232, 0, 29, 0.1);
+  border-color: rgba(232, 0, 29, 0.3);
+  color: #ff6b6b;
+}
+
+.status-msg.loading {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+/* Config Banner */
+.config-banner {
+  background: rgba(245, 166, 35, 0.08);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  color: var(--gold);
+  padding: 1rem 1.5rem;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+/* Made with Bob */

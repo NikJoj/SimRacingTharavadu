@@ -1,0 +1,197 @@
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE - Media Queries for Mobile/Tablet
+   ═══════════════════════════════════════════════════ */
+
+/* Mobile Event/League Cards */
+@media (max-width: 768px) {
+  .events-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .event-card {
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .event-poster {
+    width: 100%;
+    height: auto;
+  }
+
+  .event-poster img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .event-name {
+    font-size: 1.4rem;
+  }
+
+  .event-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .leagues-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .league-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .league-card {
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .league-poster {
+    width: 100%;
+    height: auto;
+  }
+
+  .league-poster img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+}
+
+/* Mobile Modal */
+@media (max-width: 700px) {
+  .event-card-modal {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .event-poster-modal {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  #modal-poster {
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+  }
+
+  .event-content-modal {
+    width: 100%;
+  }
+
+  .modal-content {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    margin: 2rem auto;
+    max-width: 95%;
+  }
+
+  .modal {
+    overflow-y: auto;
+  }
+}
+
+/* Tablet and Mobile General */
+@media (max-width: 900px) {
+  nav {
+    padding: 0 1.5rem;
+  }
+
+  .nav-links {
+    gap: 1.2rem;
+  }
+
+  section,
+  .lb-hero,
+  .lb-body,
+  .reg-left {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  .hero {
+    flex-direction: column;
+    height: auto;
+    min-height: auto;
+    padding: 3rem 0;
+  }
+
+  .hero-content {
+    padding: 0 2rem;
+    max-width: 100%;
+  }
+
+  .hero-logo {
+    flex: 0;
+    padding: 1.5rem 2rem;
+  }
+
+  .hero-logo img {
+    max-height: 300px;
+  }
+
+  .hero-title {
+    font-size: clamp(3rem, 12vw, 6rem);
+  }
+
+  .hero-stat-strip {
+    position: static;
+    flex-wrap: wrap;
+  }
+
+  .hero-stat {
+    min-width: 50%;
+  }
+
+  .lb-top3 {
+    grid-template-columns: 1fr;
+  }
+
+  .reg-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .reg-right {
+    position: static;
+    height: auto;
+  }
+
+  footer {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-group.full {
+    grid-column: 1;
+  }
+
+  .event-card {
+    flex-direction: column;
+  }
+
+  .event-poster {
+    width: 100%;
+    height: 200px;
+  }
+
+  .leagues-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Made with Bob */
