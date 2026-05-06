@@ -200,56 +200,303 @@
 /* Race List Styling */
 .race-list {
   display: grid;
-  gap: 1px;
+  gap: 1.5px;
   background: var(--border);
   border: 1px solid var(--border);
 }
 
 .race-item {
   background: var(--bg2);
-  padding: 1.25rem;
+  padding: 1.5rem;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   border-left: 3px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.race-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: transparent;
+  transition: background 0.2s;
 }
 
 .race-item:hover {
   background: var(--bg3);
-  border-left-color: var(--red);
+  border-color: rgba(232, 0, 29, 0.25);
 }
 
-.race-info {
+.race-item:hover::before {
+  background: var(--red);
+}
+
+.race-item-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.race-item-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.race-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.race-track {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+.race-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.25rem;
+}
+
+.race-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.race-detail-item svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.race-arrow {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+
+.race-item:hover .race-arrow {
+  color: var(--red);
+  transform: translateX(5px);
+}
+
+/* ═══════════════════════════════════════════════════
+   RACE RESULTS DETAIL PAGE
+   ═══════════════════════════════════════════════════ */
+
+.race-results-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.race-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.race-meta-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.race-meta-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.25rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+/* Race Results Sections */
+.race-results-section {
+  margin-bottom: 2rem;
+}
+
+.race-results-section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Podium Display */
+.podium-display {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.podium-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.podium-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--red);
+}
+
+.podium-card.p1::before { background: #FFD700; }
+.podium-card.p2::before { background: #C0C0C0; }
+.podium-card.p3::before { background: #CD7F32; }
+
+.podium-position {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.podium-card.p1 .podium-position { color: #FFD700; }
+.podium-card.p2 .podium-position { color: #C0C0C0; }
+.podium-card.p3 .podium-position { color: #CD7F32; }
+
+.podium-driver {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.podium-car {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.podium-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.podium-stat {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.podium-stat-label {
+  color: var(--muted);
+}
+
+.podium-stat-value {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Fastest Lap Highlight */
+.fastest-lap-highlight {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.fastest-lap-info {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.race-name {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.3rem;
-  letter-spacing: 0.04em;
-  line-height: 1;
-}
-
-.race-meta {
+.fastest-lap-label {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 0.85rem;
-  color: var(--muted);
-  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-}
-
-.race-arrow {
   color: var(--red);
-  font-size: 1.5rem;
-  transition: transform 0.2s;
 }
 
-.race-item:hover .race-arrow {
-  transform: translateX(5px);
+.fastest-lap-driver {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.fastest-lap-time {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+  color: var(--red);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .podium-display {
+    grid-template-columns: 1fr;
+  }
+  
+  .race-results-meta {
+    gap: 1rem;
+  }
+  
+  .fastest-lap-highlight {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 /* Live Timing Specific Styles */

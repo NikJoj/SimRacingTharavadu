@@ -241,7 +241,7 @@
 <!-- ══ LEAGUE DETAILS ══ -->
 <div id="league-details" class="page">
   <div class="lb-hero">
-    <button class="back-btn" onclick="showPage('home')">← Back to Leagues</button>
+
     <div class="section-tag">// Championship Details</div>
     <h2 class="section-title" id="league-details-title">League Name</h2>
     
@@ -275,6 +275,20 @@
         <div class="data-loading"><span class="spinner"></span> Loading live timings…</div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ══ RACE RESULTS DETAIL ══ -->
+<div id="race-results" class="page">
+  <div class="lb-hero">
+    <button class="back-btn" onclick="backToRaces()">← Back to Races</button>
+    <div class="section-tag">// Race Results</div>
+    <h2 class="section-title" id="race-results-title">Race Details</h2>
+    <div id="race-results-meta" class="race-results-meta"></div>
+  </div>
+
+  <div id="race-results-content">
+    <div class="data-loading"><span class="spinner"></span> Loading race results…</div>
   </div>
 </div>
 
