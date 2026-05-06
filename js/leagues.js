@@ -434,7 +434,7 @@ function buildLiveTimingDisplay(data) {
 
 /**
  * Show race results detail page
- * @param {string} resultsUrl - URL to the race results JSON
+ * @param {string} resultsUrl - URL or path to the race results JSON
  */
 async function showRaceResults(resultsUrl) {
   console.log('Loading race results from:', resultsUrl);
@@ -446,8 +446,22 @@ async function showRaceResults(resultsUrl) {
   container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading race results…</div>';
   
   try {
+    // Convert relative path to API endpoint if needed
+    let apiUrl = resultsUrl;
+    
+    // Check if it's a relative path from Assetto API (e.g., /results/2026_4_29_10_38_RACE)
+    if (resultsUrl.startsWith('/results/')) {
+      // Extract filename and add .json extension if not present
+      const filename = resultsUrl.replace('/results/', '');
+      const jsonFilename = filename.endsWith('.json') ? filename : `${filename}.json`;
+      
+      // Use our proxy API endpoint
+      apiUrl = `${CONFIG.ASSETTO_API.RACE_RESULT}?file=${encodeURIComponent(jsonFilename)}`;
+      console.log('Using proxy API:', apiUrl);
+    }
+    
     // Fetch the race results JSON
-    const response = await fetch(resultsUrl);
+    const response = await fetch(apiUrl);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
