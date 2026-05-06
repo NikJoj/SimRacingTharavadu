@@ -56,10 +56,10 @@ function showEventDetails(id) {
 }
 
 /**
- * Show league details in modal
+ * Show league details in modal (DEPRECATED - use showLeagueDetails for new page)
  * @param {string} id - League ID
  */
-function showLeagueDetails(id) {
+function showLeagueModal(id) {
   const league = appLeagues.find(l => l.id === id);
   if (!league) return;
 
