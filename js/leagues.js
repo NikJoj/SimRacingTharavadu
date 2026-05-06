@@ -104,6 +104,7 @@ function renderLeaguesGrid() {
 // Store current league ID and tab
 let currentLeagueId = null;
 let currentLeagueTab = 'standings';
+let liveTimingInterval = null;
 
 /**
  * Show league details page (called from Leaderboard button)
@@ -118,6 +119,9 @@ function showLeagueDetails(leagueId) {
     return;
   }
   
+  // Stop any existing polling when entering league details
+  stopLiveTimingPolling();
+  
   // Update page title
   document.getElementById('league-details-title').textContent = league.name;
   
@@ -130,10 +134,13 @@ function showLeagueDetails(leagueId) {
 
 /**
  * Switch between league tabs
- * @param {string} tabName - Tab name (standings, races, live)
+ * @param {string} tabName - Tab name (standings, races, live, signup)
  */
 function switchLeagueTab(tabName) {
   currentLeagueTab = tabName;
+  
+  // Clear any existing live timing interval
+  stopLiveTimingPolling();
   
   // Update tab buttons
   document.querySelectorAll('.league-tab').forEach(btn => {
@@ -159,10 +166,35 @@ function switchLeagueTab(tabName) {
       break;
     case 'live':
       loadLiveTiming();
+      startLiveTimingPolling();
       break;
     case 'signup':
       loadSignupIframe();
       break;
+  }
+}
+
+/**
+ * Start polling for live timing updates
+ */
+function startLiveTimingPolling() {
+  // Poll every 30 seconds
+  liveTimingInterval = setInterval(() => {
+    if (currentLeagueTab === 'live') {
+      loadLiveTiming(true); // Pass true to indicate it's a refresh
+    } else {
+      stopLiveTimingPolling();
+    }
+  }, 30000);
+}
+
+/**
+ * Stop polling for live timing updates
+ */
+function stopLiveTimingPolling() {
+  if (liveTimingInterval) {
+    clearInterval(liveTimingInterval);
+    liveTimingInterval = null;
   }
 }
 
@@ -341,10 +373,15 @@ async function loadLeagueRaces() {
 
 /**
  * Load live timing data
+ * @param {boolean} isRefresh - Whether this is a polling refresh (don't show loading spinner)
  */
-async function loadLiveTiming() {
+async function loadLiveTiming(isRefresh = false) {
   const container = document.getElementById('league-live-content');
-  container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading live timings…</div>';
+  
+  // Only show loading spinner on initial load, not on refresh
+  if (!isRefresh) {
+    container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading live timings…</div>';
+  }
   
   try {
     const response = await fetch(CONFIG.ASSETTO_API.LIVE_BASIC);
@@ -357,6 +394,7 @@ async function loadLiveTiming() {
     
     if (data.error) {
       container.innerHTML = `<div class="data-error">⚠ ${data.error}</div>`;
+      stopLiveTimingPolling();
       return;
     }
     
@@ -368,6 +406,7 @@ async function loadLiveTiming() {
           <div class="empty-state-text">No active session</div>
         </div>
       `;
+      stopLiveTimingPolling();
       return;
     }
     
@@ -375,7 +414,10 @@ async function loadLiveTiming() {
     container.innerHTML = buildLiveTimingDisplay(data);
   } catch (error) {
     console.error('Error loading live timing:', error);
-    container.innerHTML = '<div class="data-error">⚠ Failed to load live timing. Please try again later.</div>';
+    if (!isRefresh) {
+      container.innerHTML = '<div class="data-error">⚠ Failed to load live timing. Please try again later.</div>';
+    }
+    // Don't stop polling on error, might be temporary network issue
   }
 }
 
@@ -560,14 +602,34 @@ function buildRaceListFromBlobStore(races, blobStore) {
  * @returns {string} HTML string
  */
 function buildLiveTimingDisplay(data) {
+  const now = new Date();
+  const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  
   let html = `
+    <div class="live-timing-info-banner">
+      <div class="live-timing-info-text">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Auto-refreshes every 30 seconds
+      </div>
+      <button class="live-timing-refresh-btn" onclick="refreshLiveTiming()" title="Refresh now">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
     <div class="live-timing-header">
       <div class="live-status">
         <span class="live-indicator"></span>
         <span>LIVE</span>
       </div>
       <div class="session-info">
-        ${data.ConnectedDrivers.length} Driver${data.ConnectedDrivers.length !== 1 ? 's' : ''} Connected
+        ${data.ConnectedDrivers.length} Driver${data.ConnectedDrivers.length !== 1 ? 's' : ''} Connected • Updated ${timeString}
       </div>
     </div>
   `;
@@ -976,6 +1038,28 @@ function getPenaltyDetails(penalty) {
 function backToRaces() {
   showPage('league-details');
   switchLeagueTab('races');
+}
+
+/**
+ * Manually refresh live timing data
+ */
+function refreshLiveTiming() {
+  const btn = document.querySelector('.live-timing-refresh-btn');
+  if (btn) {
+    // Add spinning animation
+    btn.classList.add('refreshing');
+    btn.disabled = true;
+  }
+  
+  loadLiveTiming(true).then(() => {
+    if (btn) {
+      // Remove spinning animation after a short delay
+      setTimeout(() => {
+        btn.classList.remove('refreshing');
+        btn.disabled = false;
+      }, 500);
+    }
+  });
 }
 
 /**
