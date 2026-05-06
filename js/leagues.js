@@ -442,6 +442,7 @@ function buildRaceList(results) {
   
   html += '</div>';
   return html;
+}
 
 /**
  * Build race list HTML from blob store data
@@ -515,7 +516,6 @@ function buildRaceListFromBlobStore(races, blobStore) {
   
   html += '</div>';
   return html;
-}
 }
 
 /**
