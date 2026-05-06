@@ -103,44 +103,22 @@ async function renderLeagueLeaderboard(league) {
   // Special handling for "SRT LMU Pre Season Evaluation"
   if (league.name === "SRT LMU Pre Season Evaluation") {
     try {
-      const apiUrl = CONFIG.ASSETTO_CHAMPIONSHIP_API;
-      let data = null;
-      let lastError = null;
-
-      if (CONFIG.USE_CORS_PROXY) {
-        // Try multiple CORS proxies in order
-        for (const proxy of CONFIG.CORS_PROXIES) {
-          try {
-            const fetchUrl = proxy + encodeURIComponent(apiUrl);
-            console.log(`Trying proxy: ${proxy}`);
-            
-            const response = await fetch(fetchUrl, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json'
-              }
-            });
-            
-            if (response.ok) {
-              data = await response.json();
-              console.log(`Success with proxy: ${proxy}`);
-              break; // Success, exit loop
-            }
-          } catch (error) {
-            console.warn(`Proxy ${proxy} failed:`, error.message);
-            lastError = error;
-            continue; // Try next proxy
-          }
+      // Use serverless function to fetch championship standings
+      const apiUrl = `${CONFIG.ASSETTO_API.STANDINGS}?championshipId=${CONFIG.ASSETTO_CHAMPIONSHIP_ID}`;
+      console.log(`Fetching championship standings from: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
         }
-      } else {
-        // Try direct fetch
-        const response = await fetch(apiUrl);
-        data = await response.json();
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}: ${response.statusText}`);
       }
 
-      if (!data) {
-        throw new Error(lastError?.message || 'All CORS proxies failed. The Assetto Corsa API may be blocking requests.');
-      }
+      const data = await response.json();
 
       // Parse the championship data
       const standings = data.Championship?.Standings || [];

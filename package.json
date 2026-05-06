@@ -1,0 +1,21 @@
+{
+  "name": "simracingtharavadu",
+  "version": "1.0.0",
+  "description": "SimRacingTharavadu - Kerala's Premier Sim Racing Community",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "sim-racing",
+    "assetto-corsa",
+    "racing-league",
+    "serverless"
+  ],
+  "author": "SimRacingTharavadu",
+  "license": "MIT",
+  "devDependencies": {
+    "vercel": "^33.0.0"
+  }
+}
