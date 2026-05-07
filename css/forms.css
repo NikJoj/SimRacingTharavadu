@@ -177,6 +177,19 @@ select:focus,
 textarea:focus {
   border-color: rgba(232, 0, 29, 0.6);
   background: rgba(22, 26, 31, 0.8);
+
+/* ══ DATETIME INPUT FIX ══ */
+/* Restore native datetime-local controls for time picker */
+input[type="datetime-local"] {
+  -webkit-appearance: auto;
+  appearance: auto;
+  color-scheme: dark;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
 }
 
 select option {

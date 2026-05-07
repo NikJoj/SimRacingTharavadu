@@ -172,6 +172,46 @@
             </div>
           </div>
         </div>
+
+        <!-- Update Races Section -->
+        <div class="update-races-section">
+          <div class="sync-card full-width">
+            <h3>Update Races</h3>
+            <p>Select specific races from Assetto Corsa API to sync to blob storage. This gives you control over which races are synced.</p>
+            
+            <div class="form-group">
+              <label>Select League</label>
+              <select id="update-races-league" class="form-control">
+                <option value="">-- Select League --</option>
+              </select>
+            </div>
+
+            <button class="btn-primary" onclick="fetchAvailableRaces()">
+              📋 Fetch Available Races
+            </button>
+
+            <div id="races-list-container" class="races-list-container" style="display: none;">
+              <div class="races-list-header">
+                <h4>Available Races</h4>
+                <div class="races-list-actions">
+                  <button class="btn-secondary btn-small" onclick="selectAllRaces()">Select All</button>
+                  <button class="btn-secondary btn-small" onclick="deselectAllRaces()">Deselect All</button>
+                </div>
+              </div>
+              <div id="races-list" class="races-list">
+                <!-- Races will be populated here -->
+              </div>
+              <div class="races-list-footer">
+                <span id="selected-count">0 races selected</span>
+                <button class="btn-primary" onclick="syncSelectedRaces()" id="sync-selected-btn" disabled>
+                  🔄 Sync Selected Races
+                </button>
+              </div>
+            </div>
+
+            <div id="update-races-status" class="status-message"></div>
+          </div>
+        </div>
       </section>
     </div>
   </main>
