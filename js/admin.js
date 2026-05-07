@@ -1467,6 +1467,8 @@ async function uploadPosterToGitHub(file, filename, type) {
     // Remove data URL prefix to get pure base64
     const base64Data = base64Content.split(',')[1];
     
+    console.log(`Uploading poster: ${filename}`);
+    
     // Call sync API
     const response = await fetch('/api/sync-poster', {
       method: 'POST',
@@ -1482,15 +1484,21 @@ async function uploadPosterToGitHub(file, filename, type) {
     
     const result = await response.json();
     
+    console.log('API Response:', response.status, result);
+    
     if (!response.ok) {
-      throw new Error(result.error || 'Failed to sync poster to GitHub');
+      // Get detailed error message
+      const errorMsg = result.message || result.error || 'Failed to sync poster to GitHub';
+      const errorDetails = result.details || '';
+      throw new Error(`${errorMsg}${errorDetails ? ': ' + errorDetails : ''}`);
     }
     
-    console.log('Poster synced to GitHub:', result);
+    console.log('Poster synced to GitHub successfully:', result);
     return result;
     
   } catch (error) {
     console.error('Error uploading poster to GitHub:', error);
+    console.error('Error details:', error.message);
     showToast(`Warning: ${type} saved but poster sync failed. ${error.message}`, 'error');
     throw error;
   }
