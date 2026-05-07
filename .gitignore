@@ -29,3 +29,4 @@ dist/
 build/
 
 # Made with Bob
+.env*.local
