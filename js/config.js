@@ -36,7 +36,26 @@ const CONFIG = {
   
   // Legacy settings (no longer needed with serverless functions)
   USE_CORS_PROXY: false,
-  CORS_PROXIES: [] // Not needed anymore!
+  CORS_PROXIES: [], // Not needed anymore!
+
+  // Admin Panel Settings
+  ADMIN: {
+    // Default credentials (CHANGE THESE in Vercel environment variables!)
+    // These are fallback values only - production should use env vars
+    DEFAULT_USERNAME: 'admin',
+    DEFAULT_PASSWORD: 'srt2026admin',
+    
+    // Session timeout (2 hours)
+    SESSION_TIMEOUT: 7200000, // milliseconds
+    
+    // Enable/disable admin features
+    FEATURES: {
+      EVENT_MANAGEMENT: true,
+      LEAGUE_MANAGEMENT: true,
+      REGISTRATION_MANAGEMENT: true,
+      RACE_SYNC: true
+    }
+  }
 };
 
 /* ── DEMO DATA ───────────────────────────────────────── */
