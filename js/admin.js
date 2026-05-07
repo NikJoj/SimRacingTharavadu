@@ -193,8 +193,7 @@ async function loadLeagues() {
     }
     
     renderLeaguesTable();
-    populateSyncLeagueSelect();
-    populateUpdateRacesLeagueSelect();
+    populateRegFilter();
   } catch (error) {
     console.error('Error loading leagues:', error);
     document.getElementById('leagues-table').innerHTML = '<div class="loading">Failed to load leagues</div>';
@@ -342,8 +341,7 @@ function showSection(sectionName) {
   
   // Populate dropdowns when switching to race-sync section
   if (sectionName === 'race-sync') {
-    populateSyncLeagueSelect();
-    populateUpdateRacesLeagueSelect();
+    // League dropdown will be populated when races are fetched
   }
 }
 
