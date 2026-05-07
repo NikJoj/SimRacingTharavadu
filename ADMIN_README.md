@@ -16,12 +16,37 @@ Password: srt2026admin
 
 ### 1. Set Environment Variables in Vercel
 
+**Option A: Automated Setup (Recommended) ⚡**
+
+```bash
+# Install Vercel CLI if not already installed
+npm install -g vercel
+
+# Login to Vercel
+vercel login
+
+# Run automated GitHub setup
+npm run setup:github
+```
+
+**Option B: Manual Setup**
+
+Set these in Vercel Dashboard → Settings → Environment Variables:
+
 ```bash
 ADMIN_USERNAME=your_username
 ADMIN_PASSWORD=your_secure_password
 JWT_SECRET=your_random_32char_secret
 BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
+
+# For Poster Sync to GitHub (NEW)
+GITHUB_TOKEN=ghp_your_github_token
+GITHUB_OWNER=your_github_username
+GITHUB_REPO=SimRacingTharavadu
+GITHUB_BRANCH=main
 ```
+
+> 📖 **See [POSTER_SYNC_SETUP.md](POSTER_SYNC_SETUP.md) for detailed setup instructions**
 
 ### 2. Update Google Apps Script
 
@@ -38,12 +63,24 @@ vercel --prod
 
 ## Features
 
-✅ **Event Management** - Create, edit, delete events  
-✅ **League Management** - Manage championships and seasons  
-✅ **Registration Management** - View, edit, export registrations  
-✅ **Race Result Sync** - Sync from Assetto Corsa API to blob storage  
-✅ **Dashboard** - Statistics and recent activity  
-✅ **Secure Authentication** - Token-based with 2-hour sessions  
+✅ **Event Management** - Create, edit, delete events
+✅ **League Management** - Manage championships and seasons
+✅ **Registration Management** - View, edit, export registrations
+✅ **Race Result Sync** - Sync from Assetto Corsa API to blob storage
+✅ **Poster Upload & GitHub Sync** - Auto-sync event/league posters to GitHub (NEW)
+✅ **Dashboard** - Statistics and recent activity
+✅ **Secure Authentication** - Token-based with 2-hour sessions
+
+### 🆕 Poster Upload Feature
+
+When creating or editing events/leagues, you can now upload poster images that automatically sync to GitHub:
+
+- **Events**: Saved as `poster<id>.png` (e.g., poster1.png, poster2.png)
+- **Leagues**: Saved as `leaguePoster<id>.png` (e.g., leaguePoster1.png)
+- **Supported formats**: PNG, JPG (max 5MB)
+- **Auto-commit**: Automatically commits to your GitHub repository
+
+**Setup Required**: See [POSTER_SYNC_SETUP.md](POSTER_SYNC_SETUP.md) for configuration instructions.
 
 ## File Structure
 

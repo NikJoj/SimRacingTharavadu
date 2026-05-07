@@ -1011,3 +1011,45 @@ input[type="datetime-local"].form-control::-webkit-calendar-picker-indicator {
 }
 
 /* Made with Bob */
+
+/* ═══════════════════════════════════════════════════
+   POSTER UPLOAD STYLES
+   ═══════════════════════════════════════════════════ */
+
+.poster-preview-container {
+  margin-top: 10px;
+}
+
+.poster-preview-container img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  display: block;
+}
+
+.poster-preview-container p {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #666;
+}
+
+input[type="file"].form-control {
+  padding: 8px;
+  cursor: pointer;
+}
+
+input[type="file"].form-control::-webkit-file-upload-button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 10px;
+  transition: background 0.2s;
+}
+
+input[type="file"].form-control::-webkit-file-upload-button:hover {
+  background: var(--primary-hover);
+}
