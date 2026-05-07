@@ -4,7 +4,8 @@
   "description": "SimRacingTharavadu - Kerala's Premier Sim Racing Community",
   "main": "index.html",
   "scripts": {
-
+    "setup:github": "node setup-github-env.js",
+    "setup:github-help": "echo 'Run: npm run setup:github' && echo 'This will guide you through setting up GitHub environment variables for poster sync'"
   },
   "keywords": [
     "sim-racing",

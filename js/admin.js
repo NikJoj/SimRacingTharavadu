@@ -849,6 +849,14 @@ function getEventForm(event = null) {
         <label>Description</label>
         <textarea class="form-control" id="event-desc" rows="3">${event?.description || ''}</textarea>
       </div>
+      <div class="form-group">
+        <label>Event Poster ${event ? '' : '*'}</label>
+        <input type="file" class="form-control" id="event-poster" accept="image/png,image/jpeg,image/jpg" onchange="previewPoster(this, 'event-poster-preview')" ${event ? '' : 'required'}>
+        <small style="color: #888; display: block; margin-top: 5px;">
+          ${event ? `Will be saved as: poster${event.id}.png (leave empty to keep existing)` : 'Will be saved as: poster<id>.png after creation'}
+        </small>
+        <div id="event-poster-preview" class="poster-preview-container"></div>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
         <button type="submit" class="btn-primary">Save Event</button>
@@ -892,6 +900,14 @@ function getLeagueForm(league = null) {
         <label>Blob Store Folder *</label>
         <input type="text" class="form-control" id="league-blob" value="${league?.blobStore || ''}" placeholder="SRT-GT3-Season-1" required>
       </div>
+      <div class="form-group">
+        <label>League Poster ${league ? '' : '*'}</label>
+        <input type="file" class="form-control" id="league-poster" accept="image/png,image/jpeg,image/jpg" onchange="previewPoster(this, 'league-poster-preview')" ${league ? '' : 'required'}>
+        <small style="color: #888; display: block; margin-top: 5px;">
+          ${league ? `Will be saved as: leaguePoster${league.id}.png (leave empty to keep existing)` : 'Will be saved as: leaguePoster<id>.png after creation'}
+        </small>
+        <div id="league-poster-preview" class="poster-preview-container"></div>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
         <button type="submit" class="btn-primary">Save League</button>
@@ -927,24 +943,49 @@ async function saveEvent(e) {
     eventData.id = eventId;
   }
 
+  // Get poster file
+  const posterInput = document.getElementById('event-poster');
+  const posterFile = posterInput?.files[0];
+
   showLoading(eventId ? 'Updating event...' : 'Creating event...');
   closeModal();
 
   try {
-    await fetch(CONFIG.APPS_SCRIPT_URL, {
+    // Save event to Google Sheets
+    const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
       method: 'POST',
-      mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, ...eventData })
     });
 
-    // Wait for Google Sheets to update
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // For new events, we need to get the ID from the response
+    let finalEventId = eventId;
     
-    // Reload events
-    await loadEvents();
+    if (!eventId) {
+      // Wait a bit for Google Sheets to process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Reload events to get the new ID
+      await loadEvents();
+      
+      // Find the event we just created by name (it should be the most recent one)
+      if (adminData.events && adminData.events.length > 0) {
+        const newEvent = adminData.events.find(evt => evt.name === eventData.name);
+        finalEventId = newEvent?.id;
+      }
+    } else {
+      // For updates, just wait a bit
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await loadEvents();
+    }
+
+    // Upload poster to GitHub if provided
+    if (posterFile && finalEventId) {
+      showLoading('Syncing poster to GitHub...');
+      await uploadPosterToGitHub(posterFile, `poster${finalEventId}.png`, 'event');
+    }
+    
     updateDashboardStats();
-    
     hideLoading();
     showToast(eventId ? 'Event updated successfully!' : 'Event created successfully!', 'success');
     
@@ -978,24 +1019,49 @@ async function saveLeague(e) {
     leagueData.id = leagueId;
   }
 
+  // Get poster file
+  const posterInput = document.getElementById('league-poster');
+  const posterFile = posterInput?.files[0];
+
   showLoading(leagueId ? 'Updating league...' : 'Creating league...');
   closeModal();
 
   try {
-    await fetch(CONFIG.APPS_SCRIPT_URL, {
+    // Save league to Google Sheets
+    const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
       method: 'POST',
-      mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, ...leagueData })
     });
 
-    // Wait for Google Sheets to update
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // For new leagues, we need to get the ID from the response
+    let finalLeagueId = leagueId;
     
-    // Reload leagues
-    await loadLeagues();
+    if (!leagueId) {
+      // Wait a bit for Google Sheets to process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Reload leagues to get the new ID
+      await loadLeagues();
+      
+      // Find the league we just created by name (it should be the most recent one)
+      if (adminData.leagues && adminData.leagues.length > 0) {
+        const newLeague = adminData.leagues.find(lg => lg.name === leagueData.name);
+        finalLeagueId = newLeague?.id;
+      }
+    } else {
+      // For updates, just wait a bit
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await loadLeagues();
+    }
+
+    // Upload poster to GitHub if provided
+    if (posterFile && finalLeagueId) {
+      showLoading('Syncing poster to GitHub...');
+      await uploadPosterToGitHub(posterFile, `leaguePoster${finalLeagueId}.png`, 'league');
+    }
+    
     updateDashboardStats();
-    
     hideLoading();
     showToast(leagueId ? 'League updated successfully!' : 'League created successfully!', 'success');
     
@@ -1318,3 +1384,102 @@ function formatDate(dateStr) {
 }
 
 // Made with Bob
+
+
+/* ═══════════════════════════════════════════════════
+   POSTER UPLOAD & GITHUB SYNC FUNCTIONS
+   ═══════════════════════════════════════════════════ */
+
+/**
+ * Preview poster image before upload
+ */
+function previewPoster(input, previewId) {
+  const previewContainer = document.getElementById(previewId);
+  
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    
+    // Validate file type
+    if (!file.type.match('image/(png|jpeg|jpg)')) {
+      showToast('Please select a PNG or JPG image', 'error');
+      input.value = '';
+      previewContainer.innerHTML = '';
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image size must be less than 5MB', 'error');
+      input.value = '';
+      previewContainer.innerHTML = '';
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      previewContainer.innerHTML = `
+        <div style="margin-top: 10px;">
+          <img src="${e.target.result}" style="max-width: 100%; max-height: 200px; border-radius: 4px; border: 1px solid #ddd;">
+          <p style="margin-top: 5px; font-size: 12px; color: #666;">
+            ${file.name} (${(file.size / 1024).toFixed(2)} KB)
+          </p>
+        </div>
+      `;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    previewContainer.innerHTML = '';
+  }
+}
+
+/**
+ * Upload poster to GitHub
+ */
+async function uploadPosterToGitHub(file, filename, type) {
+  try {
+    // Convert file to base64
+    const base64Content = await fileToBase64(file);
+    
+    // Remove data URL prefix to get pure base64
+    const base64Data = base64Content.split(',')[1];
+    
+    // Call sync API
+    const response = await fetch('/api/sync-poster', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        filename: filename,
+        content: base64Data,
+        message: `Add ${filename} for ${type} via admin dashboard`
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to sync poster to GitHub');
+    }
+    
+    console.log('Poster synced to GitHub:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('Error uploading poster to GitHub:', error);
+    showToast(`Warning: ${type} saved but poster sync failed. ${error.message}`, 'error');
+    throw error;
+  }
+}
+
+/**
+ * Convert file to base64
+ */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+    reader.readAsDataURL(file);
+  });
+}
