@@ -635,11 +635,10 @@ function renderRacesList(races) {
   
   const html = races.map((race, index) => `
     <div class="race-item" onclick="toggleRaceSelection(${index})">
-      <input type="checkbox" 
-             class="race-checkbox" 
-             id="race-${index}" 
-             data-index="${index}"
-             onclick="event.stopPropagation(); toggleRaceSelection(${index})">
+      <input type="checkbox"
+             class="race-checkbox"
+             id="race-${index}"
+             data-index="${index}">
       <div class="race-info">
         <div class="race-track">${race.track}</div>
         <div class="race-date">${formatDate(race.date)}</div>
