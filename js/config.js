@@ -4,7 +4,7 @@
 
 const CONFIG = {
   // Step 3 in setup guide: paste your Apps Script web app URL here
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxiA_RCwbQrp1OitvYeficXLDGGhXXbbc3EyluaYwtgeHR1lwwk43DjRf7RcoEa51h9jA/exec",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbybyexRn5HTXmgeoDwb1qtQL9ENb5UaMpBbPnCEfogZTMh2XvUY0Nd2c7uNU-CGnXu5gw/exec",
 
   // Step 5 in setup guide: paste your published sheet JSON URLs here
   // Template: https://docs.google.com/spreadsheets/d/1vFLLZFCIlboKZWQy5diB5dcLKtjwPe-Bfoz1xSxV-F4/gviz/tq?tqx=out:json&sheet=Events
