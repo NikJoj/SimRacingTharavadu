@@ -129,17 +129,20 @@ function selectLeague(id, name) {
 async function submitForm() {
   const g = id => document.getElementById(id).value.trim();
 
+  // Build fields object with correct order matching sheet columns
+  // Column order: Timestamp, Driver Tag, Discord, Car Class, Event
   const fields = {
-    driverTag:g('f-tag'),
-    discord:g('f-discord'), 
-    carClass:g('f-carclass'),
-    event:g('f-event'), timestamp:new Date().toISOString()
-  };  
+    timestamp: new Date().toISOString(),  // Column A
+    driverTag: g('f-tag'),                // Column B
+    discord: g('f-discord'),              // Column C
+    carClass: g('f-carclass'),            // Column D
+    event: g('f-event')                   // Column E
+  };
 
   if (!fields.event)
-    return setStatus('error','⚠ Please select an event first.');  
+    return setStatus('error','⚠ Please select an event first.');
   if (!fields.discord||!fields.driverTag||!fields.carClass)
-    return setStatus('error','⚠ Please fill all required fields (*).');  
+    return setStatus('error','⚠ Please fill all required fields (*).');
   if (!document.getElementById('f-conduct').checked)
     return setStatus('error','⚠ Please agree to the racing rules to proceed.');
   if (!document.getElementById('f-discord-join').checked)
@@ -157,6 +160,7 @@ async function submitForm() {
   }
 
   try {
+    console.log('Submitting registration:', fields); // Debug log
     await fetch(CONFIG.APPS_SCRIPT_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(fields)});
     setStatus('success',`✓ ${fields.driverTag}, you're on the grid for "${fields.event}"! Look out for updates on Sim Racing Tharavadu Discord channel.`);
     resetForm();
@@ -172,16 +176,17 @@ async function submitForm() {
 async function submitLeagueForm() {
   const g = id => document.getElementById(id).value.trim();
 
+  // Build fields object with correct order matching sheet columns
+  // Column order: Timestamp, Driver Tag, Discord, Car Class, Event (league name goes in Event column)
   const fields = {
-    type: 'league',
-    driverTag: g('lf-tag'),
-    discord: g('lf-discord'),
-    carClass: g('lf-carclass'),
-    league: g('lf-league'),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),  // Column A
+    driverTag: g('lf-tag'),               // Column B
+    discord: g('lf-discord'),             // Column C
+    carClass: g('lf-carclass'),           // Column D
+    event: g('lf-league')                 // Column E (league name stored as event)
   };
 
-  if (!fields.league) return setLeagueStatus('error','⚠ Please select a league first.');
+  if (!fields.event) return setLeagueStatus('error','⚠ Please select a league first.');
   if (!fields.discord || !fields.driverTag || !fields.carClass) return setLeagueStatus('error','⚠ Please fill all required fields (*).');
   if (!document.getElementById('lf-conduct').checked) return setLeagueStatus('error','⚠ Please agree to the racing rules to proceed.');
   if (!document.getElementById('lf-discord-join').checked) return setLeagueStatus('error','⚠ Please confirm you will join the Discord server for race updates and communication.');
@@ -192,14 +197,15 @@ async function submitLeagueForm() {
 
   if (CONFIG.DEMO_MODE) {
     await new Promise(r=>setTimeout(r,1400));
-    setLeagueStatus('success',`✓ [Demo] ${fields.driverTag} registered for "${fields.league}". Set DEMO_MODE: false and add your Apps Script URL to enable real submissions.`);
+    setLeagueStatus('success',`✓ [Demo] ${fields.driverTag} registered for "${fields.event}". Set DEMO_MODE: false and add your Apps Script URL to enable real submissions.`);
     btn.disabled = false;
     return;
   }
 
   try {
+    console.log('Submitting league registration:', fields); // Debug log
     await fetch(CONFIG.APPS_SCRIPT_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(fields)});
-    setLeagueStatus('success',`✓ ${fields.driverTag}, you're registered for "${fields.league}"! Look out for updates on Sim Racing Tharavadu Discord channel.`);
+    setLeagueStatus('success',`✓ ${fields.driverTag}, you're registered for "${fields.event}"! Look out for updates on Sim Racing Tharavadu Discord channel.`);
     resetLeagueForm();
   } catch(e) {
     setLeagueStatus('error',`⚠ Submission failed: ${e.message}. Please try again or contact us on WhatsApp.`);

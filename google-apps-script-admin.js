@@ -106,18 +106,32 @@ function doGet(e) {
 
 /**
  * EXISTING FUNCTION: Handle registration submission
- * Columns: A=timestamp, B=Driver Tag, C=Discord, D=Car Class, E=Event
+ * Columns: A=Timestamp, B=Driver Tag, C=Discord, D=Car Class, E=Event
+ *
+ * IMPORTANT: This order must match the sheet header exactly:
+ * Column A = Timestamp
+ * Column B = Driver Tag
+ * Column C = Discord
+ * Column D = Car Class
+ * Column E = Event
  */
 function handleRegistration(data) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  
+  // Log received data for debugging
+  Logger.log("Received registration data: " + JSON.stringify(data));
 
-  sheet.appendRow([
-    data.timestamp    || new Date().toISOString(),
-    data.driverTag    || "",
-    data.discord      || "",
-    data.carClass     || "",
-    data.event        || data.league || ""
-  ]);
+  // Ensure correct column order: Timestamp, Driver Tag, Discord, Car Class, Event
+  const rowData = [
+    data.timestamp    || new Date().toISOString(),  // Column A: Timestamp
+    data.driverTag    || "",                        // Column B: Driver Tag
+    data.discord      || "",                        // Column C: Discord
+    data.carClass     || "",                        // Column D: Car Class
+    data.event        || data.league || ""          // Column E: Event
+  ];
+  
+  Logger.log("Writing row data: " + JSON.stringify(rowData));
+  sheet.appendRow(rowData);
 
   return ContentService
     .createTextOutput(JSON.stringify({ status: "ok" }))

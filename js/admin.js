@@ -339,6 +339,12 @@ function showSection(sectionName) {
     'race-sync': 'Race Result Sync'
   };
   document.getElementById('page-title').textContent = titles[sectionName] || 'Dashboard';
+  
+  // Populate dropdowns when switching to race-sync section
+  if (sectionName === 'race-sync') {
+    populateSyncLeagueSelect();
+    populateUpdateRacesLeagueSelect();
+  }
 }
 
 /**
@@ -551,6 +557,7 @@ async function syncRaceResult() {
   setTimeout(() => {
     statusEl.classList.remove('show');
   }, 5000);
+}
 
 /**
  * Global variable to store fetched races
@@ -770,7 +777,6 @@ async function syncSelectedRaces() {
   setTimeout(() => {
     statusEl.classList.remove('show');
   }, 5000);
-}
 }
 
 /**
