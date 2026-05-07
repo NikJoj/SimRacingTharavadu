@@ -178,7 +178,15 @@ async function loadRegistrations() {
     const data = await response.json();
     
     if (data.status === 'ok') {
-      adminData.registrations = data.registrations || [];
+      // Map the data to match expected field names
+      adminData.registrations = (data.registrations || []).map(reg => ({
+        timestamp: reg.timestamp || reg.A || '',
+        driverTag: reg.driverTag || reg['Driver Tag'] || reg.B || '',
+        discord: reg.discord || reg.Discord || reg.C || '',
+        carClass: reg.carClass || reg['Car Class'] || reg.D || '',
+        event: reg.event || reg.Event || reg.E || '',
+        league: reg.league || reg.League || ''
+      }));
     } else {
       adminData.registrations = [];
     }

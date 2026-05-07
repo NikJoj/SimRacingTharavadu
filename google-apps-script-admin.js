@@ -106,27 +106,17 @@ function doGet(e) {
 
 /**
  * EXISTING FUNCTION: Handle registration submission
+ * Columns: A=timestamp, B=Driver Tag, C=Discord, D=Car Class, E=Event
  */
 function handleRegistration(data) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
 
   sheet.appendRow([
     data.timestamp    || new Date().toISOString(),
-    data.firstName    || "",
-    data.lastName     || "",
     data.driverTag    || "",
-    data.nationality  || "",
-    data.email        || "",
-    data.whatsapp     || "",
     data.discord      || "",
-    data.platform     || "",
-    data.wheel        || "",
-    data.experience   || "",
-    data.skillLevel   || "",
     data.carClass     || "",
-    data.event        || "",
-    data.league       || "",
-    data.type         || "event"
+    data.event        || data.league || ""
   ]);
 
   return ContentService
@@ -163,6 +153,7 @@ function getRegistrations() {
 
 /**
  * ADMIN FUNCTION: Update a registration
+ * Columns: A=timestamp, B=Driver Tag, C=Discord, D=Car Class, E=Event
  */
 function updateRegistration(data) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
@@ -172,17 +163,16 @@ function updateRegistration(data) {
     throw new Error("Invalid row index");
   }
 
-  // Update specific cells
-  if (data.driverTag) sheet.getRange(rowIndex, 4).setValue(data.driverTag);
-  if (data.discord) sheet.getRange(rowIndex, 8).setValue(data.discord);
-  if (data.carClass) sheet.getRange(rowIndex, 13).setValue(data.carClass);
-  if (data.event) sheet.getRange(rowIndex, 14).setValue(data.event);
-  if (data.league) sheet.getRange(rowIndex, 15).setValue(data.league);
+  // Update specific cells based on actual column structure
+  if (data.driverTag) sheet.getRange(rowIndex, 2).setValue(data.driverTag); // Column B
+  if (data.discord) sheet.getRange(rowIndex, 3).setValue(data.discord);     // Column C
+  if (data.carClass) sheet.getRange(rowIndex, 4).setValue(data.carClass);   // Column D
+  if (data.event) sheet.getRange(rowIndex, 5).setValue(data.event);         // Column E
 
   return ContentService
-    .createTextOutput(JSON.stringify({ 
-      status: "ok", 
-      message: "Registration updated" 
+    .createTextOutput(JSON.stringify({
+      status: "ok",
+      message: "Registration updated"
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }
@@ -210,6 +200,9 @@ function deleteRegistration(data) {
 
 /**
  * ADMIN FUNCTION: Create a new event
+ * Columns: A=id, B=name, C=sim, D=status, E=track, F=startDate, G=endDate,
+ *          H=format, I=drivers, J=maxDrivers, K=rounds, L=season, M=description,
+ *          N=trackMod, O=carMod, P=practiceServer, Q=carOptions
  */
 function createEvent(data) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Events");
@@ -223,28 +216,28 @@ function createEvent(data) {
   const nextId = lastRow > 1 ? parseInt(sheet.getRange(lastRow, 1).getValue()) + 1 : 1;
 
   sheet.appendRow([
-    nextId,
-    data.name || "",
-    data.sim || "",
-    data.status || "upcoming",
-    data.track || "",
-    data.startDate || "",
-    data.endDate || "",
-    data.format || "",
-    "0", // drivers
-    data.maxDrivers || "30",
-    data.rounds || "1",
-    data.season || "2026",
-    data.description || "",
-    data.trackMod || "",
-    data.carMod || "",
-    data.practiceServer || "",
-    data.carOptions || ""
+    nextId,                           // A: id
+    data.name || "",                  // B: name
+    data.sim || "",                   // C: sim
+    data.status || "upcoming",        // D: status
+    data.track || "",                 // E: track
+    data.startDate || "",             // F: startDate
+    data.endDate || "",               // G: endDate
+    data.format || "",                // H: format
+    "0",                              // I: drivers
+    data.maxDrivers || "30",          // J: maxDrivers
+    data.rounds || "1",               // K: rounds
+    data.season || "2026",            // L: season
+    data.description || "",           // M: description
+    data.trackMod || "",              // N: trackMod
+    data.carMod || "",                // O: carMod
+    data.practiceServer || "",        // P: practiceServer
+    data.carOptions || ""             // Q: carOptions
   ]);
 
   return ContentService
-    .createTextOutput(JSON.stringify({ 
-      status: "ok", 
+    .createTextOutput(JSON.stringify({
+      status: "ok",
       message: "Event created",
       id: nextId
     }))
@@ -253,6 +246,9 @@ function createEvent(data) {
 
 /**
  * ADMIN FUNCTION: Update an event
+ * Columns: A=id, B=name, C=sim, D=status, E=track, F=startDate, G=endDate,
+ *          H=format, I=drivers, J=maxDrivers, K=rounds, L=season, M=description,
+ *          N=trackMod, O=carMod, P=practiceServer, Q=carOptions
  */
 function updateEvent(data) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Events");
@@ -278,22 +274,22 @@ function updateEvent(data) {
     throw new Error("Event not found");
   }
 
-  // Update fields
-  if (data.name) sheet.getRange(rowIndex, 2).setValue(data.name);
-  if (data.sim) sheet.getRange(rowIndex, 3).setValue(data.sim);
-  if (data.status) sheet.getRange(rowIndex, 4).setValue(data.status);
-  if (data.track) sheet.getRange(rowIndex, 5).setValue(data.track);
-  if (data.startDate) sheet.getRange(rowIndex, 6).setValue(data.startDate);
-  if (data.endDate) sheet.getRange(rowIndex, 7).setValue(data.endDate);
-  if (data.format) sheet.getRange(rowIndex, 8).setValue(data.format);
-  if (data.maxDrivers) sheet.getRange(rowIndex, 10).setValue(data.maxDrivers);
-  if (data.description) sheet.getRange(rowIndex, 13).setValue(data.description);
-  if (data.carOptions) sheet.getRange(rowIndex, 17).setValue(data.carOptions);
+  // Update fields based on actual column structure
+  if (data.name) sheet.getRange(rowIndex, 2).setValue(data.name);           // B: name
+  if (data.sim) sheet.getRange(rowIndex, 3).setValue(data.sim);             // C: sim
+  if (data.status) sheet.getRange(rowIndex, 4).setValue(data.status);       // D: status
+  if (data.track) sheet.getRange(rowIndex, 5).setValue(data.track);         // E: track
+  if (data.startDate) sheet.getRange(rowIndex, 6).setValue(data.startDate); // F: startDate
+  if (data.endDate) sheet.getRange(rowIndex, 7).setValue(data.endDate);     // G: endDate
+  if (data.format) sheet.getRange(rowIndex, 8).setValue(data.format);       // H: format
+  if (data.maxDrivers) sheet.getRange(rowIndex, 10).setValue(data.maxDrivers); // J: maxDrivers
+  if (data.description) sheet.getRange(rowIndex, 13).setValue(data.description); // M: description
+  if (data.carOptions) sheet.getRange(rowIndex, 17).setValue(data.carOptions);   // Q: carOptions
 
   return ContentService
-    .createTextOutput(JSON.stringify({ 
-      status: "ok", 
-      message: "Event updated" 
+    .createTextOutput(JSON.stringify({
+      status: "ok",
+      message: "Event updated"
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }
@@ -338,6 +334,8 @@ function deleteEvent(data) {
 
 /**
  * ADMIN FUNCTION: Create a new league
+ * Columns: A=id, B=name, C=sim, D=status, E=startDate, F=endDate,
+ *          G=format, H=season, I=championshipId, J=blobStore
  */
 function createLeague(data) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("League");
@@ -351,21 +349,21 @@ function createLeague(data) {
   const nextId = lastRow > 1 ? parseInt(sheet.getRange(lastRow, 1).getValue()) + 1 : 1;
 
   sheet.appendRow([
-    nextId,
-    data.name || "",
-    data.sim || "",
-    data.status || "upcoming",
-    data.startDate || "",
-    data.endDate || "",
-    data.format || "",
-    data.season || "2026",
-    data.championshipId || "",
-    data.blobStore || ""
+    nextId,                        // A: id
+    data.name || "",               // B: name
+    data.sim || "",                // C: sim
+    data.status || "upcoming",     // D: status
+    data.startDate || "",          // E: startDate
+    data.endDate || "",            // F: endDate
+    data.format || "",             // G: format
+    data.season || "2026",         // H: season
+    data.championshipId || "",     // I: championshipId
+    data.blobStore || ""           // J: blobStore
   ]);
 
   return ContentService
-    .createTextOutput(JSON.stringify({ 
-      status: "ok", 
+    .createTextOutput(JSON.stringify({
+      status: "ok",
       message: "League created",
       id: nextId
     }))
@@ -374,6 +372,8 @@ function createLeague(data) {
 
 /**
  * ADMIN FUNCTION: Update a league
+ * Columns: A=id, B=name, C=sim, D=status, E=startDate, F=endDate,
+ *          G=format, H=season, I=championshipId, J=blobStore
  */
 function updateLeague(data) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("League");
@@ -399,18 +399,18 @@ function updateLeague(data) {
     throw new Error("League not found");
   }
 
-  // Update fields
-  if (data.name) sheet.getRange(rowIndex, 2).setValue(data.name);
-  if (data.sim) sheet.getRange(rowIndex, 3).setValue(data.sim);
-  if (data.status) sheet.getRange(rowIndex, 4).setValue(data.status);
-  if (data.season) sheet.getRange(rowIndex, 8).setValue(data.season);
-  if (data.championshipId) sheet.getRange(rowIndex, 9).setValue(data.championshipId);
-  if (data.blobStore) sheet.getRange(rowIndex, 10).setValue(data.blobStore);
+  // Update fields based on actual column structure
+  if (data.name) sheet.getRange(rowIndex, 2).setValue(data.name);                   // B: name
+  if (data.sim) sheet.getRange(rowIndex, 3).setValue(data.sim);                     // C: sim
+  if (data.status) sheet.getRange(rowIndex, 4).setValue(data.status);               // D: status
+  if (data.season) sheet.getRange(rowIndex, 8).setValue(data.season);               // H: season
+  if (data.championshipId) sheet.getRange(rowIndex, 9).setValue(data.championshipId); // I: championshipId
+  if (data.blobStore) sheet.getRange(rowIndex, 10).setValue(data.blobStore);        // J: blobStore
 
   return ContentService
-    .createTextOutput(JSON.stringify({ 
-      status: "ok", 
-      message: "League updated" 
+    .createTextOutput(JSON.stringify({
+      status: "ok",
+      message: "League updated"
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }
