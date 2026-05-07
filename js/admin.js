@@ -194,6 +194,7 @@ async function loadLeagues() {
     
     renderLeaguesTable();
     populateSyncLeagueSelect();
+    populateUpdateRacesLeagueSelect();
   } catch (error) {
     console.error('Error loading leagues:', error);
     document.getElementById('leagues-table').innerHTML = '<div class="loading">Failed to load leagues</div>';
@@ -211,7 +212,7 @@ async function loadRegistrations() {
     if (data.status === 'ok') {
       // Map the data to match expected field names
       adminData.registrations = (data.registrations || []).map(reg => ({
-        timestamp: reg.timestamp || reg.A || '',
+        timestamp: reg.Timestamp || reg.timestamp || reg.A || '',
         driverTag: reg.driverTag || reg['Driver Tag'] || reg.B || '',
         discord: reg.discord || reg.Discord || reg.C || '',
         carClass: reg.carClass || reg['Car Class'] || reg.D || '',
@@ -550,6 +551,226 @@ async function syncRaceResult() {
   setTimeout(() => {
     statusEl.classList.remove('show');
   }, 5000);
+
+/**
+ * Global variable to store fetched races
+ */
+let availableRaces = [];
+
+/**
+ * Populate update races league select
+ */
+function populateUpdateRacesLeagueSelect() {
+  const select = document.getElementById('update-races-league');
+  const options = adminData.leagues
+    .filter(l => l.blobStore)
+    .map(l => `<option value="${l.blobStore}">${l.name}</option>`)
+    .join('');
+  
+  select.innerHTML = '<option value="">-- Select League --</option>' + options;
+}
+
+/**
+ * Fetch available races from Assetto Corsa API
+ */
+async function fetchAvailableRaces() {
+  const league = document.getElementById('update-races-league').value;
+  
+  if (!league) {
+    showToast('Please select a league', 'error');
+    return;
+  }
+  
+  const statusEl = document.getElementById('update-races-status');
+  statusEl.className = 'status-message loading show';
+  statusEl.textContent = '🔄 Fetching available races...';
+  
+  try {
+    const response = await fetch('/api/fetch-races');
+    const data = await response.json();
+    
+    if (data.success && data.races) {
+      availableRaces = data.races;
+      renderRacesList(data.races);
+      
+      document.getElementById('races-list-container').style.display = 'block';
+      
+      statusEl.className = 'status-message success show';
+      statusEl.textContent = `✓ Found ${data.races.length} races`;
+      
+      setTimeout(() => {
+        statusEl.classList.remove('show');
+      }, 3000);
+      
+      showToast(`Found ${data.races.length} races`, 'success');
+    } else {
+      statusEl.className = 'status-message error show';
+      statusEl.textContent = `⚠ ${data.error || 'Failed to fetch races'}`;
+      showToast('Failed to fetch races', 'error');
+    }
+  } catch (error) {
+    statusEl.className = 'status-message error show';
+    statusEl.textContent = `⚠ ${error.message}`;
+    showToast('Failed to fetch races', 'error');
+  }
+}
+
+/**
+ * Render races list with checkboxes
+ */
+function renderRacesList(races) {
+  const container = document.getElementById('races-list');
+  
+  if (!races || races.length === 0) {
+    container.innerHTML = '<div class="loading">No races found</div>';
+    return;
+  }
+  
+  const html = races.map((race, index) => `
+    <div class="race-item" onclick="toggleRaceSelection(${index})">
+      <input type="checkbox" 
+             class="race-checkbox" 
+             id="race-${index}" 
+             data-index="${index}"
+             onclick="event.stopPropagation(); toggleRaceSelection(${index})">
+      <div class="race-info">
+        <div class="race-track">${race.track}</div>
+        <div class="race-date">${formatDate(race.date)}</div>
+      </div>
+    </div>
+  `).join('');
+  
+  container.innerHTML = html;
+  updateSelectedCount();
+}
+
+/**
+ * Toggle race selection
+ */
+function toggleRaceSelection(index) {
+  const checkbox = document.getElementById(`race-${index}`);
+  checkbox.checked = !checkbox.checked;
+  
+  const raceItem = checkbox.closest('.race-item');
+  if (checkbox.checked) {
+    raceItem.classList.add('selected');
+  } else {
+    raceItem.classList.remove('selected');
+  }
+  
+  updateSelectedCount();
+}
+
+/**
+ * Select all races
+ */
+function selectAllRaces() {
+  const checkboxes = document.querySelectorAll('.race-checkbox');
+  checkboxes.forEach(cb => {
+    cb.checked = true;
+    cb.closest('.race-item').classList.add('selected');
+  });
+  updateSelectedCount();
+}
+
+/**
+ * Deselect all races
+ */
+function deselectAllRaces() {
+  const checkboxes = document.querySelectorAll('.race-checkbox');
+  checkboxes.forEach(cb => {
+    cb.checked = false;
+    cb.closest('.race-item').classList.remove('selected');
+  });
+  updateSelectedCount();
+}
+
+/**
+ * Update selected count and enable/disable sync button
+ */
+function updateSelectedCount() {
+  const checkboxes = document.querySelectorAll('.race-checkbox:checked');
+  const count = checkboxes.length;
+  
+  document.getElementById('selected-count').textContent = `${count} race${count !== 1 ? 's' : ''} selected`;
+  document.getElementById('sync-selected-btn').disabled = count === 0;
+}
+
+/**
+ * Sync selected races
+ */
+async function syncSelectedRaces() {
+  const league = document.getElementById('update-races-league').value;
+  
+  if (!league) {
+    showToast('Please select a league', 'error');
+    return;
+  }
+  
+  const checkboxes = document.querySelectorAll('.race-checkbox:checked');
+  if (checkboxes.length === 0) {
+    showToast('Please select at least one race', 'error');
+    return;
+  }
+  
+  const selectedRaces = Array.from(checkboxes).map(cb => {
+    const index = parseInt(cb.dataset.index);
+    return availableRaces[index];
+  });
+  
+  const statusEl = document.getElementById('update-races-status');
+  statusEl.className = 'status-message loading show';
+  statusEl.textContent = `🔄 Syncing ${selectedRaces.length} race${selectedRaces.length !== 1 ? 's' : ''}...`;
+  
+  showLoading();
+  
+  try {
+    const response = await fetch('/api/sync-selected-races', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        league: league,
+        races: selectedRaces
+      })
+    });
+    
+    const data = await response.json();
+    
+    hideLoading();
+    
+    if (data.success) {
+      const successCount = data.results.success.length;
+      const failedCount = data.results.failed.length;
+      
+      statusEl.className = 'status-message success show';
+      statusEl.innerHTML = `✓ Successfully synced ${successCount} race${successCount !== 1 ? 's' : ''}!${failedCount > 0 ? `<br><small>Failed: ${failedCount}</small>` : ''}`;
+      
+      // Reload sync history
+      await loadSyncHistory();
+      updateDashboardStats();
+      
+      showToast(`Synced ${successCount} race${successCount !== 1 ? 's' : ''} successfully`, 'success');
+      
+      // Clear selections
+      deselectAllRaces();
+    } else {
+      statusEl.className = 'status-message error show';
+      statusEl.textContent = `⚠ ${data.error || 'Sync failed'}`;
+      showToast('Sync failed', 'error');
+    }
+  } catch (error) {
+    hideLoading();
+    statusEl.className = 'status-message error show';
+    statusEl.textContent = `⚠ ${error.message}`;
+    showToast('Sync failed', 'error');
+  }
+  
+  setTimeout(() => {
+    statusEl.classList.remove('show');
+  }, 5000);
+}
 }
 
 /**
