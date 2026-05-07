@@ -10,6 +10,37 @@ let adminData = {
   syncHistory: []
 };
 
+/**
+ * Show loading overlay
+ */
+function showLoading(message = 'Processing...') {
+  let overlay = document.getElementById('loading-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'loading-overlay';
+    overlay.innerHTML = `
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">${message}</div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  } else {
+    overlay.querySelector('.loading-text').textContent = message;
+  }
+  overlay.style.display = 'flex';
+}
+
+/**
+ * Hide loading overlay
+ */
+function hideLoading() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
 // Check authentication on page load
 window.addEventListener('DOMContentLoaded', () => {
   checkAuth();
@@ -676,26 +707,30 @@ async function saveEvent(e) {
     eventData.id = eventId;
   }
 
+  showLoading(eventId ? 'Updating event...' : 'Creating event...');
+  closeModal();
+
   try {
-    const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
+    await fetch(CONFIG.APPS_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, ...eventData })
     });
 
-    // Note: no-cors mode doesn't allow reading response, so we assume success
-    showToast(eventId ? 'Event updated successfully!' : 'Event created successfully!', 'success');
-    closeModal();
+    // Wait for Google Sheets to update
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Reload events after a short delay to allow Google Sheets to update
-    setTimeout(async () => {
-      await loadEvents();
-      updateDashboardStats();
-    }, 1500);
+    // Reload events
+    await loadEvents();
+    updateDashboardStats();
+    
+    hideLoading();
+    showToast(eventId ? 'Event updated successfully!' : 'Event created successfully!', 'success');
     
   } catch (error) {
     console.error('Error saving event:', error);
+    hideLoading();
     showToast('Failed to save event. Please try again.', 'error');
   }
 }
@@ -723,26 +758,30 @@ async function saveLeague(e) {
     leagueData.id = leagueId;
   }
 
+  showLoading(leagueId ? 'Updating league...' : 'Creating league...');
+  closeModal();
+
   try {
-    const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
+    await fetch(CONFIG.APPS_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, ...leagueData })
     });
 
-    // Note: no-cors mode doesn't allow reading response, so we assume success
-    showToast(leagueId ? 'League updated successfully!' : 'League created successfully!', 'success');
-    closeModal();
+    // Wait for Google Sheets to update
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Reload leagues after a short delay to allow Google Sheets to update
-    setTimeout(async () => {
-      await loadLeagues();
-      updateDashboardStats();
-    }, 1500);
+    // Reload leagues
+    await loadLeagues();
+    updateDashboardStats();
+    
+    hideLoading();
+    showToast(leagueId ? 'League updated successfully!' : 'League created successfully!', 'success');
     
   } catch (error) {
     console.error('Error saving league:', error);
+    hideLoading();
     showToast('Failed to save league. Please try again.', 'error');
   }
 }
@@ -781,6 +820,8 @@ async function deleteEvent(id) {
     return;
   }
 
+  showLoading('Deleting event...');
+
   try {
     await fetch(CONFIG.APPS_SCRIPT_URL, {
       method: 'POST',
@@ -789,16 +830,19 @@ async function deleteEvent(id) {
       body: JSON.stringify({ action: 'deleteEvent', id })
     });
 
-    showToast('Event deleted successfully!', 'success');
+    // Wait for Google Sheets to update
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Reload events after a short delay
-    setTimeout(async () => {
-      await loadEvents();
-      updateDashboardStats();
-    }, 1500);
+    // Reload events
+    await loadEvents();
+    updateDashboardStats();
+    
+    hideLoading();
+    showToast('Event deleted successfully!', 'success');
     
   } catch (error) {
     console.error('Error deleting event:', error);
+    hideLoading();
     showToast('Failed to delete event. Please try again.', 'error');
   }
 }
@@ -811,6 +855,8 @@ async function deleteLeague(id) {
     return;
   }
 
+  showLoading('Deleting league...');
+
   try {
     await fetch(CONFIG.APPS_SCRIPT_URL, {
       method: 'POST',
@@ -819,16 +865,19 @@ async function deleteLeague(id) {
       body: JSON.stringify({ action: 'deleteLeague', id })
     });
 
-    showToast('League deleted successfully!', 'success');
+    // Wait for Google Sheets to update
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Reload leagues after a short delay
-    setTimeout(async () => {
-      await loadLeagues();
-      updateDashboardStats();
-    }, 1500);
+    // Reload leagues
+    await loadLeagues();
+    updateDashboardStats();
+    
+    hideLoading();
+    showToast('League deleted successfully!', 'success');
     
   } catch (error) {
     console.error('Error deleting league:', error);
+    hideLoading();
     showToast('Failed to delete league. Please try again.', 'error');
   }
 }
@@ -883,6 +932,9 @@ async function saveRegistration(e, rowIndex) {
     carClass: document.getElementById('reg-car').value
   };
 
+  showLoading('Updating registration...');
+  closeModal();
+
   try {
     await fetch(CONFIG.APPS_SCRIPT_URL, {
       method: 'POST',
@@ -891,16 +943,18 @@ async function saveRegistration(e, rowIndex) {
       body: JSON.stringify(regData)
     });
 
-    showToast('Registration updated successfully!', 'success');
-    closeModal();
+    // Wait for Google Sheets to update
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Reload registrations after a short delay
-    setTimeout(async () => {
-      await loadRegistrations();
-    }, 1500);
+    // Reload registrations
+    await loadRegistrations();
+    
+    hideLoading();
+    showToast('Registration updated successfully!', 'success');
     
   } catch (error) {
     console.error('Error updating registration:', error);
+    hideLoading();
     showToast('Failed to update registration. Please try again.', 'error');
   }
 }
@@ -916,6 +970,8 @@ async function deleteRegistration(idx) {
   // Row index is idx + 2 (1 for header, 1 for 0-based to 1-based)
   const rowIndex = idx + 2;
 
+  showLoading('Deleting registration...');
+
   try {
     await fetch(CONFIG.APPS_SCRIPT_URL, {
       method: 'POST',
@@ -924,16 +980,19 @@ async function deleteRegistration(idx) {
       body: JSON.stringify({ action: 'deleteRegistration', rowIndex })
     });
 
-    showToast('Registration deleted successfully!', 'success');
+    // Wait for Google Sheets to update
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Reload registrations after a short delay
-    setTimeout(async () => {
-      await loadRegistrations();
-      updateDashboardStats();
-    }, 1500);
+    // Reload registrations
+    await loadRegistrations();
+    updateDashboardStats();
+    
+    hideLoading();
+    showToast('Registration deleted successfully!', 'success');
     
   } catch (error) {
     console.error('Error deleting registration:', error);
+    hideLoading();
     showToast('Failed to delete registration. Please try again.', 'error');
   }
 }
@@ -1004,7 +1063,8 @@ function filterRegistrations() {
   rows.forEach(row => {
     const text = row.textContent.toLowerCase();
     const matchesSearch = text.includes(search);
-    const matchesFilter = !filter || text.includes(filter.toLowerCase());
+    // If filter is empty string (All Events/Leagues), show all; otherwise check if text includes filter
+    const matchesFilter = filter === '' || text.includes(filter.toLowerCase());
     row.style.display = matchesSearch && matchesFilter ? '' : 'none';
   });
 }
