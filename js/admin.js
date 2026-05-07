@@ -581,13 +581,6 @@ function populateUpdateRacesLeagueSelect() {
  * Fetch available races from Assetto Corsa API
  */
 async function fetchAvailableRaces() {
-  const league = document.getElementById('update-races-league').value;
-  
-  if (!league) {
-    showToast('Please select a league', 'error');
-    return;
-  }
-  
   const statusEl = document.getElementById('update-races-status');
   statusEl.className = 'status-message loading show';
   statusEl.textContent = '🔄 Fetching available races...';
