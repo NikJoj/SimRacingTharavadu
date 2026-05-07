@@ -973,6 +973,10 @@ async function saveEvent(e) {
         const newEvent = adminData.events.find(evt => evt.name === eventData.name);
         finalEventId = newEvent?.id;
       }
+      
+      if (!finalEventId) {
+        throw new Error('Failed to get event ID after creation');
+      }
     } else {
       // For updates, just wait a bit
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -981,18 +985,25 @@ async function saveEvent(e) {
 
     // Upload poster to GitHub if provided
     if (posterFile && finalEventId) {
-      showLoading('Syncing poster to GitHub...');
-      await uploadPosterToGitHub(posterFile, `poster${finalEventId}.png`, 'event');
+      try {
+        showLoading('Syncing poster to GitHub...');
+        await uploadPosterToGitHub(posterFile, `poster${finalEventId}.png`, 'event');
+        showToast(eventId ? 'Event and poster updated successfully!' : 'Event created and poster synced!', 'success');
+      } catch (posterError) {
+        console.error('Poster upload failed:', posterError);
+        showToast(`Event saved but poster sync failed: ${posterError.message}`, 'error');
+      }
+    } else {
+      showToast(eventId ? 'Event updated successfully!' : 'Event created successfully!', 'success');
     }
     
     updateDashboardStats();
     hideLoading();
-    showToast(eventId ? 'Event updated successfully!' : 'Event created successfully!', 'success');
     
   } catch (error) {
     console.error('Error saving event:', error);
     hideLoading();
-    showToast('Failed to save event. Please try again.', 'error');
+    showToast(`Failed to save event: ${error.message}`, 'error');
   }
 }
 
@@ -1049,6 +1060,10 @@ async function saveLeague(e) {
         const newLeague = adminData.leagues.find(lg => lg.name === leagueData.name);
         finalLeagueId = newLeague?.id;
       }
+      
+      if (!finalLeagueId) {
+        throw new Error('Failed to get league ID after creation');
+      }
     } else {
       // For updates, just wait a bit
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -1057,18 +1072,25 @@ async function saveLeague(e) {
 
     // Upload poster to GitHub if provided
     if (posterFile && finalLeagueId) {
-      showLoading('Syncing poster to GitHub...');
-      await uploadPosterToGitHub(posterFile, `leaguePoster${finalLeagueId}.png`, 'league');
+      try {
+        showLoading('Syncing poster to GitHub...');
+        await uploadPosterToGitHub(posterFile, `leaguePoster${finalLeagueId}.png`, 'league');
+        showToast(leagueId ? 'League and poster updated successfully!' : 'League created and poster synced!', 'success');
+      } catch (posterError) {
+        console.error('Poster upload failed:', posterError);
+        showToast(`League saved but poster sync failed: ${posterError.message}`, 'error');
+      }
+    } else {
+      showToast(leagueId ? 'League updated successfully!' : 'League created successfully!', 'success');
     }
     
     updateDashboardStats();
     hideLoading();
-    showToast(leagueId ? 'League updated successfully!' : 'League created successfully!', 'success');
     
   } catch (error) {
     console.error('Error saving league:', error);
     hideLoading();
-    showToast('Failed to save league. Please try again.', 'error');
+    showToast(`Failed to save league: ${error.message}`, 'error');
   }
 }
 
