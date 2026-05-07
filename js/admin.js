@@ -545,6 +545,7 @@ function closeModal() {
 function getEventForm(event = null) {
   return `
     <form class="modal-form" onsubmit="saveEvent(event); return false;">
+      ${event ? `<input type="hidden" id="event-id" value="${event.id}">` : ''}
       <div class="form-group">
         <label>Event Name *</label>
         <input type="text" class="form-control" id="event-name" value="${event?.name || ''}" required>
@@ -603,6 +604,7 @@ function getEventForm(event = null) {
 function getLeagueForm(league = null) {
   return `
     <form class="modal-form" onsubmit="saveLeague(event); return false;">
+      ${league ? `<input type="hidden" id="league-id" value="${league.id}">` : ''}
       <div class="form-group">
         <label>League Name *</label>
         <input type="text" class="form-control" id="league-name" value="${league?.name || ''}" required>
@@ -640,21 +642,101 @@ function getLeagueForm(league = null) {
 }
 
 /**
- * Save event (placeholder - needs Apps Script integration)
+ * Save event (create or update)
  */
 async function saveEvent(e) {
   e.preventDefault();
-  showToast('Event creation requires Apps Script integration. See documentation.', 'error');
-  // TODO: Implement with Apps Script
+  
+  const eventData = {
+    name: document.getElementById('event-name').value,
+    sim: document.getElementById('event-sim').value,
+    status: document.getElementById('event-status').value,
+    track: document.getElementById('event-track').value,
+    startDate: new Date(document.getElementById('event-start').value).toISOString(),
+    endDate: new Date(document.getElementById('event-end').value).toISOString(),
+    format: document.getElementById('event-format').value,
+    maxDrivers: document.getElementById('event-max').value,
+    carOptions: document.getElementById('event-cars').value,
+    description: document.getElementById('event-desc').value
+  };
+
+  // Check if editing (has id) or creating new
+  const eventId = document.getElementById('event-id')?.value;
+  const action = eventId ? 'updateEvent' : 'createEvent';
+  
+  if (eventId) {
+    eventData.id = eventId;
+  }
+
+  try {
+    const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...eventData })
+    });
+
+    // Note: no-cors mode doesn't allow reading response, so we assume success
+    showToast(eventId ? 'Event updated successfully!' : 'Event created successfully!', 'success');
+    closeModal();
+    
+    // Reload events after a short delay to allow Google Sheets to update
+    setTimeout(async () => {
+      await loadEvents();
+      updateDashboardStats();
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Error saving event:', error);
+    showToast('Failed to save event. Please try again.', 'error');
+  }
 }
 
 /**
- * Save league (placeholder - needs Apps Script integration)
+ * Save league (create or update)
  */
 async function saveLeague(e) {
   e.preventDefault();
-  showToast('League creation requires Apps Script integration. See documentation.', 'error');
-  // TODO: Implement with Apps Script
+  
+  const leagueData = {
+    name: document.getElementById('league-name').value,
+    sim: document.getElementById('league-sim').value,
+    status: document.getElementById('league-status').value,
+    season: document.getElementById('league-season').value,
+    championshipId: document.getElementById('league-champ').value,
+    blobStore: document.getElementById('league-blob').value
+  };
+
+  // Check if editing (has id) or creating new
+  const leagueId = document.getElementById('league-id')?.value;
+  const action = leagueId ? 'updateLeague' : 'createLeague';
+  
+  if (leagueId) {
+    leagueData.id = leagueId;
+  }
+
+  try {
+    const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...leagueData })
+    });
+
+    // Note: no-cors mode doesn't allow reading response, so we assume success
+    showToast(leagueId ? 'League updated successfully!' : 'League created successfully!', 'success');
+    closeModal();
+    
+    // Reload leagues after a short delay to allow Google Sheets to update
+    setTimeout(async () => {
+      await loadLeagues();
+      updateDashboardStats();
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Error saving league:', error);
+    showToast('Failed to save league. Please try again.', 'error');
+  }
 }
 
 /**
@@ -686,20 +768,60 @@ function editLeague(id) {
 /**
  * Delete event
  */
-function deleteEvent(id) {
-  if (confirm('Are you sure you want to delete this event?')) {
-    showToast('Event deletion requires Apps Script integration. See documentation.', 'error');
-    // TODO: Implement with Apps Script
+async function deleteEvent(id) {
+  if (!confirm('Are you sure you want to delete this event? This will change its status to "closed".')) {
+    return;
+  }
+
+  try {
+    await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'deleteEvent', id })
+    });
+
+    showToast('Event deleted successfully!', 'success');
+    
+    // Reload events after a short delay
+    setTimeout(async () => {
+      await loadEvents();
+      updateDashboardStats();
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    showToast('Failed to delete event. Please try again.', 'error');
   }
 }
 
 /**
  * Delete league
  */
-function deleteLeague(id) {
-  if (confirm('Are you sure you want to delete this league?')) {
-    showToast('League deletion requires Apps Script integration. See documentation.', 'error');
-    // TODO: Implement with Apps Script
+async function deleteLeague(id) {
+  if (!confirm('Are you sure you want to delete this league? This will change its status to "closed".')) {
+    return;
+  }
+
+  try {
+    await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'deleteLeague', id })
+    });
+
+    showToast('League deleted successfully!', 'success');
+    
+    // Reload leagues after a short delay
+    setTimeout(async () => {
+      await loadLeagues();
+      updateDashboardStats();
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Error deleting league:', error);
+    showToast('Failed to delete league. Please try again.', 'error');
   }
 }
 
@@ -707,17 +829,104 @@ function deleteLeague(id) {
  * Edit registration
  */
 function editRegistration(idx) {
-  showToast('Registration editing requires Apps Script integration. See documentation.', 'error');
-  // TODO: Implement with Apps Script
+  const reg = adminData.registrations[idx];
+  if (!reg) return;
+
+  const modal = document.getElementById('modal');
+  document.getElementById('modal-title').textContent = 'Edit Registration';
+  document.getElementById('modal-body').innerHTML = `
+    <form class="modal-form" onsubmit="saveRegistration(event, ${idx + 2}); return false;">
+      <div class="form-group">
+        <label>Driver Tag *</label>
+        <input type="text" class="form-control" id="reg-driver" value="${reg.driverTag || ''}" required>
+      </div>
+      <div class="form-group">
+        <label>Discord *</label>
+        <input type="text" class="form-control" id="reg-discord" value="${reg.discord || ''}" required>
+      </div>
+      <div class="form-group">
+        <label>Car Class *</label>
+        <input type="text" class="form-control" id="reg-car" value="${reg.carClass || ''}" required>
+      </div>
+      <div class="form-group">
+        <label>Event/League</label>
+        <input type="text" class="form-control" id="reg-event" value="${reg.event || reg.league || ''}" readonly>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Save Changes</button>
+      </div>
+    </form>
+  `;
+  modal.style.display = 'flex';
+}
+
+/**
+ * Save registration changes
+ */
+async function saveRegistration(e, rowIndex) {
+  e.preventDefault();
+
+  const regData = {
+    action: 'updateRegistration',
+    rowIndex: rowIndex,
+    driverTag: document.getElementById('reg-driver').value,
+    discord: document.getElementById('reg-discord').value,
+    carClass: document.getElementById('reg-car').value
+  };
+
+  try {
+    await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(regData)
+    });
+
+    showToast('Registration updated successfully!', 'success');
+    closeModal();
+    
+    // Reload registrations after a short delay
+    setTimeout(async () => {
+      await loadRegistrations();
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Error updating registration:', error);
+    showToast('Failed to update registration. Please try again.', 'error');
+  }
 }
 
 /**
  * Delete registration
  */
-function deleteRegistration(idx) {
-  if (confirm('Are you sure you want to delete this registration?')) {
-    showToast('Registration deletion requires Apps Script integration. See documentation.', 'error');
-    // TODO: Implement with Apps Script
+async function deleteRegistration(idx) {
+  if (!confirm('Are you sure you want to delete this registration?')) {
+    return;
+  }
+
+  // Row index is idx + 2 (1 for header, 1 for 0-based to 1-based)
+  const rowIndex = idx + 2;
+
+  try {
+    await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'deleteRegistration', rowIndex })
+    });
+
+    showToast('Registration deleted successfully!', 'success');
+    
+    // Reload registrations after a short delay
+    setTimeout(async () => {
+      await loadRegistrations();
+      updateDashboardStats();
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Error deleting registration:', error);
+    showToast('Failed to delete registration. Please try again.', 'error');
   }
 }
 
