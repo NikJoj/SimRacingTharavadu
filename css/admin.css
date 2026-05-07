@@ -464,6 +464,23 @@ tbody tr:hover {
   gap: 1.5rem;
 }
 
+/* ══ RACE SYNC LAYOUT ══ */
+.race-sync-layout {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.update-races-main {
+  min-width: 0; /* Prevents grid blowout */
+}
+
+.sync-history-sidebar {
+  position: sticky;
+  top: 100px; /* Adjust based on header height */
+}
+
 .sync-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
@@ -696,6 +713,18 @@ input[type="datetime-local"].form-control::-webkit-calendar-picker-indicator {
   padding: 1rem 1.5rem;
   background: rgba(255, 255, 255, 0.05);
   border-top: 1px solid var(--border);
+  gap: 1rem;
+}
+
+.footer-left {
+  flex-shrink: 0;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .races-list-footer span {
@@ -705,6 +734,46 @@ input[type="datetime-local"].form-control::-webkit-calendar-picker-indicator {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.form-group-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-group-inline label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.form-control-inline {
+  min-width: 200px;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.85rem;
+}
+
+.form-control-inline:focus {
+  outline: none;
+  border-color: var(--red);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.form-control-inline option {
+  background: #1a1a1a;
+  color: var(--text);
+  padding: 0.5rem;
 }
 
 #sync-selected-btn:disabled {
@@ -851,8 +920,23 @@ input[type="datetime-local"].form-control::-webkit-calendar-picker-indicator {
   }
   
   .dashboard-grid,
-  .sync-container {
+  .sync-container,
+  .race-sync-layout {
     grid-template-columns: 1fr;
+  }
+
+  .sync-history-sidebar {
+    position: static;
+  }
+
+  .footer-right {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .form-control-inline {
+    width: 100%;
   }
 }
 
