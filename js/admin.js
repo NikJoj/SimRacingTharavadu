@@ -954,6 +954,7 @@ async function saveEvent(e) {
     // Save event to Google Sheets
     const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, ...eventData })
     });
@@ -1041,6 +1042,7 @@ async function saveLeague(e) {
     // Save league to Google Sheets
     const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, ...leagueData })
     });
