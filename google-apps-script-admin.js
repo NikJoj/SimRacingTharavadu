@@ -211,9 +211,21 @@ function createEvent(data) {
     throw new Error("Events sheet not found");
   }
 
-  // Get next ID
+  // Get next ID by finding the maximum ID in column A
   const lastRow = sheet.getLastRow();
-  const nextId = lastRow > 1 ? parseInt(sheet.getRange(lastRow, 1).getValue()) + 1 : 1;
+  let maxId = 0;
+  
+  if (lastRow > 1) {
+    const idRange = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (let i = 0; i < idRange.length; i++) {
+      const currentId = parseInt(idRange[i][0]);
+      if (!isNaN(currentId) && currentId > maxId) {
+        maxId = currentId;
+      }
+    }
+  }
+  
+  const nextId = maxId + 1;
 
   sheet.appendRow([
     nextId,                           // A: id
@@ -295,7 +307,7 @@ function updateEvent(data) {
 }
 
 /**
- * ADMIN FUNCTION: Delete an event (soft delete by changing status)
+ * ADMIN FUNCTION: Delete an event (hard delete - removes row)
  */
 function deleteEvent(data) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Events");
@@ -321,13 +333,13 @@ function deleteEvent(data) {
     throw new Error("Event not found");
   }
 
-  // Soft delete: change status to 'closed'
-  sheet.getRange(rowIndex, 4).setValue("closed");
+  // Hard delete: remove the entire row
+  sheet.deleteRow(rowIndex);
 
   return ContentService
-    .createTextOutput(JSON.stringify({ 
-      status: "ok", 
-      message: "Event deleted" 
+    .createTextOutput(JSON.stringify({
+      status: "ok",
+      message: "Event deleted"
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }
@@ -344,9 +356,21 @@ function createLeague(data) {
     throw new Error("League sheet not found");
   }
 
-  // Get next ID
+  // Get next ID by finding the maximum ID in column A
   const lastRow = sheet.getLastRow();
-  const nextId = lastRow > 1 ? parseInt(sheet.getRange(lastRow, 1).getValue()) + 1 : 1;
+  let maxId = 0;
+  
+  if (lastRow > 1) {
+    const idRange = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (let i = 0; i < idRange.length; i++) {
+      const currentId = parseInt(idRange[i][0]);
+      if (!isNaN(currentId) && currentId > maxId) {
+        maxId = currentId;
+      }
+    }
+  }
+  
+  const nextId = maxId + 1;
 
   sheet.appendRow([
     nextId,                        // A: id
@@ -416,7 +440,7 @@ function updateLeague(data) {
 }
 
 /**
- * ADMIN FUNCTION: Delete a league (soft delete by changing status)
+ * ADMIN FUNCTION: Delete a league (hard delete - removes row)
  */
 function deleteLeague(data) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("League");
@@ -442,13 +466,13 @@ function deleteLeague(data) {
     throw new Error("League not found");
   }
 
-  // Soft delete: change status to 'closed'
-  sheet.getRange(rowIndex, 4).setValue("closed");
+  // Hard delete: remove the entire row
+  sheet.deleteRow(rowIndex);
 
   return ContentService
-    .createTextOutput(JSON.stringify({ 
-      status: "ok", 
-      message: "League deleted" 
+    .createTextOutput(JSON.stringify({
+      status: "ok",
+      message: "League deleted"
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }

@@ -777,7 +777,7 @@ function editLeague(id) {
  * Delete event
  */
 async function deleteEvent(id) {
-  if (!confirm('Are you sure you want to delete this event? This will change its status to "closed".')) {
+  if (!confirm('Are you sure you want to delete this event? This action cannot be undone!')) {
     return;
   }
 
@@ -807,7 +807,7 @@ async function deleteEvent(id) {
  * Delete league
  */
 async function deleteLeague(id) {
-  if (!confirm('Are you sure you want to delete this league? This will change its status to "closed".')) {
+  if (!confirm('Are you sure you want to delete this league? This action cannot be undone!')) {
     return;
   }
 
