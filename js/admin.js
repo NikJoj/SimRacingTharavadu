@@ -593,6 +593,9 @@ async function fetchAvailableRaces() {
       availableRaces = data.races;
       renderRacesList(data.races);
       
+      // Populate league dropdown when showing races
+      populateUpdateRacesLeagueSelect();
+      
       document.getElementById('races-list-container').style.display = 'block';
       
       statusEl.className = 'status-message success show';
