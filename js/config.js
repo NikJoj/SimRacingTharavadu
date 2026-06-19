@@ -4,11 +4,13 @@
 
 const CONFIG = {
   // Database API Endpoints (PostgreSQL via Vercel Serverless Functions)
+  // CONSOLIDATED: Reduced from 17 to 11 functions to stay within Hobby plan limit
   API_ENDPOINTS: {
-    EVENTS: '/api/events',
-    LEAGUES: '/api/leagues',
-    LEADERBOARD: '/api/leaderboard',
-    REGISTRATIONS: '/api/registrations'
+    HOME: '/api/home',                    // Consolidated: events, leagues, leaderboard
+    EVENTS: '/api/events',                // Individual event CRUD operations
+    LEAGUES: '/api/leagues',              // Individual league CRUD operations
+    LEADERBOARD: '/api/leaderboard',      // Individual leaderboard CRUD operations
+    REGISTRATIONS: '/api/registrations'   // Registration management
   },
 
   // Keep true to show demo data without database connection
@@ -23,14 +25,13 @@ const CONFIG = {
   // For production: use your Vercel deployment URL or relative paths
   API_BASE_URL: "/api", // Relative path works when deployed together
   
-  // API Endpoints
+  // API Endpoints - CONSOLIDATED
   ASSETTO_API: {
     STANDINGS: "/api/standings",           // Championship standings
     CHAMPIONSHIPS: "/api/championships",   // List all championships
-    LIVE_LEADERBOARD: "/api/live-leaderboard", // Live timing leaderboard
-    LIVE_BASIC: "/api/live-basic",        // Basic live timing info
-    RESULTS: "/api/results",              // Race results list
-    RACE_RESULT: "/api/race-result"       // Individual race result
+    LIVE: "/api/live",                     // Consolidated: live-basic + live-leaderboard
+    RACES: "/api/races",                   // Consolidated: fetch-races, race-result, get-stored-result, store-latest-result, sync-selected-races
+    RESULTS: "/api/results"                // Race results list
   },
   
   // Legacy settings (no longer needed with serverless functions)

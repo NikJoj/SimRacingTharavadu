@@ -26,20 +26,17 @@ async function loadData() {
   }
 
   try {
-    // Fetch data from PostgreSQL database via API endpoints
-    const [eventsRes, leaguesRes, leaderboardRes] = await Promise.all([
-      fetch(CONFIG.API_ENDPOINTS.EVENTS),
-      fetch(CONFIG.API_ENDPOINTS.LEAGUES),
-      fetch(CONFIG.API_ENDPOINTS.LEADERBOARD)
-    ]);
+    // Fetch data from PostgreSQL database via consolidated home endpoint
+    const homeRes = await fetch('/api/home');
 
-    if (!eventsRes.ok || !leaguesRes.ok || !leaderboardRes.ok) {
+    if (!homeRes.ok) {
       throw new Error('Failed to fetch data from database');
     }
 
-    const eventsData = await eventsRes.json();
-    const leaguesData = await leaguesRes.json();
-    const leaderboardData = await leaderboardRes.json();
+    const homeData = await homeRes.json();
+    const eventsData = { events: homeData.events };
+    const leaguesData = { leagues: homeData.leagues };
+    const leaderboardData = { leaderboard: homeData.leaderboard };
 
     // Transform database format to app format
     appEvents = (eventsData.events || []).map(e => ({

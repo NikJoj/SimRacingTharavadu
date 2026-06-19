@@ -28,5 +28,8 @@ npm-debug.log*
 dist/
 build/
 
+# Backup files (old API endpoints kept for reference)
+*.backup
+
 # Made with Bob
 .env*.local
