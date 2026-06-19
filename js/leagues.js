@@ -250,8 +250,9 @@ async function loadLeagueStandings() {
             standings.push({
               driverName: entry.Car?.Driver?.Name || 'Unknown Driver',
               team: entry.Car?.Driver?.Team || '',
+              carNumber: entry.Car?.CarId || '-',
               points: entry.Points || 0,
-              bestLap: formatBestLapFromStandings(entry),
+              penaltyPoints: 0, // TODO: Penalty points data source will be integrated later
               tag: '', // Not provided in this API format
               className: className
             });
@@ -286,6 +287,7 @@ async function loadLeagueStandings() {
  * Format best lap from standings entry
  * @param {Object} entry - Standings entry
  * @returns {string} Formatted best lap or '-'
+ * @deprecated This function is no longer used after replacing Best Time with Penalty Points
  */
 function formatBestLapFromStandings(entry) {
   // The API doesn't provide best lap in standings, return placeholder
@@ -428,20 +430,21 @@ async function loadLiveTiming(isRefresh = false) {
  */
 function buildStandingsTable(standings) {
   let html = '<table class="lb-table"><thead><tr>';
-  html += '<th>Pos</th><th>Driver</th><th>Team</th><th>Points</th><th>Best Time</th>';
+  html += '<th>Pos</th><th>Car #</th><th>Driver</th><th>Team</th><th>Points</th><th>Penalty Points</th>';
   html += '</tr></thead><tbody>';
   
   standings.forEach((entry, idx) => {
     const posClass = idx === 0 ? 'pos-1' : idx === 1 ? 'pos-2' : idx === 2 ? 'pos-3' : '';
     html += `<tr class="${posClass}">
       <td class="td-pos">${idx + 1}</td>
+      <td class="td-car-number">${entry.carNumber || '-'}</td>
       <td class="td-driver">
         ${entry.driverName || 'Unknown Driver'}
         ${entry.tag ? `<div class="td-driver-team">${entry.tag}</div>` : ''}
       </td>
       <td class="td-driver-team">${entry.team || '-'}</td>
       <td class="td-pts">${entry.points || 0}</td>
-      <td class="td-time">${entry.bestLap || '-'}</td>
+      <td class="td-penalty">${entry.penaltyPoints || '-'}</td>
     </tr>`;
   });
   

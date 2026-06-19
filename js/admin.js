@@ -893,6 +893,14 @@ function getLeagueForm(league = null) {
         <input type="text" class="form-control" id="league-season" value="${league?.season || '2026'}" required>
       </div>
       <div class="form-group">
+        <label>Start Date *</label>
+        <input type="datetime-local" class="form-control" id="league-start" value="${league?.startDate ? new Date(league.startDate).toISOString().slice(0, 16) : ''}" required>
+      </div>
+      <div class="form-group">
+        <label>End Date *</label>
+        <input type="datetime-local" class="form-control" id="league-end" value="${league?.endDate ? new Date(league.endDate).toISOString().slice(0, 16) : ''}" required>
+      </div>
+      <div class="form-group">
         <label>Championship ID</label>
         <input type="text" class="form-control" id="league-champ" value="${league?.championshipId || ''}" placeholder="UUID from Assetto API">
       </div>
@@ -1019,6 +1027,8 @@ async function saveLeague(e) {
     sim: document.getElementById('league-sim').value,
     status: document.getElementById('league-status').value,
     season: document.getElementById('league-season').value,
+    startDate: new Date(document.getElementById('league-start').value).toISOString(),
+    endDate: new Date(document.getElementById('league-end').value).toISOString(),
     championshipId: document.getElementById('league-champ').value,
     blobStore: document.getElementById('league-blob').value
   };
