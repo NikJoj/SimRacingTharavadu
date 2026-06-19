@@ -16,7 +16,8 @@
   "author": "SimRacingTharavadu",
   "license": "MIT",
   "dependencies": {
-    "@vercel/blob": "^0.23.0"
+    "@vercel/blob": "^0.23.0",
+    "@vercel/postgres": "^0.10.0"
   },
   "devDependencies": {
     "vercel": "^53.2.0"

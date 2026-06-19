@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════
-   DATA SERVICE - API/Sheet Data Management
+   DATA SERVICE - Database API Data Management
    ═══════════════════════════════════════════════════ */
 
 // Global data storage
@@ -8,46 +8,7 @@ let appLeagues = [];
 let appLB = {};
 
 /**
- * Fetch data from Google Sheets via JSONP
- * @param {string} url - Google Sheets visualization API URL
- * @returns {Promise<Object>} Sheet data
- */
-async function fetchGSheet(url) {
-  // Google visualization endpoint always calls
-  // `google.visualization.Query.setResponse(data)` when the script loads.
-  // We temporarily override that function and resolve the promise when
-  // it's invoked. Sequential loading (events → leaderboard) avoids races.
-  return new Promise((resolve, reject) => {
-    // ensure google namespace exists
-    window.google = window.google || {};
-    window.google.visualization = window.google.visualization || {};
-    window.google.visualization.Query = window.google.visualization.Query || {};
-
-    window.google.visualization.Query.setResponse = data => {
-      resolve(data);
-    };
-
-    const s = document.createElement('script');
-    s.src = url;
-    s.onerror = () => reject(new Error('Failed to load Google Sheets JSONP'));
-    document.body.appendChild(s);
-  });
-}
-
-/**
- * Parse Google Sheets rows into objects
- * @param {Object} data - Raw sheet data
- * @param {Array<string>} cols - Column names
- * @returns {Array<Object>} Parsed rows
- */
-function parseRows(data, cols) {
-  return data.table.rows
-    .map(row => { const o = {}; cols.forEach((c,i) => o[c] = row.c[i]?.v?.toString() ?? ''); return o; })
-    .filter(r => Object.values(r).some(v => v));
-}
-
-/**
- * Load all data (events, leagues, leaderboard)
+ * Load all data from database API endpoints
  */
 async function loadData() {
   if (CONFIG.DEMO_MODE) {
@@ -63,33 +24,98 @@ async function loadData() {
     init();
     return;
   }
-  try {
-    // fetch events first, then leaderboard (avoids callback race conditions)
-    const evData = await fetchGSheet(CONFIG.EVENTS_SHEET_URL);
-    const lgData = await fetchGSheet(CONFIG.LEAGUES_SHEET_URL);
-    const lbData = await fetchGSheet(CONFIG.LEADERBOARD_SHEET_URL);
 
-    appEvents = parseRows(evData, ['id','name','sim','status','track','startDate','endDate','format','drivers','maxDrivers','rounds','season','description','trackMod','carMod','practiceServer','carOptions']);
+  try {
+    // Fetch data from PostgreSQL database via API endpoints
+    const [eventsRes, leaguesRes, leaderboardRes] = await Promise.all([
+      fetch(CONFIG.API_ENDPOINTS.EVENTS),
+      fetch(CONFIG.API_ENDPOINTS.LEAGUES),
+      fetch(CONFIG.API_ENDPOINTS.LEADERBOARD)
+    ]);
+
+    if (!eventsRes.ok || !leaguesRes.ok || !leaderboardRes.ok) {
+      throw new Error('Failed to fetch data from database');
+    }
+
+    const eventsData = await eventsRes.json();
+    const leaguesData = await leaguesRes.json();
+    const leaderboardData = await leaderboardRes.json();
+
+    // Transform database format to app format
+    appEvents = (eventsData.events || []).map(e => ({
+      id: String(e.id),
+      name: e.name || '',
+      sim: e.sim || '',
+      status: e.status || 'upcoming',
+      track: e.track || '',
+      startDate: e.start_date || '',
+      endDate: e.end_date || '',
+      format: e.format || '',
+      drivers: String(e.drivers || 0),
+      maxDrivers: String(e.max_drivers || 30),
+      rounds: String(e.rounds || 1),
+      season: e.season || '',
+      description: e.description || '',
+      trackMod: e.track_mod || '',
+      carMod: e.car_mod || '',
+      practiceServer: e.practice_server || '',
+      carOptions: e.car_options || ''
+    }));
+
+    // Update status based on driver count
     appEvents.forEach(e => {
       if (parseInt(e.drivers) >= parseInt(e.maxDrivers)) e.status = 'closed';
     });
-    appLeagues = parseRows(lgData, ['id','name','sim','status','startDate','endDate','format','season','championshipId','blobStore']);
+
+    appLeagues = (leaguesData.leagues || []).map(l => ({
+      id: String(l.id),
+      name: l.name || '',
+      sim: l.sim || '',
+      status: l.status || 'upcoming',
+      startDate: l.start_date || '',
+      endDate: l.end_date || '',
+      format: l.format || '',
+      season: l.season || '',
+      championshipId: l.championship_id || '',
+      blobStore: l.blob_store || '',
+      drivers: String(l.drivers || 0),
+      maxDrivers: String(l.max_drivers || 36),
+      rounds: String(l.rounds || 8),
+      track: l.track || '',
+      description: l.description || '',
+      carOptions: l.car_options || ''
+    }));
+
+    // Update status based on driver count
     appLeagues.forEach(l => {
       if (parseInt(l.drivers) >= parseInt(l.maxDrivers)) l.status = 'closed';
     });
-    const lbRows = parseRows(lbData, ['eventId','race','pos','driver','tag','team','pts','time','gap']);
+
+    // Transform leaderboard data
     appLB = {};
-    // Backward compatible: if the sheet doesn't have "race" column yet,
-    // we treat everything as Race 1.
-    lbRows.forEach(r => {
-      const race = normalizeRaceName(r.race);
-      if (!appLB[r.eventId]) appLB[r.eventId] = {};
-      if (!appLB[r.eventId][race]) appLB[r.eventId][race] = [];
-      appLB[r.eventId][race].push(r);
+    (leaderboardData.leaderboard || []).forEach(entry => {
+      const eventId = String(entry.event_id);
+      const race = normalizeRaceName(entry.race || 'Race 1');
+      
+      if (!appLB[eventId]) appLB[eventId] = {};
+      if (!appLB[eventId][race]) appLB[eventId][race] = [];
+      
+      appLB[eventId][race].push({
+        pos: String(entry.position),
+        driver: entry.driver || '',
+        tag: entry.tag || '',
+        team: entry.team || '',
+        pts: String(entry.points || 0),
+        time: entry.time || '',
+        gap: entry.gap || ''
+      });
     });
+
     init();
   } catch(e) {
-    document.getElementById('events-grid').innerHTML = `<div class="data-error">⚠ Could not load sheet data.<br><small>${e.message}</small></div>`;
+    console.error('Data loading error:', e);
+    document.getElementById('events-grid').innerHTML =
+      `<div class="data-error">⚠ Could not load data from database.<br><small>${e.message}</small></div>`;
   }
 }
 

@@ -142,25 +142,36 @@ async function loadAllData() {
 }
 
 /**
- * Load events from Google Sheets
+ * Load events from database
  */
 async function loadEvents() {
   try {
     if (CONFIG.DEMO_MODE) {
       adminData.events = DEMO_EVENTS;
     } else {
-      const response = await fetch(CONFIG.EVENTS_SHEET_URL);
-      const text = await response.text();
-      const json = JSON.parse(text.substring(47).slice(0, -2));
+      const response = await fetch(CONFIG.API_ENDPOINTS.EVENTS);
+      const data = await response.json();
       
-      const cols = ['id','name','sim','status','track','startDate','endDate','format','drivers','maxDrivers','rounds','season','description','trackMod','carMod','practiceServer','carOptions'];
-      adminData.events = json.table.rows
-        .map(row => {
-          const obj = {};
-          cols.forEach((c, i) => obj[c] = row.c[i]?.v?.toString() ?? '');
-          return obj;
-        })
-        .filter(r => Object.values(r).some(v => v));
+      // Transform database format to admin format
+      adminData.events = (data.events || []).map(e => ({
+        id: String(e.id),
+        name: e.name || '',
+        sim: e.sim || '',
+        status: e.status || 'upcoming',
+        track: e.track || '',
+        startDate: e.start_date || '',
+        endDate: e.end_date || '',
+        format: e.format || '',
+        drivers: String(e.drivers || 0),
+        maxDrivers: String(e.max_drivers || 30),
+        rounds: String(e.rounds || 1),
+        season: e.season || '',
+        description: e.description || '',
+        trackMod: e.track_mod || '',
+        carMod: e.car_mod || '',
+        practiceServer: e.practice_server || '',
+        carOptions: e.car_options || ''
+      }));
     }
     
     renderEventsTable();
@@ -171,25 +182,35 @@ async function loadEvents() {
 }
 
 /**
- * Load leagues from Google Sheets
+ * Load leagues from database
  */
 async function loadLeagues() {
   try {
     if (CONFIG.DEMO_MODE) {
       adminData.leagues = DEMO_LEAGUES;
     } else {
-      const response = await fetch(CONFIG.LEAGUES_SHEET_URL);
-      const text = await response.text();
-      const json = JSON.parse(text.substring(47).slice(0, -2));
+      const response = await fetch(CONFIG.API_ENDPOINTS.LEAGUES);
+      const data = await response.json();
       
-      const cols = ['id','name','sim','status','startDate','endDate','format','season','championshipId','blobStore'];
-      adminData.leagues = json.table.rows
-        .map(row => {
-          const obj = {};
-          cols.forEach((c, i) => obj[c] = row.c[i]?.v?.toString() ?? '');
-          return obj;
-        })
-        .filter(r => Object.values(r).some(v => v));
+      // Transform database format to admin format
+      adminData.leagues = (data.leagues || []).map(l => ({
+        id: String(l.id),
+        name: l.name || '',
+        sim: l.sim || '',
+        status: l.status || 'upcoming',
+        startDate: l.start_date || '',
+        endDate: l.end_date || '',
+        format: l.format || '',
+        season: l.season || '',
+        championshipId: l.championship_id || '',
+        blobStore: l.blob_store || '',
+        drivers: String(l.drivers || 0),
+        maxDrivers: String(l.max_drivers || 36),
+        rounds: String(l.rounds || 8),
+        track: l.track || '',
+        description: l.description || '',
+        carOptions: l.car_options || ''
+      }));
     }
     
     renderLeaguesTable();
@@ -201,26 +222,23 @@ async function loadLeagues() {
 }
 
 /**
- * Load registrations from Google Sheets
+ * Load registrations from database
  */
 async function loadRegistrations() {
   try {
-    const response = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=getRegistrations');
+    const response = await fetch(CONFIG.API_ENDPOINTS.REGISTRATIONS);
     const data = await response.json();
     
-    if (data.status === 'ok') {
-      // Map the data to match expected field names
-      adminData.registrations = (data.registrations || []).map(reg => ({
-        timestamp: reg.Timestamp || reg.timestamp || reg.A || '',
-        driverTag: reg.driverTag || reg['Driver Tag'] || reg.B || '',
-        discord: reg.discord || reg.Discord || reg.C || '',
-        carClass: reg.carClass || reg['Car Class'] || reg.D || '',
-        event: reg.event || reg.Event || reg.E || '',
-        league: reg.league || reg.League || ''
-      }));
-    } else {
-      adminData.registrations = [];
-    }
+    // Transform database format to admin format
+    adminData.registrations = (data.registrations || []).map(reg => ({
+      id: reg.id,
+      timestamp: reg.timestamp || reg.created_at || '',
+      driverTag: reg.driver_tag || '',
+      discord: reg.discord || '',
+      carClass: reg.car_class || '',
+      event: reg.event || '',
+      league: reg.event || ''  // Same field in database
+    }));
     
     renderRegistrationsTable();
     populateRegFilter();
@@ -935,17 +953,16 @@ async function saveEvent(e) {
     sim: document.getElementById('event-sim').value,
     status: document.getElementById('event-status').value,
     track: document.getElementById('event-track').value,
-    startDate: new Date(document.getElementById('event-start').value).toISOString(),
-    endDate: new Date(document.getElementById('event-end').value).toISOString(),
+    start_date: new Date(document.getElementById('event-start').value).toISOString(),
+    end_date: new Date(document.getElementById('event-end').value).toISOString(),
     format: document.getElementById('event-format').value,
-    maxDrivers: document.getElementById('event-max').value,
-    carOptions: document.getElementById('event-cars').value,
+    max_drivers: document.getElementById('event-max').value,
+    car_options: document.getElementById('event-cars').value,
     description: document.getElementById('event-desc').value
   };
 
   // Check if editing (has id) or creating new
   const eventId = document.getElementById('event-id')?.value;
-  const action = eventId ? 'updateEvent' : 'createEvent';
   
   if (eventId) {
     eventData.id = eventId;
@@ -959,38 +976,29 @@ async function saveEvent(e) {
   closeModal();
 
   try {
-    // Save event to Google Sheets
-    const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
+    // Save event to database
+    const method = eventId ? 'PUT' : 'POST';
+    const response = await fetch(CONFIG.API_ENDPOINTS.EVENTS, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, ...eventData })
+      body: JSON.stringify(eventData)
     });
 
-    // For new events, we need to get the ID from the response
-    let finalEventId = eventId;
-    
-    if (!eventId) {
-      // Wait a bit for Google Sheets to process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Reload events to get the new ID
-      await loadEvents();
-      
-      // Find the event we just created by name (it should be the most recent one)
-      if (adminData.events && adminData.events.length > 0) {
-        const newEvent = adminData.events.find(evt => evt.name === eventData.name);
-        finalEventId = newEvent?.id;
-      }
-      
-      if (!finalEventId) {
-        throw new Error('Failed to get event ID after creation');
-      }
-    } else {
-      // For updates, just wait a bit
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      await loadEvents();
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || result.error || 'Failed to save event');
     }
+
+    // Get the event ID from response
+    const finalEventId = eventId || result.event?.id;
+    
+    if (!finalEventId) {
+      throw new Error('Failed to get event ID after creation');
+    }
+
+    // Reload events
+    await loadEvents();
 
     // Upload poster to GitHub if provided
     if (posterFile && finalEventId) {
@@ -1029,13 +1037,12 @@ async function saveLeague(e) {
     season: document.getElementById('league-season').value,
     startDate: new Date(document.getElementById('league-start').value).toISOString(),
     endDate: new Date(document.getElementById('league-end').value).toISOString(),
-    championshipId: document.getElementById('league-champ').value,
-    blobStore: document.getElementById('league-blob').value
+    championship_id: document.getElementById('league-champ').value,
+    blob_store: document.getElementById('league-blob').value
   };
 
   // Check if editing (has id) or creating new
   const leagueId = document.getElementById('league-id')?.value;
-  const action = leagueId ? 'updateLeague' : 'createLeague';
   
   if (leagueId) {
     leagueData.id = leagueId;
@@ -1049,38 +1056,29 @@ async function saveLeague(e) {
   closeModal();
 
   try {
-    // Save league to Google Sheets
-    const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
+    // Save league to database
+    const method = leagueId ? 'PUT' : 'POST';
+    const response = await fetch(CONFIG.API_ENDPOINTS.LEAGUES, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, ...leagueData })
+      body: JSON.stringify(leagueData)
     });
 
-    // For new leagues, we need to get the ID from the response
-    let finalLeagueId = leagueId;
-    
-    if (!leagueId) {
-      // Wait a bit for Google Sheets to process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Reload leagues to get the new ID
-      await loadLeagues();
-      
-      // Find the league we just created by name (it should be the most recent one)
-      if (adminData.leagues && adminData.leagues.length > 0) {
-        const newLeague = adminData.leagues.find(lg => lg.name === leagueData.name);
-        finalLeagueId = newLeague?.id;
-      }
-      
-      if (!finalLeagueId) {
-        throw new Error('Failed to get league ID after creation');
-      }
-    } else {
-      // For updates, just wait a bit
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      await loadLeagues();
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || result.error || 'Failed to save league');
     }
+
+    // Get the league ID from response
+    const finalLeagueId = leagueId || result.league?.id;
+    
+    if (!finalLeagueId) {
+      throw new Error('Failed to get league ID after creation');
+    }
+
+    // Reload leagues
+    await loadLeagues();
 
     // Upload poster to GitHub if provided
     if (posterFile && finalLeagueId) {
@@ -1143,15 +1141,17 @@ async function deleteEvent(id) {
   showLoading('Deleting event...');
 
   try {
-    await fetch(CONFIG.APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
+    const response = await fetch(CONFIG.API_ENDPOINTS.EVENTS, {
+      method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'deleteEvent', id })
+      body: JSON.stringify({ id })
     });
 
-    // Wait for Google Sheets to update
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || result.error || 'Failed to delete event');
+    }
     
     // Reload events
     await loadEvents();
@@ -1178,15 +1178,17 @@ async function deleteLeague(id) {
   showLoading('Deleting league...');
 
   try {
-    await fetch(CONFIG.APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
+    const response = await fetch(CONFIG.API_ENDPOINTS.LEAGUES, {
+      method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'deleteLeague', id })
+      body: JSON.stringify({ id })
     });
 
-    // Wait for Google Sheets to update
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || result.error || 'Failed to delete league');
+    }
     
     // Reload leagues
     await loadLeagues();
@@ -1244,27 +1246,35 @@ function editRegistration(idx) {
 async function saveRegistration(e, rowIndex) {
   e.preventDefault();
 
+  const idx = rowIndex - 2; // Convert back from rowIndex
+  const reg = adminData.registrations[idx];
+  if (!reg || !reg.id) {
+    showToast('Registration ID not found', 'error');
+    return;
+  }
+
   const regData = {
-    action: 'updateRegistration',
-    rowIndex: rowIndex,
-    driverTag: document.getElementById('reg-driver').value,
+    id: reg.id,
+    driver_tag: document.getElementById('reg-driver').value,
     discord: document.getElementById('reg-discord').value,
-    carClass: document.getElementById('reg-car').value
+    car_class: document.getElementById('reg-car').value
   };
 
   showLoading('Updating registration...');
   closeModal();
 
   try {
-    await fetch(CONFIG.APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
+    const response = await fetch(CONFIG.API_ENDPOINTS.REGISTRATIONS, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(regData)
     });
 
-    // Wait for Google Sheets to update
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || result.error || 'Failed to update registration');
+    }
     
     // Reload registrations
     await loadRegistrations();
@@ -1287,21 +1297,26 @@ async function deleteRegistration(idx) {
     return;
   }
 
-  // Row index is idx + 2 (1 for header, 1 for 0-based to 1-based)
-  const rowIndex = idx + 2;
+  const reg = adminData.registrations[idx];
+  if (!reg || !reg.id) {
+    showToast('Registration ID not found', 'error');
+    return;
+  }
 
   showLoading('Deleting registration...');
 
   try {
-    await fetch(CONFIG.APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
+    const response = await fetch(CONFIG.API_ENDPOINTS.REGISTRATIONS, {
+      method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'deleteRegistration', rowIndex })
+      body: JSON.stringify({ id: reg.id })
     });
 
-    // Wait for Google Sheets to update
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || result.error || 'Failed to delete registration');
+    }
     
     // Reload registrations
     await loadRegistrations();
