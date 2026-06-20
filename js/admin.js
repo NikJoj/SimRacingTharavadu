@@ -253,7 +253,7 @@ async function loadRegistrations() {
  */
 async function loadSyncHistory() {
   try {
-    const response = await fetch('/api/get-stored-result?list=leagues');
+    const response = await fetch(`${CONFIG.ASSETTO_API.RACES}?action=leagues`);
     const data = await response.json();
     
     if (data.success && data.leagues) {
@@ -261,7 +261,7 @@ async function loadSyncHistory() {
       
       // Load races for each league
       for (const league of data.leagues) {
-        const racesResponse = await fetch(`/api/get-stored-result?league=${league}`);
+        const racesResponse = await fetch(`${CONFIG.ASSETTO_API.RACES}?action=stored&league=${encodeURIComponent(league)}`);
         const racesData = await racesResponse.json();
         
         if (racesData.success && racesData.races) {
@@ -547,7 +547,9 @@ async function syncRaceResult() {
   statusEl.textContent = '🔄 Syncing race result...';
   
   try {
-    const response = await fetch(`/api/store-latest-result?league=${league}`);
+    const response = await fetch(`${CONFIG.ASSETTO_API.RACES}?action=store&league=${encodeURIComponent(league)}`, {
+      method: 'POST'
+    });
     const data = await response.json();
     
     if (data.success) {
@@ -602,7 +604,7 @@ async function fetchAvailableRaces() {
   statusEl.textContent = '🔄 Fetching available races...';
   
   try {
-    const response = await fetch('/api/fetch-races');
+    const response = await fetch(`${CONFIG.ASSETTO_API.RACES}?action=list`);
     const data = await response.json();
     
     if (data.success && data.races) {
@@ -743,7 +745,7 @@ async function syncSelectedRaces() {
   showLoading();
   
   try {
-    const response = await fetch('/api/sync-selected-races', {
+    const response = await fetch(`${CONFIG.ASSETTO_API.RACES}?action=sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

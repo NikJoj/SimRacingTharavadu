@@ -38,13 +38,13 @@ fetch('/api/championships')
 ---
 
 ### 3. Live Timing Leaderboard
-**Endpoint:** `/api/live-leaderboard`  
+**Endpoint:** `/api/live?type=leaderboard`  
 **Method:** `GET`  
 **Parameters:** None
 
 **Example:**
 ```javascript
-fetch('/api/live-leaderboard')
+fetch('/api/live?type=leaderboard')
   .then(res => res.json())
   .then(data => console.log(data));
 ```
@@ -55,13 +55,13 @@ fetch('/api/live-leaderboard')
 ---
 
 ### 4. Live Timing Basic
-**Endpoint:** `/api/live-basic`  
+**Endpoint:** `/api/live?type=basic`  
 **Method:** `GET`  
 **Parameters:** None
 
 **Example:**
 ```javascript
-fetch('/api/live-basic')
+fetch('/api/live?type=basic')
   .then(res => res.json())
   .then(data => console.log(data));
 ```
@@ -89,14 +89,14 @@ fetch('/api/results')
 ---
 
 ### 6. Individual Race Result
-**Endpoint:** `/api/race-result`
+**Endpoint:** `/api/races?action=result`
 **Method:** `GET`
 **Parameters:**
 - `file` (required) - The race result filename (e.g., `2020_7_28_19_48_RACE.json`)
 
 **Example:**
 ```javascript
-fetch('/api/race-result?file=2020_7_28_19_48_RACE.json')
+fetch('/api/races?action=result&file=2020_7_28_19_48_RACE.json')
   .then(res => res.json())
   .then(data => console.log(data));
 ```
@@ -107,14 +107,14 @@ fetch('/api/race-result?file=2020_7_28_19_48_RACE.json')
 ---
 
 ### 7. Store Latest Race Result
-**Endpoint:** `/api/store-latest-result`
-**Method:** `GET` or `POST`
+**Endpoint:** `/api/races?action=store`
+**Method:** `POST`
 **Parameters:**
 - `league` (required) - League name/identifier (e.g., `SRT-GT3-Season-1`)
 
 **Example:**
 ```javascript
-fetch('/api/store-latest-result?league=SRT-GT3-Season-1', { method: 'POST' })
+fetch('/api/races?action=store&league=SRT-GT3-Season-1', { method: 'POST' })
   .then(res => res.json())
   .then(data => console.log(data));
 ```
@@ -155,10 +155,10 @@ fetch('/api/store-latest-result?league=SRT-GT3-Season-1', { method: 'POST' })
 ---
 
 ### 8. Get Stored Race Results
-**Endpoint:** `/api/get-stored-result`
+**Endpoint:** `/api/races`
 **Method:** `GET`
 **Parameters:**
-- `list` (optional) - Set to `leagues` to list all available leagues
+- `action` (required) - Use `leagues` to list league folders or `stored` to fetch stored races
 - `league` (optional) - League name to filter results
 - `timestamp` (optional) - Specific race timestamp (use with `league`)
 
@@ -166,7 +166,7 @@ fetch('/api/store-latest-result?league=SRT-GT3-Season-1', { method: 'POST' })
 
 **List all leagues:**
 ```javascript
-fetch('/api/get-stored-result?list=leagues')
+fetch('/api/races?action=leagues')
   .then(res => res.json())
   .then(data => console.log(data));
 // Returns: { success: true, leagues: ["SRT-GT3-Season-1", "SRT-Formula-Series"] }
@@ -174,7 +174,7 @@ fetch('/api/get-stored-result?list=leagues')
 
 **Get all races for a league:**
 ```javascript
-fetch('/api/get-stored-result?league=SRT-GT3-Season-1')
+fetch('/api/races?action=stored&league=SRT-GT3-Season-1')
   .then(res => res.json())
   .then(data => console.log(data));
 ```
@@ -200,7 +200,7 @@ fetch('/api/get-stored-result?league=SRT-GT3-Season-1')
 
 **Get specific race:**
 ```javascript
-fetch('/api/get-stored-result?league=SRT-GT3-Season-1&timestamp=1595959680000')
+fetch('/api/races?action=stored&league=SRT-GT3-Season-1&timestamp=1595959680000')
   .then(res => res.json())
   .then(data => console.log(data));
 ```

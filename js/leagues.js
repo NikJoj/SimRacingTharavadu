@@ -312,7 +312,7 @@ async function loadLeagueRaces() {
     // Check if league has a blob store configured
     if (league.blobStore) {
       // Fetch from blob store
-      const response = await fetch(`/api/get-stored-result?league=${encodeURIComponent(league.blobStore)}`);
+      const response = await fetch(`${CONFIG.ASSETTO_API.RACES}?action=stored&league=${encodeURIComponent(league.blobStore)}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -386,7 +386,7 @@ async function loadLiveTiming(isRefresh = false) {
   }
   
   try {
-    const response = await fetch(CONFIG.ASSETTO_API.LIVE_BASIC);
+    const response = await fetch(`${CONFIG.ASSETTO_API.LIVE}?type=basic`);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -711,7 +711,7 @@ async function showRaceResults(resultsUrl) {
         const timestamp = parts[2];
         
         // Use blob store API endpoint
-        apiUrl = `/api/get-stored-result?league=${encodeURIComponent(blobStore)}&timestamp=${encodeURIComponent(timestamp)}`;
+        apiUrl = `${CONFIG.ASSETTO_API.RACES}?action=stored&league=${encodeURIComponent(blobStore)}&timestamp=${encodeURIComponent(timestamp)}`;
         console.log('Using blob store API:', apiUrl);
         
         // Fetch from blob store
@@ -746,7 +746,7 @@ async function showRaceResults(resultsUrl) {
       const jsonFilename = filename.endsWith('.json') ? filename : `${filename}.json`;
       
       // Use our proxy API endpoint
-      apiUrl = `${CONFIG.ASSETTO_API.RACE_RESULT}?file=${encodeURIComponent(jsonFilename)}`;
+      apiUrl = `${CONFIG.ASSETTO_API.RACES}?action=result&file=${encodeURIComponent(jsonFilename)}`;
       console.log('Using proxy API:', apiUrl);
     }
     
