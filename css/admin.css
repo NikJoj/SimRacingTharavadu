@@ -781,6 +781,17 @@ input[type="datetime-local"].form-control::-webkit-calendar-picker-indicator {
   cursor: not-allowed;
 }
 
+.driver-import-preview {
+  margin-top: 1rem;
+}
+
+.driver-import-table {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
 /* ══ MODAL ══ */
 .modal-overlay {
   position: fixed;

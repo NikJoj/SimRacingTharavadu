@@ -24,7 +24,7 @@ export async function sql(strings, ...values) {
  */
 export async function query(text, params = []) {
   try {
-    const rows = await neonSql(text, params);
+    const rows = await neonSql.query(text, params);
     return { rows };
   } catch (error) {
     console.error('Database query error:', error);
@@ -129,9 +129,16 @@ export async function initializeTables() {
         discord VARCHAR(255),
         car_class VARCHAR(100),
         event VARCHAR(255),
+        league_id INTEGER,
+        car_number VARCHAR(50),
+        penalty_points INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    await neonSql(`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS league_id INTEGER`);
+    await neonSql(`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS car_number VARCHAR(50)`);
+    await neonSql(`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS penalty_points INTEGER DEFAULT 0`);
 
     await neonSql(`CREATE INDEX IF NOT EXISTS idx_events_status ON events(status)`);
     await neonSql(`CREATE INDEX IF NOT EXISTS idx_leagues_status ON leagues(status)`);

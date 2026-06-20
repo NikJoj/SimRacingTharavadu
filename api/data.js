@@ -23,7 +23,7 @@
  * DELETE /api/data?resource=leaderboard               - Delete leaderboard entry
  */
 
-import { sql } from './db.js';
+import { sql, query as dbQuery } from './db.js';
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -189,7 +189,7 @@ async function handleEvents(req, res) {
       RETURNING *
     `;
 
-    const result = await sql.query(query, values);
+    const result = await dbQuery(query, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Event not found' });
@@ -339,7 +339,7 @@ async function handleLeagues(req, res) {
       RETURNING *
     `;
 
-    const result = await sql.query(query, values);
+    const result = await dbQuery(query, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'League not found' });
@@ -499,7 +499,7 @@ async function handleLeaderboard(req, res) {
       RETURNING *
     `;
 
-    const result = await sql.query(query, values);
+    const result = await dbQuery(query, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Leaderboard entry not found' });

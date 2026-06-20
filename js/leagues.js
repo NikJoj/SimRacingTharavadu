@@ -236,6 +236,8 @@ async function loadLeagueStandings() {
       container.innerHTML = `<div class="data-error">⚠ ${data.error}</div>`;
       return;
     }
+
+    const penaltyLookup = await loadLeaguePenaltyLookup(league);
     
     // Parse the DriverStandings structure from Assetto API
     let standings = [];
@@ -247,12 +249,14 @@ async function loadLeagueStandings() {
         const classDrivers = data.DriverStandings[className];
         if (Array.isArray(classDrivers)) {
           classDrivers.forEach(entry => {
+            const driverName = entry.Car?.Driver?.Name || 'Unknown Driver';
+            const carNumber = entry.Car?.CarId || '-';
             standings.push({
-              driverName: entry.Car?.Driver?.Name || 'Unknown Driver',
+              driverName: driverName,
               team: entry.Car?.Driver?.Team || '',
-              carNumber: entry.Car?.CarId || '-',
+              carNumber: carNumber,
               points: entry.Points || 0,
-              penaltyPoints: 0, // TODO: Penalty points data source will be integrated later
+              penaltyPoints: getPenaltyPointsForStanding(penaltyLookup, carNumber, driverName),
               tag: '', // Not provided in this API format
               className: className
             });
@@ -281,6 +285,84 @@ async function loadLeagueStandings() {
     console.error('Error loading standings:', error);
     container.innerHTML = '<div class="data-error">⚠ Failed to load standings. Please try again later.</div>';
   }
+}
+
+/**
+ * Load registration penalty points for the selected league
+ */
+async function loadLeaguePenaltyLookup(league) {
+  try {
+    const response = await fetch(`${CONFIG.API_ENDPOINTS.REGISTRATIONS}?event=${encodeURIComponent(league.name)}`);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const registrations = data.registrations || [];
+    const lookup = {
+      byCarAndDriver: {},
+      byCar: {},
+      byDriver: {}
+    };
+
+    registrations.forEach(reg => {
+      const carNumber = normalizePenaltyLookupValue(reg.car_number);
+      const driverName = normalizePenaltyLookupValue(reg.driver_tag);
+      const penaltyPoints = Number(reg.penalty_points || 0);
+
+      if (carNumber && driverName) {
+        lookup.byCarAndDriver[`${carNumber}|${driverName}`] = penaltyPoints;
+      }
+
+      if (carNumber) {
+        lookup.byCar[carNumber] = penaltyPoints;
+      }
+
+      if (driverName) {
+        lookup.byDriver[driverName] = penaltyPoints;
+      }
+    });
+
+    return lookup;
+  } catch (error) {
+    console.error('Error loading league penalty points:', error);
+    return {
+      byCarAndDriver: {},
+      byCar: {},
+      byDriver: {}
+    };
+  }
+}
+
+/**
+ * Match standings rows to registration penalty points
+ */
+function getPenaltyPointsForStanding(lookup, carNumber, driverName) {
+  const normalizedCarNumber = normalizePenaltyLookupValue(carNumber);
+  const normalizedDriverName = normalizePenaltyLookupValue(driverName);
+  const comboKey = `${normalizedCarNumber}|${normalizedDriverName}`;
+
+  if (normalizedCarNumber && normalizedDriverName && lookup.byCarAndDriver[comboKey] !== undefined) {
+    return lookup.byCarAndDriver[comboKey];
+  }
+
+  if (normalizedCarNumber && lookup.byCar[normalizedCarNumber] !== undefined) {
+    return lookup.byCar[normalizedCarNumber];
+  }
+
+  if (normalizedDriverName && lookup.byDriver[normalizedDriverName] !== undefined) {
+    return lookup.byDriver[normalizedDriverName];
+  }
+
+  return 0;
+}
+
+/**
+ * Normalize lookup keys for car number and driver name matching
+ */
+function normalizePenaltyLookupValue(value) {
+  return String(value || '').trim().toLowerCase();
 }
 
 /**
@@ -444,7 +526,7 @@ function buildStandingsTable(standings) {
       </td>
       <td class="td-driver-team">${entry.team || '-'}</td>
       <td class="td-pts">${entry.points || 0}</td>
-      <td class="td-penalty">${entry.penaltyPoints || '-'}</td>
+      <td class="td-penalty">${entry.penaltyPoints ?? 0}</td>
     </tr>`;
   });
   

@@ -236,6 +236,9 @@ async function loadRegistrations() {
       driverTag: reg.driver_tag || '',
       discord: reg.discord || '',
       carClass: reg.car_class || '',
+      carNumber: reg.car_number || '',
+      penaltyPoints: String(reg.penalty_points || 0),
+      leagueId: reg.league_id ? String(reg.league_id) : '',
       event: reg.event || '',
       league: reg.event || ''  // Same field in database
     }));
@@ -457,7 +460,9 @@ function renderRegistrationsTable() {
             <th>Driver</th>
             <th>Discord</th>
             <th>Event/League</th>
+            <th>Car #</th>
             <th>Car</th>
+            <th>Penalty Points</th>
             <th>Date</th>
             <th>Actions</th>
           </tr>
@@ -468,7 +473,9 @@ function renderRegistrationsTable() {
               <td><strong>${reg.driverTag}</strong></td>
               <td>${reg.discord}</td>
               <td>${reg.event || reg.league}</td>
+              <td>${reg.carNumber ?? '-'}</td>
               <td>${reg.carClass}</td>
+              <td>${reg.penaltyPoints || '0'}</td>
               <td>${formatDate(reg.timestamp)}</td>
               <td>
                 <div class="table-actions">
@@ -581,6 +588,10 @@ async function syncRaceResult() {
  * Global variable to store fetched races
  */
 let availableRaces = [];
+let pendingDriverImport = {
+  league: null,
+  drivers: []
+};
 
 /**
  * Populate update races league select
@@ -790,6 +801,222 @@ async function syncSelectedRaces() {
   setTimeout(() => {
     statusEl.classList.remove('show');
   }, 5000);
+}
+
+/**
+ * Open driver import modal
+ */
+function openDriverImportModal() {
+  const modal = document.getElementById('modal');
+  const importableLeagues = adminData.leagues.filter(l => l.championshipId);
+  const options = importableLeagues
+    .map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)}</option>`)
+    .join('');
+
+  pendingDriverImport = {
+    league: null,
+    drivers: []
+  };
+
+  document.getElementById('modal-title').textContent = 'Sync League Drivers';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-form">
+      <div class="form-group">
+        <label>League</label>
+        <select class="form-control" id="driver-import-league">
+          <option value="">-- Select League --</option>
+          ${options}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="button" class="btn-primary" onclick="previewLeagueDrivers()">Import Drivers</button>
+      </div>
+      <div id="driver-import-status" class="status-message"></div>
+      <div id="driver-import-preview" class="driver-import-preview"></div>
+    </div>
+  `;
+  modal.style.display = 'flex';
+}
+
+/**
+ * Fetch standings and show import preview
+ */
+async function previewLeagueDrivers() {
+  const leagueId = document.getElementById('driver-import-league').value;
+  const league = adminData.leagues.find(l => l.id === leagueId);
+  const statusEl = document.getElementById('driver-import-status');
+  const previewEl = document.getElementById('driver-import-preview');
+
+  if (!league) {
+    showToast('Please select a league', 'error');
+    return;
+  }
+
+  if (!league.championshipId) {
+    showToast('Selected league has no championship ID', 'error');
+    return;
+  }
+
+  statusEl.className = 'status-message loading show';
+  statusEl.textContent = 'Fetching championship standings...';
+  previewEl.innerHTML = '';
+
+  try {
+    const response = await fetch(`${CONFIG.ASSETTO_API.STANDINGS}?championshipId=${encodeURIComponent(league.championshipId)}`);
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+      throw new Error(data.message || data.error || 'Failed to fetch standings');
+    }
+
+    const drivers = extractDriversFromStandings(data);
+    pendingDriverImport = {
+      league,
+      drivers
+    };
+
+    if (drivers.length === 0) {
+      statusEl.className = 'status-message error show';
+      statusEl.textContent = 'No drivers found in championship standings';
+      return;
+    }
+
+    statusEl.className = 'status-message success show';
+    statusEl.textContent = `Found ${drivers.length} driver${drivers.length !== 1 ? 's' : ''}`;
+    previewEl.innerHTML = buildDriverImportPreview(drivers);
+  } catch (error) {
+    console.error('Error previewing league drivers:', error);
+    statusEl.className = 'status-message error show';
+    statusEl.textContent = error.message;
+  }
+}
+
+/**
+ * Extract driver rows from championship standings response
+ */
+function extractDriversFromStandings(data) {
+  const drivers = [];
+  const seen = new Set();
+
+  if (data.DriverStandings) {
+    Object.entries(data.DriverStandings).forEach(([className, classDrivers]) => {
+      if (!Array.isArray(classDrivers)) return;
+
+      classDrivers.forEach(entry => {
+        const car = entry.Car || {};
+        const driver = car.Driver || {};
+        const driverName = driver.Name || entry.DriverName || '';
+        const carNumber = car.CarId || entry.CarId || entry.CarNumber || '';
+        const key = `${driverName}|${carNumber}`;
+
+        if (!driverName || seen.has(key)) return;
+        seen.add(key);
+
+        drivers.push({
+          driver_tag: driverName,
+          car_number: carNumber,
+          car_class: className,
+          discord: '',
+          penalty_points: 0
+        });
+      });
+    });
+  }
+
+  return drivers.sort((a, b) => {
+    const an = parseInt(a.car_number || '99999', 10);
+    const bn = parseInt(b.car_number || '99999', 10);
+    if (an !== bn) return an - bn;
+    return a.driver_tag.localeCompare(b.driver_tag);
+  });
+}
+
+/**
+ * Escape external text before rendering it into admin HTML
+ */
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Build driver import preview table
+ */
+function buildDriverImportPreview(drivers) {
+  return `
+    <div class="table-wrapper driver-import-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Driver</th>
+            <th>Car #</th>
+            <th>Class</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${drivers.map(driver => `
+            <tr>
+              <td><strong>${escapeHtml(driver.driver_tag)}</strong></td>
+              <td>${escapeHtml(driver.car_number || '-')}</td>
+              <td>${escapeHtml(driver.car_class || '-')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button type="button" class="btn-primary" onclick="importPreviewedLeagueDrivers()">Final Import</button>
+    </div>
+  `;
+}
+
+/**
+ * Commit previewed drivers to registrations
+ */
+async function importPreviewedLeagueDrivers() {
+  const { league, drivers } = pendingDriverImport;
+
+  if (!league || !drivers.length) {
+    showToast('Preview drivers before importing', 'error');
+    return;
+  }
+
+  showLoading('Importing league drivers...');
+
+  try {
+    const response = await fetch(`${CONFIG.API_ENDPOINTS.REGISTRATIONS}?action=bulk-import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        league_id: league.id,
+        league_name: league.name,
+        drivers
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || result.error || 'Failed to import drivers');
+    }
+
+    await loadRegistrations();
+    await loadLeagues();
+    updateDashboardStats();
+    hideLoading();
+    closeModal();
+    showToast(`${result.results.imported.length} imported, ${result.results.updated.length} updated`, 'success');
+  } catch (error) {
+    console.error('Error importing league drivers:', error);
+    hideLoading();
+    showToast(`Failed to import drivers: ${error.message}`, 'error');
+  }
 }
 
 /**
@@ -1230,6 +1457,14 @@ function editRegistration(idx) {
         <input type="text" class="form-control" id="reg-car" value="${reg.carClass || ''}" required>
       </div>
       <div class="form-group">
+        <label>Car Number</label>
+        <input type="text" class="form-control" id="reg-car-number" value="${reg.carNumber || ''}">
+      </div>
+      <div class="form-group">
+        <label>Penalty Points</label>
+        <input type="number" class="form-control" id="reg-penalty-points" value="${reg.penaltyPoints || '0'}" min="0" step="1">
+      </div>
+      <div class="form-group">
         <label>Event/League</label>
         <input type="text" class="form-control" id="reg-event" value="${reg.event || reg.league || ''}" readonly>
       </div>
@@ -1259,7 +1494,9 @@ async function saveRegistration(e, rowIndex) {
     id: reg.id,
     driver_tag: document.getElementById('reg-driver').value,
     discord: document.getElementById('reg-discord').value,
-    car_class: document.getElementById('reg-car').value
+    car_class: document.getElementById('reg-car').value,
+    car_number: document.getElementById('reg-car-number').value,
+    penalty_points: parseInt(document.getElementById('reg-penalty-points').value || '0', 10)
   };
 
   showLoading('Updating registration...');
@@ -1343,13 +1580,15 @@ function exportRegistrations() {
     return;
   }
   
-  const headers = ['Timestamp', 'Driver Tag', 'Discord', 'Event/League', 'Car Class'];
+  const headers = ['Timestamp', 'Driver Tag', 'Discord', 'Event/League', 'Car Number', 'Car Class', 'Penalty Points'];
   const rows = adminData.registrations.map(reg => [
     reg.timestamp,
     reg.driverTag,
     reg.discord,
     reg.event || reg.league,
-    reg.carClass
+    reg.carNumber,
+    reg.carClass,
+    reg.penaltyPoints
   ]);
   
   const csv = [headers, ...rows].map(row => row.join(',')).join('\n');

@@ -6,11 +6,12 @@
  * GET    /api/registrations?id=X     - Get single registration
  * GET    /api/registrations?event=X  - Get registrations for specific event
  * POST   /api/registrations          - Create new registration
+ * POST   /api/registrations?action=bulk-import - Import league drivers from standings
  * PUT    /api/registrations          - Update registration
  * DELETE /api/registrations          - Delete registration
  */
 
-import { sql } from './db.js';
+import { sql, query as dbQuery } from './db.js';
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -24,6 +25,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    await ensureRegistrationColumns();
+
     // GET - Fetch registrations
     if (req.method === 'GET') {
       const { id, event, driver_tag } = req.query;
@@ -70,11 +73,18 @@ export default async function handler(req, res) {
 
     // POST - Create new registration
     if (req.method === 'POST') {
+      if (req.query.action === 'bulk-import') {
+        return await handleBulkImport(req, res);
+      }
+
       const {
         driver_tag,
         discord,
         car_class,
-        event
+        event,
+        league_id,
+        car_number,
+        penalty_points = 0
       } = req.body;
 
       // Validate required fields
@@ -85,10 +95,17 @@ export default async function handler(req, res) {
       }
 
       // Check for duplicate registration
-      const existing = await sql`
-        SELECT id FROM registrations 
-        WHERE driver_tag = ${driver_tag} AND event = ${event}
-      `;
+      const existing = car_number
+        ? await sql`
+            SELECT id FROM registrations 
+            WHERE event = ${event}
+              AND (driver_tag = ${driver_tag} OR car_number = ${car_number})
+          `
+        : await sql`
+            SELECT id FROM registrations 
+            WHERE event = ${event}
+              AND driver_tag = ${driver_tag}
+          `;
 
       if (existing.rows.length > 0) {
         return res.status(409).json({
@@ -99,10 +116,10 @@ export default async function handler(req, res) {
 
       const result = await sql`
         INSERT INTO registrations (
-          driver_tag, discord, car_class, event
+          timestamp, driver_tag, discord, car_class, event, league_id, car_number, penalty_points
         )
         VALUES (
-          ${driver_tag}, ${discord}, ${car_class}, ${event}
+          ${new Date().toISOString()}, ${driver_tag}, ${discord}, ${car_class}, ${event}, ${league_id || null}, ${car_number || null}, ${penalty_points}
         )
         RETURNING *
       `;
@@ -146,10 +163,19 @@ export default async function handler(req, res) {
       // Build dynamic update query
       const updateFields = [];
       const values = [];
+      const allowedFields = new Set([
+        'driver_tag',
+        'discord',
+        'car_class',
+        'event',
+        'league_id',
+        'car_number',
+        'penalty_points'
+      ]);
       let paramIndex = 1;
 
       Object.entries(updates).forEach(([key, value]) => {
-        if (value !== undefined && key !== 'id' && key !== 'timestamp' && key !== 'created_at') {
+        if (value !== undefined && allowedFields.has(key)) {
           updateFields.push(`${key} = $${paramIndex}`);
           values.push(value);
           paramIndex++;
@@ -169,7 +195,7 @@ export default async function handler(req, res) {
         RETURNING *
       `;
 
-      const result = await sql.query(query, values);
+      const result = await dbQuery(query, values);
 
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Registration not found' });
@@ -241,6 +267,107 @@ export default async function handler(req, res) {
       message: error.message
     });
   }
+}
+
+async function ensureRegistrationColumns() {
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS league_id INTEGER`;
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS car_number VARCHAR(50)`;
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS penalty_points INTEGER DEFAULT 0`;
+}
+
+async function handleBulkImport(req, res) {
+  const { league_id, league_name, drivers } = req.body;
+
+  if (!league_id || !league_name) {
+    return res.status(400).json({
+      error: 'League ID and league name are required'
+    });
+  }
+
+  if (!drivers || !Array.isArray(drivers) || drivers.length === 0) {
+    return res.status(400).json({
+      error: 'Drivers array is required'
+    });
+  }
+
+  const results = {
+    imported: [],
+    updated: [],
+    skipped: []
+  };
+
+  for (const driver of drivers) {
+    const driverTag = String(driver.driver_tag || driver.driverName || '').trim();
+    const carNumber = driver.car_number !== undefined && driver.car_number !== null
+      ? String(driver.car_number).trim()
+      : '';
+    const carClass = String(driver.car_class || driver.className || '').trim();
+    const discord = String(driver.discord || '').trim();
+    if (!driverTag) {
+      results.skipped.push({
+        driver: driver,
+        reason: 'Missing driver name'
+      });
+      continue;
+    }
+
+    const existing = carNumber
+      ? await sql`
+          SELECT id FROM registrations
+          WHERE event = ${league_name}
+            AND (car_number = ${carNumber} OR driver_tag = ${driverTag})
+          LIMIT 1
+        `
+      : await sql`
+          SELECT id FROM registrations
+          WHERE event = ${league_name}
+            AND driver_tag = ${driverTag}
+          LIMIT 1
+        `;
+
+    if (existing.rows.length > 0) {
+      const id = existing.rows[0].id;
+      const updateResult = await sql`
+        UPDATE registrations
+        SET driver_tag = ${driverTag},
+            discord = ${discord},
+            car_class = ${carClass},
+            league_id = ${league_id},
+            car_number = ${carNumber || null}
+        WHERE id = ${id}
+        RETURNING *
+      `;
+
+      results.updated.push(updateResult.rows[0]);
+      continue;
+    }
+
+    const insertResult = await sql`
+      INSERT INTO registrations (
+        timestamp, driver_tag, discord, car_class, event, league_id, car_number, penalty_points
+      )
+      VALUES (
+        ${new Date().toISOString()}, ${driverTag}, ${discord}, ${carClass}, ${league_name}, ${league_id}, ${carNumber || null}, 0
+      )
+      RETURNING *
+    `;
+
+    results.imported.push(insertResult.rows[0]);
+  }
+
+  await sql`
+    UPDATE leagues
+    SET drivers = (
+      SELECT COUNT(*) FROM registrations WHERE event = ${league_name}
+    )
+    WHERE id = ${league_id}
+  `;
+
+  return res.status(200).json({
+    success: true,
+    message: `Imported ${results.imported.length} new and updated ${results.updated.length} existing registrations`,
+    results
+  });
 }
 
 // Made with Bob

@@ -140,6 +140,7 @@
             <option value="">All Events/Leagues</option>
           </select>
           <input type="text" class="search-input" placeholder="Search registrations..." id="reg-search" onkeyup="filterRegistrations()">
+          <button class="btn-primary" onclick="openDriverImportModal()">👥 Sync League Drivers</button>
           <button class="btn-secondary" onclick="exportRegistrations()">📥 Export CSV</button>
         </div>
         <div id="registrations-table" class="data-table">
