@@ -4,12 +4,10 @@
 
 const CONFIG = {
   // Database API Endpoints (PostgreSQL via Vercel Serverless Functions)
-  // CONSOLIDATED: Reduced from 17 to 11 functions to stay within Hobby plan limit
+  // CONSOLIDATED: Reduced from 13 to 11 functions to stay within Hobby plan limit
   API_ENDPOINTS: {
-    HOME: '/api/home',                    // Consolidated: events, leagues, leaderboard
-    EVENTS: '/api/events',                // Individual event CRUD operations
-    LEAGUES: '/api/leagues',              // Individual league CRUD operations
-    LEADERBOARD: '/api/leaderboard',      // Individual leaderboard CRUD operations
+    HOME: '/api/home',                    // Consolidated: events, leagues, leaderboard (GET only)
+    DATA: '/api/data',                    // Consolidated CRUD: events, leagues, leaderboard
     REGISTRATIONS: '/api/registrations'   // Registration management
   },
 

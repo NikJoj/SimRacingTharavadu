@@ -149,7 +149,7 @@ async function loadEvents() {
     if (CONFIG.DEMO_MODE) {
       adminData.events = DEMO_EVENTS;
     } else {
-      const response = await fetch(CONFIG.API_ENDPOINTS.EVENTS);
+      const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=events`);
       const data = await response.json();
       
       // Transform database format to admin format
@@ -189,7 +189,7 @@ async function loadLeagues() {
     if (CONFIG.DEMO_MODE) {
       adminData.leagues = DEMO_LEAGUES;
     } else {
-      const response = await fetch(CONFIG.API_ENDPOINTS.LEAGUES);
+      const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=leagues`);
       const data = await response.json();
       
       // Transform database format to admin format
@@ -978,7 +978,7 @@ async function saveEvent(e) {
   try {
     // Save event to database
     const method = eventId ? 'PUT' : 'POST';
-    const response = await fetch(CONFIG.API_ENDPOINTS.EVENTS, {
+    const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=events`, {
       method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(eventData)
@@ -1058,7 +1058,7 @@ async function saveLeague(e) {
   try {
     // Save league to database
     const method = leagueId ? 'PUT' : 'POST';
-    const response = await fetch(CONFIG.API_ENDPOINTS.LEAGUES, {
+    const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=leagues`, {
       method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(leagueData)
@@ -1141,7 +1141,7 @@ async function deleteEvent(id) {
   showLoading('Deleting event...');
 
   try {
-    const response = await fetch(CONFIG.API_ENDPOINTS.EVENTS, {
+    const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=events`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
@@ -1178,7 +1178,7 @@ async function deleteLeague(id) {
   showLoading('Deleting league...');
 
   try {
-    const response = await fetch(CONFIG.API_ENDPOINTS.LEAGUES, {
+    const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=leagues`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
