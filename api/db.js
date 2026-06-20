@@ -3,7 +3,18 @@
  * Provides connection and query functions for Neon PostgreSQL
  */
 
-import { sql } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
+
+const neonSql = neon(process.env.DATABASE_URL);
+
+/**
+ * Vercel-postgres compatible sql tag
+ * Returns { rows } so existing API endpoints continue to work
+ */
+export async function sql(strings, ...values) {
+  const rows = await neonSql(strings, ...values);
+  return { rows };
+}
 
 /**
  * Execute a SQL query
@@ -13,8 +24,8 @@ import { sql } from '@vercel/postgres';
  */
 export async function query(text, params = []) {
   try {
-    const result = await sql.query(text, params);
-    return result;
+    const rows = await neonSql(text, params);
+    return { rows };
   } catch (error) {
     console.error('Database query error:', error);
     throw error;
@@ -27,16 +38,16 @@ export async function query(text, params = []) {
  */
 export async function testConnection() {
   try {
-    const result = await sql`SELECT NOW() as current_time, version() as pg_version`;
-    return { 
-      success: true, 
-      time: result.rows[0].current_time,
-      version: result.rows[0].pg_version
+    const result = await sql`SELECT NOW() as current_time`;
+
+    return {
+      success: true,
+      time: result.rows[0].current_time
     };
   } catch (error) {
-    return { 
-      success: false, 
-      error: error.message 
+    return {
+      success: false,
+      error: error.message
     };
   }
 }
@@ -47,8 +58,7 @@ export async function testConnection() {
  */
 export async function initializeTables() {
   try {
-    // Create events table
-    await sql`
+    await neonSql(`
       CREATE TABLE IF NOT EXISTS events (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -70,10 +80,9 @@ export async function initializeTables() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `;
+    `);
 
-    // Create leagues table
-    await sql`
+    await neonSql(`
       CREATE TABLE IF NOT EXISTS leagues (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -94,10 +103,9 @@ export async function initializeTables() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `;
+    `);
 
-    // Create leaderboard table
-    await sql`
+    await neonSql(`
       CREATE TABLE IF NOT EXISTS leaderboard (
         id SERIAL PRIMARY KEY,
         event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
@@ -111,10 +119,9 @@ export async function initializeTables() {
         gap VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `;
+    `);
 
-    // Create registrations table
-    await sql`
+    await neonSql(`
       CREATE TABLE IF NOT EXISTS registrations (
         id SERIAL PRIMARY KEY,
         timestamp VARCHAR(100),
@@ -124,25 +131,24 @@ export async function initializeTables() {
         event VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `;
+    `);
 
-    // Create indexes
-    await sql`CREATE INDEX IF NOT EXISTS idx_events_status ON events(status)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_events_start_date ON events(start_date DESC)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_leagues_status ON leagues(status)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_leagues_championship ON leagues(championship_id)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_leaderboard_event_race ON leaderboard(event_id, race)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_registrations_event ON registrations(event)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_registrations_timestamp ON registrations(timestamp DESC)`;
+    await neonSql(`CREATE INDEX IF NOT EXISTS idx_events_status ON events(status)`);
+    await neonSql(`CREATE INDEX IF NOT EXISTS idx_leagues_status ON leagues(status)`);
+    await neonSql(`CREATE INDEX IF NOT EXISTS idx_leagues_championship ON leagues(championship_id)`);
+    await neonSql(`CREATE INDEX IF NOT EXISTS idx_leaderboard_event_race ON leaderboard(event_id, race)`);
+    await neonSql(`CREATE INDEX IF NOT EXISTS idx_registrations_event ON registrations(event)`);
 
-    return { success: true, message: 'Database tables initialized successfully' };
+    return {
+      success: true,
+      message: 'Database tables initialized successfully'
+    };
   } catch (error) {
     console.error('Database initialization error:', error);
-    return { success: false, error: error.message };
+
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }
-
-// Export sql for direct use in API endpoints
-export { sql };
-
-// Made with Bob
