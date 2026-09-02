@@ -1264,8 +1264,8 @@ async function saveLeague(e) {
     sim: document.getElementById('league-sim').value,
     status: document.getElementById('league-status').value,
     season: document.getElementById('league-season').value,
-    startDate: new Date(document.getElementById('league-start').value).toISOString(),
-    endDate: new Date(document.getElementById('league-end').value).toISOString(),
+    start_date: new Date(document.getElementById('league-start').value).toISOString(),
+    end_date: new Date(document.getElementById('league-end').value).toISOString(),
     championship_id: document.getElementById('league-champ').value,
     blob_store: document.getElementById('league-blob').value
   };
