@@ -28,6 +28,9 @@ function getLeaguesSortedLatestFirst() {
  */
 function buildLeagueCardHTML(l) {
   const statusLabel = l.status === 'ongoing' ? 'Live Now' : l.status === 'upcoming' ? 'Upcoming' : 'Closed';
+  const detailsAction = l.simgridUrl
+    ? `window.open('${l.simgridUrl}', '_blank')`
+    : `showLeagueDetails('${l.id}')`;
   return `
     <div class="league-card ${l.status}">
       <div class="league-poster">
@@ -43,7 +46,7 @@ function buildLeagueCardHTML(l) {
         </div>
         <div class="league-footer">
           <div class="league-actions">
-            <button class="view-lb-btn" onclick="showLeagueDetails('${l.id}')">View Details →</button>
+            <button class="view-lb-btn" onclick="${detailsAction}">View Details →</button>
           </div>
         </div>
       </div>
@@ -124,6 +127,16 @@ function showLeagueDetails(leagueId) {
   
   // Update page title
   document.getElementById('league-details-title').textContent = league.name;
+
+  // For SimGrid leagues: hide Assetto-API tabs and rename the signup tab
+  const isSimGrid = !!league.simgridUrl;
+  const assettoTabs = ['live', 'standings', 'races'];
+  assettoTabs.forEach(tab => {
+    const btn = document.querySelector(`.league-tab[data-tab="${tab}"]`);
+    if (btn) btn.style.display = isSimGrid ? 'none' : '';
+  });
+  const signupBtn = document.querySelector('.league-tab[data-tab="signup"]');
+  if (signupBtn) signupBtn.textContent = isSimGrid ? 'Championship Portal' : 'Sign up';
   
   // Show the page
   showPage('league-details');
@@ -1166,6 +1179,12 @@ function loadSignupIframe() {
     return;
   }
   
+  // SimGrid league — embed the SimGrid championship portal directly
+  if (league.simgridUrl) {
+    iframe.src = league.simgridUrl;
+    return;
+  }
+
   // Check if league has a championship ID configured
   if (!league.championshipId) {
     iframe.srcdoc = `

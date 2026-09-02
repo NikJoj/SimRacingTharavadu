@@ -74,6 +74,7 @@ async function loadData() {
       format: l.format || '',
       season: l.season || '',
       championshipId: l.championship_id || '',
+      simgridUrl: l.simgrid_url || '',
       blobStore: l.blob_store || '',
       drivers: String(l.drivers || 0),
       maxDrivers: String(l.max_drivers || 36),
