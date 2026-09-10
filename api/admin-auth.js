@@ -15,9 +15,10 @@
 import { app } from '@azure/functions';
 import crypto from 'crypto';
 
-app.http('admin-auth', {
+app.http('adminAuth', {
   methods: ['POST', 'OPTIONS'],
   authLevel: 'anonymous',
+  route: 'admin-auth',
   handler: async (request, context) => {
     if (request.method === 'OPTIONS') {
       return { status: 200, body: '' };

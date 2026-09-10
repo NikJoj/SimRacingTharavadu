@@ -16,7 +16,8 @@ import { sql } from './db.js';
 
 const ASSETTO_BASE = 'https://sg.assettohosting.com:10027';
 
-app.http('race-store', {
+app.http('raceStore', {
+  route: 'race-store',
   methods: ['GET', 'POST', 'OPTIONS'],
   authLevel: 'anonymous',
   handler: async (request, context) => {

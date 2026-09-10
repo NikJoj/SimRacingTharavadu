@@ -16,7 +16,8 @@
 
 import { app } from '@azure/functions';
 
-app.http('sync-poster', {
+app.http('syncPoster', {
+  route: 'sync-poster',
   methods: ['POST', 'OPTIONS'],
   authLevel: 'anonymous',
   handler: async (request, context) => {
