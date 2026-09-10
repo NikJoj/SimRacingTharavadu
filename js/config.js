@@ -3,12 +3,14 @@
    ═══════════════════════════════════════════════════ */
 
 const CONFIG = {
-  // Database API Endpoints (PostgreSQL via Vercel Serverless Functions)
-  // CONSOLIDATED: Reduced from 13 to 11 functions to stay within Hobby plan limit
+  // Database API Endpoints (Azure Functions — Neon PostgreSQL)
   API_ENDPOINTS: {
-    HOME: '/api/home',                    // Consolidated: events, leagues, leaderboard (GET only)
-    DATA: '/api/data',                    // Consolidated CRUD: events, leagues, leaderboard
-    REGISTRATIONS: '/api/registrations'   // Registration management
+    HOME: '/api/home',               // Read-only aggregate: events + leagues + leaderboard
+    EVENTS: '/api/events',           // Events CRUD
+    LEAGUES: '/api/leagues',         // Leagues CRUD
+    LEADERBOARD: '/api/leaderboard', // Leaderboard CRUD
+    REGISTRATIONS: '/api/registrations', // Registrations CRUD + bulk-import
+    RACE_STORE: '/api/race-store'    // Race result archive (Neon DB)
   },
 
   // Keep true to show demo data without database connection
@@ -23,13 +25,13 @@ const CONFIG = {
   // For production: use your Vercel deployment URL or relative paths
   API_BASE_URL: "/api", // Relative path works when deployed together
   
-  // API Endpoints - CONSOLIDATED
+  // Assetto Corsa proxy endpoints (pass-through, CORS bypass)
   ASSETTO_API: {
-    STANDINGS: "/api/standings",           // Championship standings
-    CHAMPIONSHIPS: "/api/championships",   // List all championships
-    LIVE: "/api/live",                     // Consolidated: live-basic + live-leaderboard
-    RACES: "/api/races",                   // Consolidated: fetch-races, race-result, get-stored-result, store-latest-result, sync-selected-races
-    RESULTS: "/api/results"                // Race results list
+    STANDINGS: "/api/standings",       // Championship standings
+    CHAMPIONSHIPS: "/api/championships", // List all championships
+    LIVE: "/api/live",                 // Live timing: basic + leaderboard
+    RACES: "/api/races",               // Assetto race proxy: list + result download
+    RESULTS: "/api/results"            // Full results list
   },
   
   // Legacy settings (no longer needed with serverless functions)

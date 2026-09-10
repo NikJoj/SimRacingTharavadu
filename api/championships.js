@@ -1,49 +1,40 @@
 /**
- * Serverless Function: Championships List
- * Fetches list of all championships from Assetto Corsa API
- * 
- * Usage: /api/championships
+ * API: Championships List (Assetto Corsa Proxy)
+ * Fetches the list of all championships from the Assetto server.
+ *
+ * GET /api/championships
  */
 
-export default async function handler(req, res) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+import { app } from '@azure/functions';
 
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  const apiUrl = 'https://sg.assettohosting.com:10027/api/championships/list.json';
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'SimRacingTharavadu/1.0'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`API returned ${response.status}: ${response.statusText}`);
+app.http('championships', {
+  methods: ['GET', 'OPTIONS'],
+  authLevel: 'anonymous',
+  handler: async (request, context) => {
+    if (request.method === 'OPTIONS') {
+      return { status: 200, body: '' };
     }
 
-    const data = await response.json();
+    try {
+      const response = await fetch(
+        'https://sg.assettohosting.com:10027/api/championships/list.json',
+        { headers: { 'Accept': 'application/json', 'User-Agent': 'SimRacingTharavadu/1.0' } }
+      );
 
-    // Return the data with cache headers
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
-    return res.status(200).json(data);
+      if (!response.ok) {
+        throw new Error(`Assetto API returned ${response.status}: ${response.statusText}`);
+      }
 
-  } catch (error) {
-    console.error('Error fetching championships list:', error);
-    return res.status(500).json({
-      error: 'Failed to fetch championships list',
-      message: error.message
-    });
+      const data = await response.json();
+      return {
+        status: 200,
+        headers: { 'Cache-Control': 's-maxage=300, stale-while-revalidate' },
+        jsonBody: data
+      };
+
+    } catch (error) {
+      context.error('Championships error:', error);
+      return { status: 500, jsonBody: { error: 'Failed to fetch championships', message: error.message } };
+    }
   }
-}
-
-// Made with Bob
+});

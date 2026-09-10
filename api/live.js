@@ -1,113 +1,68 @@
 /**
- * API Endpoint: Live Timing
- * Consolidated endpoint for live timing data from Assetto Corsa API
- * Merges: live-basic, live-leaderboard
- * 
- * GET /api/live?type=basic       - Get basic live timing info
- * GET /api/live?type=leaderboard - Get live timing leaderboard
- * GET /api/live                  - Get both basic and leaderboard data
+ * API: Live Timing (Assetto Corsa Proxy)
+ * Proxies real-time live timing data from the Assetto server.
+ *
+ * GET /api/live                  — both basic info and leaderboard
+ * GET /api/live?type=basic       — session / server info only
+ * GET /api/live?type=leaderboard — live driver leaderboard only
  */
 
-export default async function handler(req, res) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+import { app } from '@azure/functions';
 
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // Only allow GET method
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { type } = req.query;
-
-  try {
-    // Return both if no type specified
-    if (!type) {
-      const [basicData, leaderboardData] = await Promise.all([
-        fetchLiveBasic(),
-        fetchLiveLeaderboard()
-      ]);
-
-      res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate');
-      return res.status(200).json({
-        basic: basicData,
-        leaderboard: leaderboardData
-      });
+app.http('live', {
+  methods: ['GET', 'OPTIONS'],
+  authLevel: 'anonymous',
+  handler: async (request, context) => {
+    if (request.method === 'OPTIONS') {
+      return { status: 200, body: '' };
     }
 
-    // Return specific type
-    if (type === 'basic') {
-      const data = await fetchLiveBasic();
-      res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate');
-      return res.status(200).json(data);
-    }
+    const type = new URL(request.url).searchParams.get('type');
 
-    if (type === 'leaderboard') {
-      const data = await fetchLiveLeaderboard();
-      res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate');
-      return res.status(200).json(data);
-    }
-
-    return res.status(400).json({
-      error: 'Invalid type parameter',
-      usage: {
-        'Get both': '/api/live',
-        'Get basic': '/api/live?type=basic',
-        'Get leaderboard': '/api/live?type=leaderboard'
+    try {
+      if (!type) {
+        const [basicData, leaderboardData] = await Promise.all([
+          fetchLiveBasic(),
+          fetchLiveLeaderboard()
+        ]);
+        return {
+          status: 200,
+          headers: { 'Cache-Control': 's-maxage=5, stale-while-revalidate' },
+          jsonBody: { basic: basicData, leaderboard: leaderboardData }
+        };
       }
-    });
 
-  } catch (error) {
-    console.error('Live timing API error:', error);
-    return res.status(500).json({
-      error: 'Failed to fetch live timing data',
-      message: error.message
-    });
+      if (type === 'basic') {
+        const data = await fetchLiveBasic();
+        return { status: 200, headers: { 'Cache-Control': 's-maxage=5, stale-while-revalidate' }, jsonBody: data };
+      }
+
+      if (type === 'leaderboard') {
+        const data = await fetchLiveLeaderboard();
+        return { status: 200, headers: { 'Cache-Control': 's-maxage=5, stale-while-revalidate' }, jsonBody: data };
+      }
+
+      return { status: 400, jsonBody: { error: 'Invalid type. Use: basic, leaderboard, or omit for both' } };
+
+    } catch (error) {
+      context.error('Live timing error:', error);
+      return { status: 500, jsonBody: { error: 'Failed to fetch live timing data', message: error.message } };
+    }
   }
-}
+});
 
-// Helper: Fetch basic live timing
 async function fetchLiveBasic() {
-  const apiUrl = 'https://sg.assettohosting.com:10027/api/live-timings/basic.json';
-
-  const response = await fetch(apiUrl, {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json',
-      'User-Agent': 'SimRacingTharavadu/1.0'
-    }
+  const res = await fetch('https://sg.assettohosting.com:10027/api/live-timings/basic.json', {
+    headers: { 'Accept': 'application/json', 'User-Agent': 'SimRacingTharavadu/1.0' }
   });
-
-  if (!response.ok) {
-    throw new Error(`Basic API returned ${response.status}: ${response.statusText}`);
-  }
-
-  return await response.json();
+  if (!res.ok) throw new Error(`Basic API returned ${res.status}`);
+  return res.json();
 }
 
-// Helper: Fetch live leaderboard
 async function fetchLiveLeaderboard() {
-  const apiUrl = 'https://sg.assettohosting.com:10027/api/live-timings/leaderboard.json';
-
-  const response = await fetch(apiUrl, {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json',
-      'User-Agent': 'SimRacingTharavadu/1.0'
-    }
+  const res = await fetch('https://sg.assettohosting.com:10027/api/live-timings/leaderboard.json', {
+    headers: { 'Accept': 'application/json', 'User-Agent': 'SimRacingTharavadu/1.0' }
   });
-
-  if (!response.ok) {
-    throw new Error(`Leaderboard API returned ${response.status}: ${response.statusText}`);
-  }
-
-  return await response.json();
+  if (!res.ok) throw new Error(`Leaderboard API returned ${res.status}`);
+  return res.json();
 }
-
-// Made with Bob

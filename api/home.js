@@ -1,51 +1,45 @@
 /**
- * API Endpoint: Home Page Data
- * Consolidated endpoint that returns events, leagues, and leaderboard data
- * Reduces API calls from 3 to 1 for the home page
- * 
- * GET /api/home - Get all home page data (events, leagues, leaderboard)
+ * API: Home (Read-only aggregate)
+ * Returns events, leagues, and leaderboard in a single call for the public homepage.
+ * Initializes DB tables on first call (idempotent).
+ *
+ * GET /api/home
  */
 
-import { sql } from './db.js';
+import { app } from '@azure/functions';
+import { sql, initializeTables } from './db.js';
 
-export default async function handler(req, res) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+app.http('home', {
+  methods: ['GET', 'OPTIONS'],
+  authLevel: 'anonymous',
+  handler: async (request, context) => {
+    if (request.method === 'OPTIONS') {
+      return { status: 200, body: '' };
+    }
 
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    try {
+      // Ensure schema is up-to-date on every cold start (no-op if tables exist)
+      await initializeTables();
+
+      const [eventsResult, leaguesResult, leaderboardResult] = await Promise.all([
+        sql`SELECT * FROM events ORDER BY start_date DESC`,
+        sql`SELECT * FROM leagues ORDER BY start_date DESC`,
+        sql`SELECT * FROM leaderboard ORDER BY event_id, race, position ASC`
+      ]);
+
+      return {
+        status: 200,
+        headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate' },
+        jsonBody: {
+          events: eventsResult.rows,
+          leagues: leaguesResult.rows,
+          leaderboard: leaderboardResult.rows
+        }
+      };
+
+    } catch (error) {
+      context.error('Home API error:', error);
+      return { status: 500, jsonBody: { error: 'Internal server error', message: error.message } };
+    }
   }
-
-  // Only allow GET requests
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    // Fetch all data in parallel for better performance
-    const [eventsResult, leaguesResult, leaderboardResult] = await Promise.all([
-      sql`SELECT * FROM events ORDER BY start_date DESC`,
-      sql`SELECT * FROM leagues ORDER BY start_date DESC`,
-      sql`SELECT * FROM leaderboard ORDER BY event_id, race, position ASC`
-    ]);
-
-    // Return consolidated response
-    return res.status(200).json({
-      events: eventsResult.rows,
-      leagues: leaguesResult.rows,
-      leaderboard: leaderboardResult.rows
-    });
-
-  } catch (error) {
-    console.error('Home API error:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
-    });
-  }
-}
-
-// Made with Bob
+});

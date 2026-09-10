@@ -1,0 +1,776 @@
+openapi: 3.0.3
+
+info:
+  title: SimRacingTharavadu Portal API
+  version: "2.0"
+  description: |
+    REST API for the SimRacingTharavadu sim racing community portal.
+    Hosted on Azure Static Web Apps + Azure Functions (Node.js v4).
+    Database: Neon PostgreSQL (serverless).
+
+    **Authentication:** Admin endpoints use a custom HMAC-SHA256 token.
+    Obtain a token via `POST /api/admin-auth`, then pass it as
+    `{ action: "validate", token }` to verify.
+
+servers:
+  - url: https://your-site.azurestaticapps.net
+    description: Production (Azure Static Web Apps)
+  - url: http://localhost:7071
+    description: Local development (Azure Functions Core Tools)
+
+tags:
+  - name: Portal Data
+    description: Events, leagues, leaderboard — backed by Neon PostgreSQL
+  - name: Race Archive
+    description: Persistent race result storage in Neon PostgreSQL (replaces Vercel Blob)
+  - name: Assetto Proxy
+    description: Pass-through proxy to the Assetto Corsa server API (CORS bypass)
+  - name: Admin
+    description: Admin authentication and poster management
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────────────────────────────────────
+components:
+  schemas:
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    Event:
+      type: object
+      properties:
+        id:          { type: integer }
+        name:        { type: string }
+        sim:         { type: string }
+        status:      { type: string, enum: [upcoming, ongoing, closed] }
+        track:       { type: string }
+        start_date:  { type: string }
+        end_date:    { type: string }
+        format:      { type: string }
+        drivers:     { type: integer }
+        max_drivers: { type: integer }
+        rounds:      { type: integer }
+        season:      { type: string }
+        description: { type: string }
+        track_mod:   { type: string }
+        car_mod:     { type: string }
+        practice_server: { type: string }
+        car_options: { type: string }
+        created_at:  { type: string, format: date-time }
+        updated_at:  { type: string, format: date-time }
+
+    League:
+      type: object
+      properties:
+        id:             { type: integer }
+        name:           { type: string }
+        sim:            { type: string }
+        status:         { type: string, enum: [upcoming, ongoing, closed] }
+        start_date:     { type: string }
+        end_date:       { type: string }
+        format:         { type: string }
+        season:         { type: string }
+        championship_id: { type: string }
+        simgrid_url:    { type: string, format: uri }
+        blob_store:     { type: string, description: "Legacy field — kept for compatibility" }
+        drivers:        { type: integer }
+        max_drivers:    { type: integer }
+        rounds:         { type: integer }
+        track:          { type: string }
+        description:    { type: string }
+        car_options:    { type: string }
+        created_at:     { type: string, format: date-time }
+        updated_at:     { type: string, format: date-time }
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        id:       { type: integer }
+        event_id: { type: integer }
+        race:     { type: string, example: "Race 1" }
+        position: { type: integer }
+        driver:   { type: string }
+        tag:      { type: string }
+        team:     { type: string }
+        points:   { type: number }
+        time:     { type: string, example: "1:44.218" }
+        gap:      { type: string, example: "+0.301" }
+        created_at: { type: string, format: date-time }
+
+    Registration:
+      type: object
+      properties:
+        id:             { type: integer }
+        timestamp:      { type: string }
+        driver_tag:     { type: string }
+        discord:        { type: string }
+        car_class:      { type: string }
+        event:          { type: string }
+        league_id:      { type: integer, nullable: true }
+        car_number:     { type: string, nullable: true }
+        penalty_points: { type: integer, default: 0 }
+        created_at:     { type: string, format: date-time }
+
+    RaceResultMeta:
+      type: object
+      description: Race result metadata (without full result_data for list responses)
+      properties:
+        id:               { type: integer }
+        league:           { type: string }
+        track:            { type: string }
+        session_date:     { type: string, format: date-time }
+        race_timestamp:   { type: integer, description: "Unix timestamp in milliseconds" }
+        results_json_url: { type: string }
+        results_page_url: { type: string }
+        session_type:     { type: string, example: "RACE" }
+        stored_at:        { type: string, format: date-time }
+
+    RaceResultFull:
+      allOf:
+        - $ref: '#/components/schemas/RaceResultMeta'
+        - type: object
+          properties:
+            data:
+              type: object
+              additionalProperties: true
+              description: Full race result JSON as returned by Assetto Corsa server
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────────────────────────────────────
+paths:
+
+  # ── /api/home ───────────────────────────────────────────────────────────────
+  /api/home:
+    get:
+      tags: [Portal Data]
+      summary: Get all home page data in one call
+      description: |
+        Returns events, leagues, and leaderboard in a single response.
+        Used by the public homepage to minimise requests.
+        Also runs idempotent DB schema migrations on cold start.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:      { type: array, items: { $ref: '#/components/schemas/Event' } }
+                  leagues:     { type: array, items: { $ref: '#/components/schemas/League' } }
+                  leaderboard: { type: array, items: { $ref: '#/components/schemas/LeaderboardEntry' } }
+        "500": { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ── /api/events ─────────────────────────────────────────────────────────────
+  /api/events:
+    get:
+      tags: [Portal Data]
+      summary: List all events or get one by ID
+      parameters:
+        - in: query
+          name: id
+          schema: { type: integer }
+          description: If provided, returns a single event
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      events: { type: array, items: { $ref: '#/components/schemas/Event' } }
+                  - type: object
+                    properties:
+                      event: { $ref: '#/components/schemas/Event' }
+        "404": { description: Event not found }
+        "500": { description: Server error }
+
+    post:
+      tags: [Portal Data]
+      summary: Create a new event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:        { type: string }
+                sim:         { type: string }
+                status:      { type: string, default: upcoming }
+                track:       { type: string }
+                start_date:  { type: string }
+                end_date:    { type: string }
+                format:      { type: string }
+                drivers:     { type: integer, default: 0 }
+                max_drivers: { type: integer, default: 30 }
+                rounds:      { type: integer, default: 1 }
+                season:      { type: string }
+                description: { type: string }
+                track_mod:   { type: string }
+                car_mod:     { type: string }
+                practice_server: { type: string }
+                car_options: { type: string }
+      responses:
+        "201": { description: Created }
+        "400": { description: Validation error }
+        "500": { description: Server error }
+
+    put:
+      tags: [Portal Data]
+      summary: Update an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: integer }
+              additionalProperties: true
+      responses:
+        "200": { description: Updated }
+        "400": { description: Missing ID or no fields }
+        "404": { description: Event not found }
+
+    delete:
+      tags: [Portal Data]
+      summary: Delete an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: integer }
+      responses:
+        "200": { description: Deleted }
+        "404": { description: Event not found }
+
+  # ── /api/leagues ─────────────────────────────────────────────────────────────
+  /api/leagues:
+    get:
+      tags: [Portal Data]
+      summary: List all leagues or get one by ID
+      parameters:
+        - in: query
+          name: id
+          schema: { type: integer }
+      responses:
+        "200": { description: Success }
+        "404": { description: League not found }
+    post:
+      tags: [Portal Data]
+      summary: Create a new league
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:           { type: string }
+                sim:            { type: string }
+                status:         { type: string, default: upcoming }
+                start_date:     { type: string }
+                end_date:       { type: string }
+                format:         { type: string }
+                season:         { type: string }
+                championship_id: { type: string }
+                simgrid_url:    { type: string, format: uri }
+                blob_store:     { type: string }
+                drivers:        { type: integer, default: 0 }
+                max_drivers:    { type: integer, default: 36 }
+                rounds:         { type: integer, default: 8 }
+                track:          { type: string }
+                description:    { type: string }
+                car_options:    { type: string }
+      responses:
+        "201": { description: Created }
+        "400": { description: Validation error }
+    put:
+      tags: [Portal Data]
+      summary: Update a league
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              additionalProperties: true
+      responses:
+        "200": { description: Updated }
+        "404": { description: League not found }
+    delete:
+      tags: [Portal Data]
+      summary: Delete a league
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: integer }
+      responses:
+        "200": { description: Deleted }
+        "404": { description: League not found }
+
+  # ── /api/leaderboard ─────────────────────────────────────────────────────────
+  /api/leaderboard:
+    get:
+      tags: [Portal Data]
+      summary: Get leaderboard entries
+      parameters:
+        - in: query
+          name: id
+          schema: { type: integer }
+          description: Single entry by ID
+        - in: query
+          name: event_id
+          schema: { type: integer }
+          description: Filter by event
+        - in: query
+          name: race
+          schema: { type: string }
+          description: Filter by race name (use with event_id)
+      responses:
+        "200": { description: Success }
+        "404": { description: Entry not found }
+    post:
+      tags: [Portal Data]
+      summary: Create a leaderboard entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_id, driver, position]
+              properties:
+                event_id: { type: integer }
+                race:     { type: string, default: "Race 1" }
+                position: { type: integer }
+                driver:   { type: string }
+                tag:      { type: string }
+                team:     { type: string }
+                points:   { type: number }
+                time:     { type: string }
+                gap:      { type: string }
+      responses:
+        "201": { description: Created }
+        "400": { description: Validation error }
+    put:
+      tags: [Portal Data]
+      summary: Update a leaderboard entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              additionalProperties: true
+      responses:
+        "200": { description: Updated }
+        "404": { description: Entry not found }
+    delete:
+      tags: [Portal Data]
+      summary: Delete entry by id or bulk-delete by event_id+race
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:       { type: integer, description: "Delete single entry" }
+                event_id: { type: integer, description: "Bulk delete — use with race" }
+                race:     { type: string, description: "Bulk delete — use with event_id" }
+      responses:
+        "200": { description: Deleted }
+        "400": { description: Missing parameters }
+        "404": { description: Entry not found }
+
+  # ── /api/registrations ───────────────────────────────────────────────────────
+  /api/registrations:
+    get:
+      tags: [Portal Data]
+      summary: Get registrations
+      parameters:
+        - in: query
+          name: id
+          schema: { type: integer }
+        - in: query
+          name: event
+          schema: { type: string }
+          description: Filter by event name
+        - in: query
+          name: driver_tag
+          schema: { type: string }
+      responses:
+        "200": { description: Success }
+        "404": { description: Not found }
+
+    post:
+      tags: [Portal Data]
+      summary: Create a registration or bulk-import drivers
+      parameters:
+        - in: query
+          name: action
+          schema: { type: string, enum: [bulk-import] }
+          description: Use bulk-import to import from standings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - description: Single registration
+                  type: object
+                  required: [driver_tag, event]
+                  properties:
+                    driver_tag:     { type: string }
+                    discord:        { type: string }
+                    car_class:      { type: string }
+                    event:          { type: string }
+                    league_id:      { type: integer }
+                    car_number:     { type: string }
+                    penalty_points: { type: integer, default: 0 }
+                - description: Bulk import body
+                  type: object
+                  required: [league_id, league_name, drivers]
+                  properties:
+                    league_id:   { type: integer }
+                    league_name: { type: string }
+                    drivers:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          driver_tag: { type: string }
+                          discord:    { type: string }
+                          car_class:  { type: string }
+                          car_number: { type: string }
+      responses:
+        "200": { description: Bulk import result }
+        "201": { description: Registration created }
+        "409": { description: Duplicate registration }
+        "400": { description: Validation error }
+
+    put:
+      tags: [Portal Data]
+      summary: Update a registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              additionalProperties: true
+      responses:
+        "200": { description: Updated }
+        "404": { description: Not found }
+
+    delete:
+      tags: [Portal Data]
+      summary: Delete a registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: integer }
+      responses:
+        "200": { description: Deleted }
+        "404": { description: Not found }
+
+  # ── /api/race-store ──────────────────────────────────────────────────────────
+  /api/race-store:
+    get:
+      tags: [Race Archive]
+      summary: List leagues, list races for a league, or fetch a specific race
+      parameters:
+        - in: query
+          name: action
+          schema: { type: string, enum: [leagues] }
+          description: Use action=leagues to list all leagues that have stored races
+        - in: query
+          name: league
+          schema: { type: string }
+          description: League name (e.g. SRT-GT3-Season-1)
+        - in: query
+          name: timestamp
+          schema: { type: integer }
+          description: Race timestamp in ms — returns full result_data when combined with league
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - description: Leagues list
+                    type: object
+                    properties:
+                      leagues: { type: array, items: { type: string } }
+                  - description: Races for league
+                    type: object
+                    properties:
+                      races: { type: array, items: { $ref: '#/components/schemas/RaceResultMeta' } }
+                  - description: Single race with full data
+                    $ref: '#/components/schemas/RaceResultFull'
+        "404": { description: Race not found }
+
+    post:
+      tags: [Race Archive]
+      summary: Store latest race or sync multiple races from Assetto server
+      parameters:
+        - in: query
+          name: action
+          required: true
+          schema: { type: string, enum: [store, sync] }
+        - in: query
+          name: league
+          schema: { type: string }
+          description: Required for action=store
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Required for action=sync
+              type: object
+              required: [league, races]
+              properties:
+                league: { type: string }
+                races:
+                  type: array
+                  items:
+                    type: object
+                    required: [results_json_url, track, date]
+                    properties:
+                      results_json_url: { type: string }
+                      results_page_url: { type: string }
+                      track:            { type: string }
+                      date:             { type: string }
+                      session_type:     { type: string, default: RACE }
+      responses:
+        "200": { description: Success }
+        "400": { description: Missing parameters }
+        "404": { description: No race found on Assetto server }
+
+  # ── /api/races ───────────────────────────────────────────────────────────────
+  /api/races:
+    get:
+      tags: [Assetto Proxy]
+      summary: List RACE sessions or download a race result JSON from Assetto server
+      parameters:
+        - in: query
+          name: action
+          required: true
+          schema: { type: string, enum: [list, result] }
+        - in: query
+          name: file
+          schema: { type: string }
+          description: Required for action=result — filename like 2026_4_29_10_38_RACE.json
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400": { description: Missing action or file }
+        "404": { description: No races found }
+        "500": { description: Assetto server unreachable }
+
+  # ── /api/live ────────────────────────────────────────────────────────────────
+  /api/live:
+    get:
+      tags: [Assetto Proxy]
+      summary: Live timing data from Assetto server
+      parameters:
+        - in: query
+          name: type
+          schema: { type: string, enum: [basic, leaderboard] }
+          description: Omit to get both. basic=session info, leaderboard=driver positions
+      responses:
+        "200":
+          description: Success (5s cache)
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "500": { description: Assetto server unreachable }
+
+  # ── /api/standings ───────────────────────────────────────────────────────────
+  /api/standings:
+    get:
+      tags: [Assetto Proxy]
+      summary: Championship standings from Assetto server
+      parameters:
+        - in: query
+          name: championshipId
+          required: true
+          schema: { type: string }
+          example: 1bb2f11c-d4db-45e8-9505-97cd6ec1e806
+      responses:
+        "200":
+          description: Success (60s cache)
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400": { description: Missing championshipId }
+        "500": { description: Assetto server unreachable }
+
+  # ── /api/championships ───────────────────────────────────────────────────────
+  /api/championships:
+    get:
+      tags: [Assetto Proxy]
+      summary: List all championships from Assetto server
+      responses:
+        "200":
+          description: Success (300s cache)
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "500": { description: Assetto server unreachable }
+
+  # ── /api/results ─────────────────────────────────────────────────────────────
+  /api/results:
+    get:
+      tags: [Assetto Proxy]
+      summary: Full results list from Assetto server
+      responses:
+        "200":
+          description: Success (120s cache)
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "500": { description: Assetto server unreachable }
+
+  # ── /api/admin-auth ──────────────────────────────────────────────────────────
+  /api/admin-auth:
+    post:
+      tags: [Admin]
+      summary: Login or validate admin token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - description: Login
+                  type: object
+                  required: [username, password]
+                  properties:
+                    username: { type: string }
+                    password: { type: string }
+                - description: Validate token
+                  type: object
+                  required: [action, token]
+                  properties:
+                    action: { type: string, enum: [validate] }
+                    token:  { type: string }
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - description: Login success
+                    type: object
+                    properties:
+                      success:   { type: boolean }
+                      token:     { type: string, description: "base64Payload.HMACSig" }
+                      username:  { type: string }
+                      expiresIn: { type: integer, example: 7200 }
+                  - description: Token valid
+                    type: object
+                    properties:
+                      valid:     { type: boolean }
+                      username:  { type: string }
+                      expiresAt: { type: integer, description: Unix timestamp ms }
+        "400": { description: Missing credentials }
+        "401": { description: Invalid credentials or expired token }
+
+  # ── /api/sync-poster ─────────────────────────────────────────────────────────
+  /api/sync-poster:
+    post:
+      tags: [Admin]
+      summary: Upload or update a poster image in the GitHub repository
+      description: |
+        Commits the image to the root of the repo using the GitHub Contents API.
+        Filename must match: `poster<N>.png` or `leaguePoster<N>.png`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename, content]
+              properties:
+                filename:
+                  type: string
+                  pattern: '^(poster\d+|leaguePoster\d+)\.png$'
+                  example: leaguePoster3.png
+                content:
+                  type: string
+                  description: Base64-encoded image data
+                message:
+                  type: string
+                  description: Optional commit message
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  commit:
+                    type: object
+                    properties:
+                      sha:     { type: string }
+                      url:     { type: string }
+                      message: { type: string }
+                  file:
+                    type: object
+                    properties:
+                      name:         { type: string }
+                      url:          { type: string }
+                      download_url: { type: string }
+        "400": { description: Missing or invalid parameters }
+        "500": { description: GitHub token not configured or API error }

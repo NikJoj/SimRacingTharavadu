@@ -149,7 +149,7 @@ async function loadEvents() {
     if (CONFIG.DEMO_MODE) {
       adminData.events = DEMO_EVENTS;
     } else {
-      const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=events`);
+      const response = await fetch(CONFIG.API_ENDPOINTS.EVENTS);
       const data = await response.json();
       
       // Transform database format to admin format
@@ -189,7 +189,7 @@ async function loadLeagues() {
     if (CONFIG.DEMO_MODE) {
       adminData.leagues = DEMO_LEAGUES;
     } else {
-      const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=leagues`);
+      const response = await fetch(CONFIG.API_ENDPOINTS.LEAGUES);
       const data = await response.json();
       
       // Transform database format to admin format
@@ -256,7 +256,7 @@ async function loadRegistrations() {
  */
 async function loadSyncHistory() {
   try {
-    const response = await fetch(`${CONFIG.ASSETTO_API.RACES}?action=leagues`);
+    const response = await fetch(`${CONFIG.API_ENDPOINTS.RACE_STORE}?action=leagues`);
     const data = await response.json();
     
     if (data.success && data.leagues) {
@@ -264,7 +264,7 @@ async function loadSyncHistory() {
       
       // Load races for each league
       for (const league of data.leagues) {
-        const racesResponse = await fetch(`${CONFIG.ASSETTO_API.RACES}?action=stored&league=${encodeURIComponent(league)}`);
+        const racesResponse = await fetch(`${CONFIG.API_ENDPOINTS.RACE_STORE}?league=${encodeURIComponent(league)}`);
         const racesData = await racesResponse.json();
         
         if (racesData.success && racesData.races) {
@@ -554,7 +554,7 @@ async function syncRaceResult() {
   statusEl.textContent = '🔄 Syncing race result...';
   
   try {
-    const response = await fetch(`${CONFIG.ASSETTO_API.RACES}?action=store&league=${encodeURIComponent(league)}`, {
+    const response = await fetch(`${CONFIG.API_ENDPOINTS.RACE_STORE}?action=store&league=${encodeURIComponent(league)}`, {
       method: 'POST'
     });
     const data = await response.json();
@@ -756,7 +756,7 @@ async function syncSelectedRaces() {
   showLoading();
   
   try {
-    const response = await fetch(`${CONFIG.ASSETTO_API.RACES}?action=sync`, {
+    const response = await fetch(`${CONFIG.API_ENDPOINTS.RACE_STORE}?action=sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1207,7 +1207,7 @@ async function saveEvent(e) {
   try {
     // Save event to database
     const method = eventId ? 'PUT' : 'POST';
-    const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=events`, {
+    const response = await fetch(CONFIG.API_ENDPOINTS.EVENTS, {
       method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(eventData)
@@ -1287,7 +1287,7 @@ async function saveLeague(e) {
   try {
     // Save league to database
     const method = leagueId ? 'PUT' : 'POST';
-    const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=leagues`, {
+    const response = await fetch(CONFIG.API_ENDPOINTS.LEAGUES, {
       method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(leagueData)
@@ -1370,7 +1370,7 @@ async function deleteEvent(id) {
   showLoading('Deleting event...');
 
   try {
-    const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=events`, {
+    const response = await fetch(CONFIG.API_ENDPOINTS.EVENTS, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
@@ -1407,7 +1407,7 @@ async function deleteLeague(id) {
   showLoading('Deleting league...');
 
   try {
-    const response = await fetch(`${CONFIG.API_ENDPOINTS.DATA}?resource=leagues`, {
+    const response = await fetch(CONFIG.API_ENDPOINTS.LEAGUES, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })

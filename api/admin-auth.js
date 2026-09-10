@@ -1,143 +1,86 @@
 /**
- * Serverless Function: Admin Authentication
- * Simple authentication endpoint for admin backdoor login
- * 
- * Environment Variables Required:
- * - ADMIN_USERNAME: Admin username
- * - ADMIN_PASSWORD: Admin password (plain text for simplicity, consider hashing in production)
- * - JWT_SECRET: Secret key for token generation
- * 
- * Usage: POST /api/admin-auth with { username, password }
+ * API: Admin Authentication
+ * Issues and validates short-lived tokens for the admin dashboard.
+ *
+ * POST /api/admin-auth  { username, password }           — login, returns token
+ * POST /api/admin-auth  { action: "validate", token }    — validate existing token
+ *
+ * Token format: base64(JSON payload).HMAC-SHA256 signature
+ * Expiry: 2 hours
+ *
+ * Environment variables required:
+ *   ADMIN_USERNAME, ADMIN_PASSWORD, JWT_SECRET
  */
 
+import { app } from '@azure/functions';
 import crypto from 'crypto';
 
-export default async function handler(req, res) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+app.http('admin-auth', {
+  methods: ['POST', 'OPTIONS'],
+  authLevel: 'anonymous',
+  handler: async (request, context) => {
+    if (request.method === 'OPTIONS') {
+      return { status: 200, body: '' };
+    }
 
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+    try {
+      const body = await request.json();
+      const { username, password, action, token } = body;
 
-  // Only allow POST method
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    const { username, password, action } = req.body;
-
-    // Validate token action
-    if (action === 'validate') {
-      const { token } = req.body;
-      if (!token) {
-        return res.status(401).json({ error: 'No token provided' });
+      // ── validate token ─────────────────────────────────────────────────────
+      if (action === 'validate') {
+        if (!token) {
+          return { status: 401, jsonBody: { error: 'No token provided' } };
+        }
+        try {
+          const decoded = verifyToken(token);
+          return { status: 200, jsonBody: { valid: true, username: decoded.username, expiresAt: decoded.exp } };
+        } catch {
+          return { status: 401, jsonBody: { error: 'Invalid or expired token' } };
+        }
       }
 
-      try {
-        const decoded = verifyToken(token);
-        return res.status(200).json({ 
-          valid: true, 
-          username: decoded.username,
-          expiresAt: decoded.exp 
-        });
-      } catch (error) {
-        return res.status(401).json({ error: 'Invalid or expired token' });
+      // ── login ──────────────────────────────────────────────────────────────
+      if (!username || !password) {
+        return { status: 400, jsonBody: { error: 'username and password are required' } };
       }
+
+      const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+      const adminPassword = process.env.ADMIN_PASSWORD || 'srt2026admin';
+
+      if (username === adminUsername && password === adminPassword) {
+        return {
+          status: 200,
+          jsonBody: { success: true, token: generateToken(username), username, expiresIn: 7200 }
+        };
+      }
+
+      return { status: 401, jsonBody: { error: 'Invalid credentials' } };
+
+    } catch (error) {
+      context.error('Auth error:', error);
+      return { status: 500, jsonBody: { error: 'Authentication failed', message: error.message } };
     }
-
-    // Login action
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password required' });
-    }
-
-    // Get credentials from environment variables
-    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'srt2026admin';
-
-    // Verify credentials
-    if (username === adminUsername && password === adminPassword) {
-      // Generate token
-      const token = generateToken(username);
-      
-      return res.status(200).json({
-        success: true,
-        token,
-        username,
-        expiresIn: 7200 // 2 hours in seconds
-      });
-    }
-
-    // Invalid credentials
-    return res.status(401).json({ error: 'Invalid credentials' });
-
-  } catch (error) {
-    console.error('Auth error:', error);
-    return res.status(500).json({ 
-      error: 'Authentication failed',
-      message: error.message 
-    });
   }
-}
+});
 
-/**
- * Generate a simple JWT-like token
- */
 function generateToken(username) {
   const secret = process.env.JWT_SECRET || 'srt-admin-secret-key-2026';
-  const expiresAt = Date.now() + (2 * 60 * 60 * 1000); // 2 hours
-  
-  const payload = {
-    username,
-    exp: expiresAt,
-    iat: Date.now()
-  };
-
-  const payloadStr = JSON.stringify(payload);
-  const payloadB64 = Buffer.from(payloadStr).toString('base64');
-  
-  const signature = crypto
-    .createHmac('sha256', secret)
-    .update(payloadB64)
-    .digest('base64');
-
+  const payload = { username, exp: Date.now() + (2 * 60 * 60 * 1000), iat: Date.now() };
+  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+  const signature = crypto.createHmac('sha256', secret).update(payloadB64).digest('base64');
   return `${payloadB64}.${signature}`;
 }
 
-/**
- * Verify token
- */
 function verifyToken(token) {
   const secret = process.env.JWT_SECRET || 'srt-admin-secret-key-2026';
   const [payloadB64, signature] = token.split('.');
+  if (!payloadB64 || !signature) throw new Error('Invalid token format');
 
-  if (!payloadB64 || !signature) {
-    throw new Error('Invalid token format');
-  }
+  const expected = crypto.createHmac('sha256', secret).update(payloadB64).digest('base64');
+  if (signature !== expected) throw new Error('Invalid signature');
 
-  // Verify signature
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(payloadB64)
-    .digest('base64');
-
-  if (signature !== expectedSignature) {
-    throw new Error('Invalid signature');
-  }
-
-  // Decode payload
   const payload = JSON.parse(Buffer.from(payloadB64, 'base64').toString());
-
-  // Check expiration
-  if (payload.exp < Date.now()) {
-    throw new Error('Token expired');
-  }
-
+  if (payload.exp < Date.now()) throw new Error('Token expired');
   return payload;
 }
-
-// Made with Bob
