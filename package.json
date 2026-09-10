@@ -3,10 +3,7 @@
   "version": "2.0.0",
   "description": "SimRacingTharavadu — Kerala's Premier Sim Racing Community",
   "main": "index.html",
-  "scripts": {
-    "setup:github": "node setup-github-env.js",
-    "setup:github-help": "echo 'Run: npm run setup:github'"
-  },
+  "scripts": {},
   "keywords": ["sim-racing", "assetto-corsa", "racing-league", "serverless", "azure"],
   "author": "SimRacingTharavadu",
   "license": "MIT",

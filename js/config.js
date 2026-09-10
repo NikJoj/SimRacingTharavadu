@@ -20,9 +20,8 @@ const CONFIG = {
   // Championship ID for standings API
   ASSETTO_CHAMPIONSHIP_ID: "1bb2f11c-d4db-45e8-9505-97cd6ec1e806",
   
-  // Serverless API Endpoints (deployed on Vercel)
-  // For local development: use http://localhost:3000/api/...
-  // For production: use your Vercel deployment URL or relative paths
+  // Azure Functions are served through the Static Web Apps /api prefix.
+  // For local development, use the Azure Functions Core Tools endpoint.
   API_BASE_URL: "/api", // Relative path works when deployed together
   
   // Assetto Corsa proxy endpoints (pass-through, CORS bypass)
@@ -34,28 +33,6 @@ const CONFIG = {
     RESULTS: "/api/results"            // Full results list
   },
   
-  // Legacy settings (no longer needed with serverless functions)
-  USE_CORS_PROXY: false,
-  CORS_PROXIES: [], // Not needed anymore!
-
-  // Admin Panel Settings
-  ADMIN: {
-    // Default credentials (CHANGE THESE in Vercel environment variables!)
-    // These are fallback values only - production should use env vars
-    DEFAULT_USERNAME: 'admin',
-    DEFAULT_PASSWORD: 'srt2026admin',
-    
-    // Session timeout (2 hours)
-    SESSION_TIMEOUT: 7200000, // milliseconds
-    
-    // Enable/disable admin features
-    FEATURES: {
-      EVENT_MANAGEMENT: true,
-      LEAGUE_MANAGEMENT: true,
-      REGISTRATION_MANAGEMENT: true,
-      RACE_SYNC: true
-    }
-  }
 };
 
 /* ── DEMO DATA ───────────────────────────────────────── */
@@ -68,9 +45,9 @@ const DEMO_EVENTS = [
 ];
 
 const DEMO_LEAGUES = [
-  {id:"1",name:"SRT League — GT3 Season",sim:"Assetto Corsa Competizione",status:"upcoming",track:"Multi-Track Season",startDate:"2026-05-10T00:00:00Z",endDate:"2026-06-28T23:59:59Z",format:"Weekly Rounds",drivers:"0",maxDrivers:"36",rounds:"8",season:"2026",description:"A structured GT3 league season with weekly rounds, stewarding, and points standings.",carOptions:"GT3",blobStore:"SRT-GT3-Season-1",championshipId:"1bb2f11c-d4db-45e8-9505-97cd6ec1e806",simgridUrl:""},
-  {id:"2",name:"SRT League — Formula Series",sim:"Assetto Corsa",status:"upcoming",track:"Multi-Track Season",startDate:"2026-05-17T00:00:00Z",endDate:"2026-07-12T23:59:59Z",format:"Weekly Rounds",drivers:"0",maxDrivers:"24",rounds:"9",season:"2026",description:"A clean and competitive open-wheel season with consistent weekly racing and leaderboard points.",carOptions:"Formula",blobStore:"SRT-Formula-Season-1",championshipId:"",simgridUrl:""},
-  {id:"3",name:"SRT Season 2 Pre Season Testing",sim:"Le Mans Ultimate",status:"upcoming",track:"",startDate:"",endDate:"",format:"",drivers:"0",maxDrivers:"36",rounds:"",season:"2025",description:"",carOptions:"",blobStore:"",championshipId:"",simgridUrl:"https://www.thesimgrid.com/championships/26866?s=mEGb31AK"}
+  {id:"1",name:"SRT League — GT3 Season",sim:"Assetto Corsa Competizione",status:"upcoming",track:"Multi-Track Season",startDate:"2026-05-10T00:00:00Z",endDate:"2026-06-28T23:59:59Z",format:"Weekly Rounds",drivers:"0",maxDrivers:"36",rounds:"8",season:"2026",description:"A structured GT3 league season with weekly rounds, stewarding, and points standings.",carOptions:"GT3",championshipId:"1bb2f11c-d4db-45e8-9505-97cd6ec1e806",simgridUrl:""},
+  {id:"2",name:"SRT League — Formula Series",sim:"Assetto Corsa",status:"upcoming",track:"Multi-Track Season",startDate:"2026-05-17T00:00:00Z",endDate:"2026-07-12T23:59:59Z",format:"Weekly Rounds",drivers:"0",maxDrivers:"24",rounds:"9",season:"2026",description:"A clean and competitive open-wheel season with consistent weekly racing and leaderboard points.",carOptions:"Formula",championshipId:"",simgridUrl:""},
+  {id:"3",name:"SRT Season 2 Pre Season Testing",sim:"Le Mans Ultimate",status:"upcoming",track:"",startDate:"",endDate:"",format:"",drivers:"0",maxDrivers:"36",rounds:"",season:"2025",description:"",carOptions:"",championshipId:"",simgridUrl:"https://www.thesimgrid.com/championships/26866?s=mEGb31AK"}
 ];
 
 const DEMO_LB = {

@@ -8,9 +8,13 @@ info:
     Hosted on Azure Static Web Apps + Azure Functions (Node.js v4).
     Database: Neon PostgreSQL (serverless).
 
-    **Authentication:** Admin endpoints use a custom HMAC-SHA256 token.
-    Obtain a token via `POST /api/login-auth`, then pass it as
-    `{ action: "validate", token }` to verify.
+    All deployed functions currently accept anonymous Azure Function requests.
+    `POST /api/login-auth` issues and validates the dashboard's short-lived
+    HMAC-SHA256 session token; it is not an API-wide authorization mechanism.
+
+    Race archive requests use `leagueId`, the Neon `leagues.id` value. The
+    legacy `blob_store` response field is read-only compatibility data and is
+    not required for new leagues.
 
 servers:
   - url: https://your-site.azurestaticapps.net
@@ -79,7 +83,7 @@ components:
         season:         { type: string }
         championship_id: { type: string }
         simgrid_url:    { type: string, format: uri }
-        blob_store:     { type: string, description: "Legacy field — kept for compatibility" }
+        blob_store:     { type: string, deprecated: true, description: "Legacy read-only compatibility field" }
         drivers:        { type: integer }
         max_drivers:    { type: integer }
         rounds:         { type: integer }
@@ -124,8 +128,9 @@ components:
       properties:
         id:               { type: integer }
         league:           { type: string }
+        league_id:        { type: integer, nullable: true }
         track:            { type: string }
-        session_date:     { type: string, format: date-time }
+        date:             { type: string, format: date-time }
         race_timestamp:   { type: integer, description: "Unix timestamp in milliseconds" }
         results_json_url: { type: string }
         results_page_url: { type: string }
