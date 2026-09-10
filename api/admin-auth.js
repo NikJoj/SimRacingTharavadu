@@ -16,30 +16,11 @@ import { app } from '@azure/functions';
 import crypto from 'crypto';
 
 app.http('admin-auth', {
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['POST', 'OPTIONS'],
   authLevel: 'anonymous',
   handler: async (request, context) => {
     if (request.method === 'OPTIONS') {
       return { status: 200, body: '' };
-    }
-
-    // ── GET: env check (does not expose values) ────────────────────────────
-    if (request.method === 'GET') {
-      return {
-        status: 200,
-        jsonBody: {
-          ADMIN_USERNAME_set: !!process.env.ADMIN_USERNAME,
-          ADMIN_PASSWORD_set: !!process.env.ADMIN_PASSWORD,
-          JWT_SECRET_set:     !!process.env.JWT_SECRET,
-          // Show first 2 chars so you can confirm the right value was stored
-          ADMIN_USERNAME_hint: process.env.ADMIN_USERNAME
-            ? process.env.ADMIN_USERNAME.slice(0, 2) + '***'
-            : '(using fallback: admin)',
-          ADMIN_PASSWORD_hint: process.env.ADMIN_PASSWORD
-            ? process.env.ADMIN_PASSWORD.slice(0, 2) + '***'
-            : '(using fallback: srt2026admin)'
-        }
-      };
     }
 
     try {
@@ -88,12 +69,17 @@ function generateToken(username) {
   const payload = { username, exp: Date.now() + (2 * 60 * 60 * 1000), iat: Date.now() };
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64');
   const signature = crypto.createHmac('sha256', secret).update(payloadB64).digest('base64');
-  return `${payloadB64}.${signature}`;
+  // Use '|' as delimiter — safe because base64 never contains '|'
+  return `${payloadB64}|${signature}`;
 }
 
 function verifyToken(token) {
   const secret = process.env.JWT_SECRET || 'srt-admin-secret-key-2026';
-  const [payloadB64, signature] = token.split('.');
+  // Use last '|' as delimiter — base64 can contain '.' so we use a safe separator
+  const idx = token.lastIndexOf('|');
+  if (idx === -1) throw new Error('Invalid token format');
+  const payloadB64 = token.slice(0, idx);
+  const signature  = token.slice(idx + 1);
   if (!payloadB64 || !signature) throw new Error('Invalid token format');
 
   const expected = crypto.createHmac('sha256', secret).update(payloadB64).digest('base64');
