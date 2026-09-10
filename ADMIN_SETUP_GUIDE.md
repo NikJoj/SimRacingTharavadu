@@ -321,7 +321,7 @@ Similar to events, but with league-specific fields:
 ## 📊 API Endpoints
 
 ### Authentication
-- `POST /api/admin-auth` - Login/validate token
+- `POST /api/login-auth` - Login/validate token
 
 ### Admin Operations (via Apps Script)
 - `GET ?action=getRegistrations` - Fetch all registrations

@@ -44,7 +44,7 @@ to Azure Static Web Apps + Azure Functions (free tier, unlimited functions).
 | `POST /api/races?action=sync` | `POST /api/race-store?action=sync` | Blob → Neon |
 | `GET /api/races?action=list` | `GET /api/races?action=list` | **Unchanged** |
 | `GET /api/races?action=result&file=X` | `GET /api/races?action=result&file=X` | **Unchanged** |
-| `/api/home`, `/api/live`, `/api/standings`, `/api/championships`, `/api/results`, `/api/registrations`, `/api/admin-auth`, `/api/sync-poster` | Same paths | **Unchanged** |
+| `/api/home`, `/api/live`, `/api/standings`, `/api/championships`, `/api/results`, `/api/registrations`, `/api/login-auth`, `/api/sync-poster` | Same paths | **Unchanged** |
 
 ---
 
@@ -137,7 +137,7 @@ GET https://your-site.azurestaticapps.net/api/race-store?action=leagues
 
 ### Admin endpoints
 ```
-POST https://your-site.azurestaticapps.net/api/admin-auth
+POST https://your-site.azurestaticapps.net/api/login-auth
 body: { "username": "admin", "password": "..." }
 ```
 

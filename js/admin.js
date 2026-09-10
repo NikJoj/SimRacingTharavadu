@@ -68,7 +68,7 @@ async function checkAuth() {
 
   // Validate token with server
   try {
-    const response = await fetch('/api/admin-auth', {
+    const response = await fetch('/api/login-auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'validate', token })

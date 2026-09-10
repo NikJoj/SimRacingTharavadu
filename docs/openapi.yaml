@@ -9,7 +9,7 @@ info:
     Database: Neon PostgreSQL (serverless).
 
     **Authentication:** Admin endpoints use a custom HMAC-SHA256 token.
-    Obtain a token via `POST /api/admin-auth`, then pass it as
+    Obtain a token via `POST /api/login-auth`, then pass it as
     `{ action: "validate", token }` to verify.
 
 servers:
@@ -678,8 +678,8 @@ paths:
                 additionalProperties: true
         "500": { description: Assetto server unreachable }
 
-  # ── /api/admin-auth ──────────────────────────────────────────────────────────
-  /api/admin-auth:
+  # ── /api/login-auth ──────────────────────────────────────────────────────────
+  /api/login-auth:
     post:
       tags: [Admin]
       summary: Login or validate admin token
@@ -712,7 +712,7 @@ paths:
                     type: object
                     properties:
                       success:   { type: boolean }
-                      token:     { type: string, description: "base64Payload.HMACSig" }
+                      token:     { type: string, description: "base64Payload|HMACSig" }
                       username:  { type: string }
                       expiresIn: { type: integer, example: 7200 }
                   - description: Token valid

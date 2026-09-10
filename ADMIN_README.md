@@ -89,7 +89,7 @@ When creating or editing events/leagues, you can now upload poster images that a
 /admin.html                      # Admin dashboard
 /css/admin.css                   # Admin styles
 /js/admin.js                     # Admin JavaScript
-/api/admin-auth.js               # Authentication API
+/api/login-auth                  # Authentication API endpoint
 /google-apps-script-admin.js     # Apps Script (copy to Google Sheets)
 /ADMIN_SETUP_GUIDE.md           # Detailed setup guide
 ```
@@ -114,7 +114,7 @@ When creating or editing events/leagues, you can now upload poster images that a
 ## API Endpoints
 
 ### Authentication
-- `POST /api/admin-auth` - Login and token validation
+- `POST /api/login-auth` - Login and token validation
 
 ### Race Sync
 - `GET /api/store-latest-result?league=LEAGUE_NAME` - Sync race

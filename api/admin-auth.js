@@ -2,8 +2,8 @@
  * API: Admin Authentication
  * Issues and validates short-lived tokens for the admin dashboard.
  *
- * POST /api/admin-auth  { username, password }           — login, returns token
- * POST /api/admin-auth  { action: "validate", token }    — validate existing token
+ * POST /api/login-auth  { username, password }           — login, returns token
+ * POST /api/login-auth  { action: "validate", token }    — validate existing token
  *
  * Token format: base64(JSON payload).HMAC-SHA256 signature
  * Expiry: 2 hours
@@ -15,10 +15,12 @@
 import { app } from '@azure/functions';
 import crypto from 'crypto';
 
-app.http('adminAuth', {
+// Do not use an "admin*" route. Azure Functions reserves that route prefix
+// for host-management endpoints after Static Web Apps forwards /api requests.
+app.http('loginAuth', {
   methods: ['POST', 'OPTIONS'],
   authLevel: 'anonymous',
-  route: 'admin-auth',
+  route: 'login-auth',
   handler: async (request, context) => {
     if (request.method === 'OPTIONS') {
       return { status: 200, body: '' };
