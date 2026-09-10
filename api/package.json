@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "description": "SimRacingTharavadu API functions — Azure Functions v4",
   "type": "module",
-  "main": "dist/{function-name}/index.js",
   "scripts": {
-    "start": "func start",
-    "build": "echo 'No build step required for pure ESM'"
+    "build": "echo 'No build step — pure ESM'",
+    "start": "func start"
   },
   "dependencies": {
     "@azure/functions": "^4.0.0",
