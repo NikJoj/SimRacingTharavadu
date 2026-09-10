@@ -16,11 +16,30 @@ import { app } from '@azure/functions';
 import crypto from 'crypto';
 
 app.http('admin-auth', {
-  methods: ['POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'OPTIONS'],
   authLevel: 'anonymous',
   handler: async (request, context) => {
     if (request.method === 'OPTIONS') {
       return { status: 200, body: '' };
+    }
+
+    // ── GET: env check (does not expose values) ────────────────────────────
+    if (request.method === 'GET') {
+      return {
+        status: 200,
+        jsonBody: {
+          ADMIN_USERNAME_set: !!process.env.ADMIN_USERNAME,
+          ADMIN_PASSWORD_set: !!process.env.ADMIN_PASSWORD,
+          JWT_SECRET_set:     !!process.env.JWT_SECRET,
+          // Show first 2 chars so you can confirm the right value was stored
+          ADMIN_USERNAME_hint: process.env.ADMIN_USERNAME
+            ? process.env.ADMIN_USERNAME.slice(0, 2) + '***'
+            : '(using fallback: admin)',
+          ADMIN_PASSWORD_hint: process.env.ADMIN_PASSWORD
+            ? process.env.ADMIN_PASSWORD.slice(0, 2) + '***'
+            : '(using fallback: srt2026admin)'
+        }
+      };
     }
 
     try {
