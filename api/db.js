@@ -5,14 +5,23 @@
 
 import { neon } from '@neondatabase/serverless';
 
-const neonSql = neon(process.env.DATABASE_URL);
+// Lazy-initialize: don't call neon() at module load time — DATABASE_URL may
+// not be set in the Functions runtime until the first request is handled.
+let _sql = null;
+function getSql() {
+  if (!_sql) {
+    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+    _sql = neon(process.env.DATABASE_URL);
+  }
+  return _sql;
+}
 
 /**
  * Vercel-postgres compatible sql tag
  * Returns { rows } so existing API endpoints continue to work
  */
 export async function sql(strings, ...values) {
-  const rows = await neonSql(strings, ...values);
+  const rows = await getSql()(strings, ...values);
   return { rows };
 }
 
@@ -24,7 +33,7 @@ export async function sql(strings, ...values) {
  */
 export async function query(text, params = []) {
   try {
-    const rows = await neonSql.query(text, params);
+    const rows = await getSql().query(text, params);
     return { rows };
   } catch (error) {
     console.error('Database query error:', error);
