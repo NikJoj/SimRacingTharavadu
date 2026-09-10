@@ -25,7 +25,7 @@ This guide will help you set up and configure the admin backdoor login system fo
    - Create new leagues
    - Edit existing leagues
    - Delete leagues (soft delete)
-   - Configure blob store folders
+   - Sync race results directly to Neon PostgreSQL
 
 4. **Registration Management**
    - View all registrations
@@ -211,7 +211,7 @@ export default async function handler(req, res) {
 
 Similar to events, but with league-specific fields:
 - Championship ID (from Assetto Corsa API)
-- Blob Store Folder (for race result storage)
+- Championship ID (optional, for Assetto Corsa standings)
 
 ### Managing Registrations
 
@@ -279,7 +279,7 @@ Similar to events, but with league-specific fields:
 **Problem:** "Failed to store race result"
 - **Solution:**
   1. Verify `BLOB_READ_WRITE_TOKEN` is set in Vercel
-  2. Check blob store folder name matches league configuration
+  2. Confirm a league is selected before syncing
   3. Review Vercel function logs
 
 ### Apps Script Errors

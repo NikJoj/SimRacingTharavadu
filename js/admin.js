@@ -203,7 +203,6 @@ async function loadLeagues() {
         format: l.format || '',
         season: l.season || '',
         championshipId: l.championship_id || '',
-        blobStore: l.blob_store || '',
         drivers: String(l.drivers || 0),
         maxDrivers: String(l.max_drivers || 36),
         rounds: String(l.rounds || 8),
@@ -252,7 +251,7 @@ async function loadRegistrations() {
 }
 
 /**
- * Load sync history from blob store
+ * Load sync history from the Neon race-result archive.
  */
 async function loadSyncHistory() {
   try {
@@ -264,13 +263,16 @@ async function loadSyncHistory() {
       
       // Load races for each league
       for (const league of data.leagues) {
-        const racesResponse = await fetch(`${CONFIG.API_ENDPOINTS.RACE_STORE}?league=${encodeURIComponent(league)}`);
+        const leagueQuery = league.id
+          ? `leagueId=${encodeURIComponent(league.id)}`
+          : `league=${encodeURIComponent(league.key)}`;
+        const racesResponse = await fetch(`${CONFIG.API_ENDPOINTS.RACE_STORE}?${leagueQuery}`);
         const racesData = await racesResponse.json();
         
         if (racesData.success && racesData.races) {
           adminData.syncHistory.push(...racesData.races.map(r => ({
             ...r,
-            league
+            league: league.name
           })));
         }
       }
@@ -420,7 +422,6 @@ function renderLeaguesTable() {
             <th>Sim</th>
             <th>Status</th>
             <th>Season</th>
-            <th>Blob Store</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -431,7 +432,6 @@ function renderLeaguesTable() {
               <td>${league.sim}</td>
               <td><span class="status-badge status-${league.status}">${league.status}</span></td>
               <td>${league.season}</td>
-              <td><code>${league.blobStore || 'N/A'}</code></td>
               <td>
                 <div class="table-actions">
                   <button class="btn-icon" onclick="editLeague('${league.id}')" title="Edit">✏️</button>
@@ -520,8 +520,7 @@ function renderSyncHistory() {
 function populateSyncLeagueSelect() {
   const select = document.getElementById('sync-league');
   const options = adminData.leagues
-    .filter(l => l.blobStore)
-    .map(l => `<option value="${l.blobStore}">${l.name}</option>`)
+    .map(l => `<option value="${l.id}">${l.name}</option>`)
     .join('');
   
   select.innerHTML = '<option value="">-- Select League --</option>' + options;
@@ -542,9 +541,9 @@ function populateRegFilter() {
  * Sync race result
  */
 async function syncRaceResult() {
-  const league = document.getElementById('sync-league').value;
+  const leagueId = document.getElementById('sync-league').value;
   
-  if (!league) {
+  if (!leagueId) {
     showToast('Please select a league', 'error');
     return;
   }
@@ -554,14 +553,14 @@ async function syncRaceResult() {
   statusEl.textContent = '🔄 Syncing race result...';
   
   try {
-    const response = await fetch(`${CONFIG.API_ENDPOINTS.RACE_STORE}?action=store&league=${encodeURIComponent(league)}`, {
+    const response = await fetch(`${CONFIG.API_ENDPOINTS.RACE_STORE}?action=store&leagueId=${encodeURIComponent(leagueId)}`, {
       method: 'POST'
     });
     const data = await response.json();
     
     if (data.success) {
       statusEl.className = 'status-message success show';
-      statusEl.innerHTML = `✓ Race synced successfully!<br><small>${data.metadata.track} • ${formatDate(data.metadata.date)}</small>`;
+      statusEl.innerHTML = `✓ Race synced successfully!<br><small>${data.track} • ${formatDate(data.date)}</small>`;
       
       // Reload sync history
       await loadSyncHistory();
@@ -599,8 +598,7 @@ let pendingDriverImport = {
 function populateUpdateRacesLeagueSelect() {
   const select = document.getElementById('update-races-league');
   const options = adminData.leagues
-    .filter(l => l.blobStore)
-    .map(l => `<option value="${l.blobStore}">${l.name}</option>`)
+    .map(l => `<option value="${l.id}">${l.name}</option>`)
     .join('');
   
   select.innerHTML = '<option value="">-- Select League --</option>' + options;
@@ -731,9 +729,9 @@ function updateSelectedCount() {
  * Sync selected races
  */
 async function syncSelectedRaces() {
-  const league = document.getElementById('update-races-league').value;
+  const leagueId = document.getElementById('update-races-league').value;
   
-  if (!league) {
+  if (!leagueId) {
     showToast('Please select a league', 'error');
     return;
   }
@@ -762,7 +760,7 @@ async function syncSelectedRaces() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        league: league,
+        leagueId,
         races: selectedRaces
       })
     });
@@ -1152,10 +1150,6 @@ function getLeagueForm(league = null) {
         <input type="text" class="form-control" id="league-champ" value="${league?.championshipId || ''}" placeholder="UUID from Assetto API">
       </div>
       <div class="form-group">
-        <label>Blob Store Folder *</label>
-        <input type="text" class="form-control" id="league-blob" value="${league?.blobStore || ''}" placeholder="SRT-GT3-Season-1" required>
-      </div>
-      <div class="form-group">
         <label>League Poster ${league ? '' : '*'}</label>
         <input type="file" class="form-control" id="league-poster" accept="image/png,image/jpeg,image/jpg" onchange="previewPoster(this, 'league-poster-preview')" ${league ? '' : 'required'}>
         <small style="color: #888; display: block; margin-top: 5px;">
@@ -1266,8 +1260,7 @@ async function saveLeague(e) {
     season: document.getElementById('league-season').value,
     start_date: new Date(document.getElementById('league-start').value).toISOString(),
     end_date: new Date(document.getElementById('league-end').value).toISOString(),
-    championship_id: document.getElementById('league-champ').value,
-    blob_store: document.getElementById('league-blob').value
+    championship_id: document.getElementById('league-champ').value
   };
 
   // Check if editing (has id) or creating new

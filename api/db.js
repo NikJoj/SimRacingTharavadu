@@ -66,6 +66,7 @@ export async function testConnection() {
  */
 export async function initializeTables() {
   try {
+    const neonSql = getSql();
     // ── events ──────────────────────────────────────────────────────────────
     await neonSql(`
       CREATE TABLE IF NOT EXISTS events (
@@ -160,6 +161,7 @@ export async function initializeTables() {
       CREATE TABLE IF NOT EXISTS race_results (
         id SERIAL PRIMARY KEY,
         league VARCHAR(100) NOT NULL,
+        league_id INTEGER,
         track VARCHAR(200),
         session_date TIMESTAMPTZ,
         result_data JSONB NOT NULL,
@@ -171,6 +173,16 @@ export async function initializeTables() {
         UNIQUE(league, race_timestamp)
       )
     `);
+    // `league` was the old Blob-folder identifier. Retain it for existing
+    // records, but associate results with the actual league from now on.
+    await neonSql(`ALTER TABLE race_results ADD COLUMN IF NOT EXISTS league_id INTEGER`);
+    await neonSql(`
+      UPDATE race_results AS race
+      SET league_id = league_record.id
+      FROM leagues AS league_record
+      WHERE race.league_id IS NULL
+        AND race.league = league_record.blob_store
+    `);
 
     // ── indexes ───────────────────────────────────────────────────────────────
     await neonSql(`CREATE INDEX IF NOT EXISTS idx_events_status ON events(status)`);
@@ -179,6 +191,7 @@ export async function initializeTables() {
     await neonSql(`CREATE INDEX IF NOT EXISTS idx_leaderboard_event_race ON leaderboard(event_id, race)`);
     await neonSql(`CREATE INDEX IF NOT EXISTS idx_registrations_event ON registrations(event)`);
     await neonSql(`CREATE INDEX IF NOT EXISTS idx_race_results_league ON race_results(league)`);
+    await neonSql(`CREATE INDEX IF NOT EXISTS idx_race_results_league_id ON race_results(league_id)`);
     await neonSql(`CREATE INDEX IF NOT EXISTS idx_race_results_timestamp ON race_results(race_timestamp DESC)`);
 
     return {

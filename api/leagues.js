@@ -43,7 +43,7 @@ app.http('leagues', {
         const {
           name, sim, status = 'upcoming',
           start_date, end_date, format, season,
-          championship_id, simgrid_url, blob_store,
+          championship_id, simgrid_url,
           drivers = 0, max_drivers = 36, rounds = 8,
           track, description, car_options
         } = body;
@@ -55,11 +55,11 @@ app.http('leagues', {
         const result = await sql`
           INSERT INTO leagues (
             name, sim, status, start_date, end_date, format, season,
-            championship_id, simgrid_url, blob_store,
+            championship_id, simgrid_url,
             drivers, max_drivers, rounds, track, description, car_options
           ) VALUES (
             ${name}, ${sim}, ${status}, ${start_date}, ${end_date}, ${format}, ${season},
-            ${championship_id}, ${simgrid_url}, ${blob_store},
+            ${championship_id}, ${simgrid_url},
             ${drivers}, ${max_drivers}, ${rounds}, ${track}, ${description}, ${car_options}
           ) RETURNING *
         `;
@@ -78,7 +78,7 @@ app.http('leagues', {
         // Allowed fields including simgrid_url
         const allowed = new Set([
           'name', 'sim', 'status', 'start_date', 'end_date', 'format', 'season',
-          'championship_id', 'simgrid_url', 'blob_store',
+          'championship_id', 'simgrid_url',
           'drivers', 'max_drivers', 'rounds', 'track', 'description', 'car_options'
         ]);
 

@@ -517,13 +517,13 @@ paths:
           schema: { type: string, enum: [leagues] }
           description: Use action=leagues to list all leagues that have stored races
         - in: query
-          name: league
-          schema: { type: string }
-          description: League name (e.g. SRT-GT3-Season-1)
+          name: leagueId
+          schema: { type: integer }
+          description: League database ID
         - in: query
           name: timestamp
           schema: { type: integer }
-          description: Race timestamp in ms — returns full result_data when combined with league
+          description: Race timestamp in ms — returns full result_data when combined with leagueId
       responses:
         "200":
           description: Success
@@ -534,7 +534,7 @@ paths:
                   - description: Leagues list
                     type: object
                     properties:
-                      leagues: { type: array, items: { type: string } }
+                      leagues: { type: array, items: { type: object } }
                   - description: Races for league
                     type: object
                     properties:
@@ -552,8 +552,8 @@ paths:
           required: true
           schema: { type: string, enum: [store, sync] }
         - in: query
-          name: league
-          schema: { type: string }
+          name: leagueId
+          schema: { type: integer }
           description: Required for action=store
       requestBody:
         content:
@@ -561,9 +561,9 @@ paths:
             schema:
               description: Required for action=sync
               type: object
-              required: [league, races]
+              required: [leagueId, races]
               properties:
-                league: { type: string }
+                leagueId: { type: integer }
                 races:
                   type: array
                   items:

@@ -404,10 +404,9 @@ async function loadLeagueRaces() {
       throw new Error('League not found');
     }
     
-    // Check if league has a blob store configured
-    if (league.blobStore) {
-      // Fetch from Neon DB via race-store endpoint (migrated from Vercel Blob)
-      const response = await fetch(`${CONFIG.API_ENDPOINTS.RACE_STORE}?league=${encodeURIComponent(league.blobStore)}`);
+    // Race results are keyed by the league's database ID, not a Blob folder.
+    if (league.id) {
+      const response = await fetch(`${CONFIG.API_ENDPOINTS.RACE_STORE}?leagueId=${encodeURIComponent(league.id)}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -431,8 +430,7 @@ async function loadLeagueRaces() {
         return;
       }
       
-      // Render race list from blob store
-      container.innerHTML = buildRaceListFromBlobStore(data.races, league.blobStore);
+      container.innerHTML = buildRaceListFromDatabase(data.races, league.id);
     } else {
       // Fallback to Assetto API
       const response = await fetch(CONFIG.ASSETTO_API.RESULTS);
@@ -621,12 +619,12 @@ function buildRaceList(results) {
 }
 
 /**
- * Build race list HTML from blob store data
- * @param {Array} races - Array of race metadata from blob store
- * @param {string} blobStore - Blob store name
+ * Build race list HTML from the Neon database.
+ * @param {Array} races - Array of race metadata from the Neon database
+ * @param {string} leagueId - League database ID
  * @returns {string} HTML string
  */
-function buildRaceListFromBlobStore(races, blobStore) {
+function buildRaceListFromDatabase(races, leagueId) {
   let html = '<div class="race-list">';
   
   races.forEach((race) => {
@@ -650,7 +648,7 @@ function buildRaceListFromBlobStore(races, blobStore) {
     const sessionType = race.session_type || 'Session';
     
     // Create race identifier — use race_timestamp (Neon DB field name)
-    const raceId = `blob:${blobStore}:${race.race_timestamp}`;
+    const raceId = `db:${leagueId}:${race.race_timestamp}`;
     
     html += `
       <div class="race-item" onclick="showRaceResults('${raceId}')">
@@ -784,7 +782,7 @@ function formatLapTimeFromNanoseconds(ns) {
 
 /**
  * Show race results detail page
- * @param {string} resultsUrl - URL or path to the race results JSON, or blob store identifier
+ * @param {string} resultsUrl - URL or path to the race results JSON, or database identifier
  */
 async function showRaceResults(resultsUrl) {
   console.log('Loading race results from:', resultsUrl);
@@ -798,15 +796,14 @@ async function showRaceResults(resultsUrl) {
   try {
     let apiUrl = resultsUrl;
     
-    // Check if it's a blob store identifier (format: blob:storeName:timestamp)
-    if (resultsUrl.startsWith('blob:')) {
+    // Check if it's a database identifier (format: db:leagueId:timestamp)
+    if (resultsUrl.startsWith('db:')) {
       const parts = resultsUrl.split(':');
       if (parts.length === 3) {
-        const blobStore = parts[1];
+        const leagueId = parts[1];
         const timestamp = parts[2];
         
-        // Use race-store endpoint (migrated from Vercel Blob to Neon DB)
-        apiUrl = `${CONFIG.API_ENDPOINTS.RACE_STORE}?league=${encodeURIComponent(blobStore)}&timestamp=${encodeURIComponent(timestamp)}`;
+        apiUrl = `${CONFIG.API_ENDPOINTS.RACE_STORE}?leagueId=${encodeURIComponent(leagueId)}&timestamp=${encodeURIComponent(timestamp)}`;
         console.log('Using race-store API:', apiUrl);
 
         // Fetch from Neon DB

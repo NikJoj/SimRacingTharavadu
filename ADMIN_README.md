@@ -108,7 +108,7 @@ When creating or editing events/leagues, you can now upload poster images that a
 |-------|----------|
 | Can't login | Check environment variables in Vercel |
 | Data not loading | Verify Google Sheets URLs and Apps Script deployment |
-| Race sync fails | Check BLOB_READ_WRITE_TOKEN and league blob store name |
+| Race sync fails | Check the Assetto server connection and selected league |
 | Session expired | Login again (sessions last 2 hours) |
 
 ## API Endpoints
