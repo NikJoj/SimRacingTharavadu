@@ -29,7 +29,7 @@ async function migrate() {
   console.log('Starting Vercel Blob → Neon migration...\n');
 
   // Ensure race_results table exists
-  await sql(`
+  await sql.query(`
     CREATE TABLE IF NOT EXISTS race_results (
       id SERIAL PRIMARY KEY,
       league VARCHAR(100) NOT NULL,
@@ -44,8 +44,8 @@ async function migrate() {
       UNIQUE(league, race_timestamp)
     )
   `);
-  await sql(`CREATE INDEX IF NOT EXISTS idx_race_results_league ON race_results(league)`);
-  await sql(`CREATE INDEX IF NOT EXISTS idx_race_results_timestamp ON race_results(race_timestamp DESC)`);
+  await sql.query(`CREATE INDEX IF NOT EXISTS idx_race_results_league ON race_results(league)`);
+  await sql.query(`CREATE INDEX IF NOT EXISTS idx_race_results_timestamp ON race_results(race_timestamp DESC)`);
 
   console.log('✓ race_results table ready\n');
 
@@ -95,28 +95,21 @@ async function migrate() {
       if (!raceRes.ok) throw new Error(`Failed to fetch race data: ${raceRes.status}`);
       const raceData = await raceRes.json();
 
-      // Insert into Neon
-      const result = await sql(`
+      // Insert into Neon — use tagged template so result is always an array of rows
+      const rows = await sql`
         INSERT INTO race_results
           (league, track, session_date, result_data, race_timestamp,
            results_json_url, results_page_url, session_type, stored_at)
         VALUES
-          ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          (${league}, ${metadata.track || null}, ${metadata.date || null},
+           ${JSON.stringify(raceData)}, ${raceTimestamp},
+           ${metadata.results_json_url || null}, ${metadata.results_page_url || null},
+           ${metadata.session_type || 'RACE'}, ${metadata.stored_at || new Date().toISOString()})
         ON CONFLICT (league, race_timestamp) DO NOTHING
         RETURNING id
-      `, [
-        league,
-        metadata.track || null,
-        metadata.date || null,
-        JSON.stringify(raceData),
-        raceTimestamp,
-        metadata.results_json_url || null,
-        metadata.results_page_url || null,
-        metadata.session_type || 'RACE',
-        metadata.stored_at || new Date().toISOString()
-      ]);
+      `;
 
-      if (result.length > 0) {
+      if (rows.length > 0) {
         console.log(`  ✓ Imported: ${league} / ${metadata.track} (${metadata.date})`);
         imported++;
       } else {
