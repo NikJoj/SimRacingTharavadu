@@ -77,6 +77,7 @@ Configure these application settings in Azure Static Web Apps. Never place their
 - The admin login endpoint issues a two-hour HMAC-signed token and the browser validates it before showing the dashboard.
 - Azure Functions currently use anonymous function authorization. The dashboard token is a UI session check, not server-side authorization for CRUD routes. Add server-side token validation before treating the dashboard as a security boundary.
 - Exception: `POST /api/simgrid` validates the existing HMAC admin session server-side and requires an explicit `JWT_SECRET`. Public GET only reads normalized saved data, never the API token or raw participant metadata.
+- The browser sends that session in `X-SRT-Admin-Token`, because Azure Static Web Apps can overwrite `Authorization` when forwarding to managed Functions. The backend still verifies the signature, username and expiry; the header alone grants no access. Direct/local clients retain Bearer-header compatibility.
 - Rotate database, GitHub, and admin secrets if they have ever been committed or shared.
 - Add Application Insights if request-level monitoring is required.
 

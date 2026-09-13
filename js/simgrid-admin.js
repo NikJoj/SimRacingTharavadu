@@ -26,7 +26,7 @@ function simgridStatus(message, error = false) {
 
 async function simgridRequest(body) {
   const response = await fetch('/api/simgrid', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('srt_admin_token') || ''}` },
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-SRT-Admin-Token': localStorage.getItem('srt_admin_token') || '' },
     body: JSON.stringify(body)
   });
   const data = await response.json();

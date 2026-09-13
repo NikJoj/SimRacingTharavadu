@@ -36,6 +36,16 @@ test('admin authentication checks signature, identity and expiry', () => {
   assert.throws(() => requireAdmin(request(auth() + 'x')), /sign in/);
   assert.throws(() => requireAdmin(request('')), /sign in/);
 });
+test('custom session header survives SWA Authorization replacement', () => {
+  const token = auth().replace('Bearer ', '');
+  const headers = new Headers({ 'X-SRT-Admin-Token': token, Authorization: 'Bearer azure-internal-token' });
+  assert.equal(requireAdmin({ headers }), 'admin');
+  headers.set('X-SRT-Admin-Token', 'tampered');
+  headers.set('Authorization', auth());
+  assert.throws(() => requireAdmin({ headers }), /sign in/);
+  headers.set('X-SRT-Admin-Token', auth(1).replace('Bearer ', ''));
+  assert.throws(() => requireAdmin({ headers }), /sign in/);
+});
 test('keeps official adjusted score without recalculating or double-deducting penalties', async () => {
   const f = fixture();
   const s = await fetchSnapshot('26866', f.get);

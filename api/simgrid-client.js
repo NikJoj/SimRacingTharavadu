@@ -16,7 +16,11 @@ export function championshipId(url) {
 export function requireAdmin(request) {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new SyncError('JWT_SECRET must be configured for SimGrid sync.', 503);
-  const token = (request.headers.get('authorization') || '').replace(/^Bearer /, '');
+  // SWA can replace Authorization when forwarding to managed Functions.
+  // The custom header still carries our signed session, not a trusted identity.
+  // Retain Bearer support for direct/local API clients only as a fallback.
+  const token = request.headers.get('x-srt-admin-token') ??
+    (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   const [payload, signature, extra] = token.split('|');
   const expected = crypto.createHmac('sha256', secret).update(payload || '').digest('base64');
   if (!signature || extra || signature.length !== expected.length ||

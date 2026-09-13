@@ -39,9 +39,10 @@ tags:
 components:
   securitySchemes:
     AdminSession:
-      type: http
-      scheme: bearer
-      description: Token issued by POST /api/login-auth (custom HMAC token, not JWT).
+      type: apiKey
+      in: header
+      name: X-SRT-Admin-Token
+      description: Raw token issued by POST /api/login-auth (custom HMAC token, not JWT; no Bearer prefix). Avoid Authorization through Azure SWA, which may overwrite it. Direct/local clients may still use Authorization Bearer as a fallback.
   schemas:
 
     SimGridDriver:
