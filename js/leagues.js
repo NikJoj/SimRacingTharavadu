@@ -1178,11 +1178,23 @@ function loadSignupIframe() {
     return;
   }
   
-  // SimGrid league — embed the SimGrid championship portal directly
+  const portal = document.getElementById('simgrid-portal');
+  const banner = document.querySelector('#league-signup-content .signup-banner');
+  iframe.hidden = !!league.simgridUrl;
+  if (banner) banner.hidden = !!league.simgridUrl;
+  if (portal) portal.hidden = !league.simgridUrl;
+
+  // Render in the parent document so the portal inherits the site theme.
   if (league.simgridUrl) {
     const url = simgridPortalUrl(league.simgridUrl);
     iframe.removeAttribute('src');
-    iframe.srcdoc = `<p style="font-family:system-ui;text-align:center;padding:40px">Registration and detailed race results are managed on SimGrid.<br><br><a href="${simgridEscape(url)}" target="_blank" rel="noopener noreferrer">Open championship on SimGrid</a></p>`;
+    iframe.removeAttribute('srcdoc');
+    if (portal) portal.innerHTML = `
+      <span class="simgrid-portal-label">Championship Portal</span>
+      <h2>${simgridEscape(league.name)}</h2>
+      <p>Visit SimGrid for championship registration and detailed race results.</p>
+      <a class="btn-primary simgrid-portal-link" href="${simgridEscape(url)}" target="_blank" rel="noopener noreferrer">Open championship on SimGrid <span aria-hidden="true">↗</span></a>
+      <span class="simgrid-portal-hint">Opens in a new tab</span>`;
     return;
   }
   iframe.removeAttribute('srcdoc');

@@ -15,7 +15,9 @@ test('public standings render official score and escape imported text', async ()
   assert.match(container.innerHTML, /td-pts">65</);
   assert.match(container.innerHTML, /&lt;img/);
   assert.doesNotMatch(container.innerHTML, /<img/);
-  assert.match(container.innerHTML, /not deducted again/);
+  assert.doesNotMatch(container.innerHTML, /Last synced|not deducted again|Open SimGrid championship/);
+  await context.loadSimgridView({ id: '3', simgridUrl: 'https://www.thesimgrid.com/championships/26866' }, 'races');
+  assert.doesNotMatch(container.innerHTML, /Last synced|Synced schedule|Open SimGrid championship/);
 });
 test('public display rejects unsafe links and explains unsynced data', async () => {
   const container = { innerHTML: '' };
@@ -24,7 +26,7 @@ test('public display rejects unsafe links and explains unsynced data', async () 
   vm.runInContext(source, context);
   assert.equal(context.simgridPortalUrl('javascript:alert(1)'), 'https://www.thesimgrid.com/');
   await context.loadSimgridView({ id: '3', simgridUrl: 'https://www.thesimgrid.com/championships/26866' }, 'races');
-  assert.match(container.innerHTML, /No SimGrid sync yet/);
+  assert.match(container.innerHTML, /No standings or race data available yet/);
 });
 test('switching leagues during a fetch does not render stale data', async () => {
   const container = { innerHTML: '' };
@@ -32,5 +34,31 @@ test('switching leagues during a fetch does not render stale data', async () => 
     fetch: async () => ({ ok: true, json: async () => ({ snapshot: null }) }) });
   vm.runInContext(source, context);
   await context.loadSimgridView({ id: '3', simgridUrl: '' }, 'races');
-  assert.doesNotMatch(container.innerHTML, /No SimGrid sync yet/);
+  assert.doesNotMatch(container.innerHTML, /No standings or race data available yet/);
+});
+
+test('portal uses site-themed content and restores Assetto iframe when switching leagues', () => {
+  const iframe = { removeAttribute(name) { delete this[name]; } };
+  const portal = { innerHTML: '' }, banner = {};
+  const context = vm.createContext({ URL, console, document: {
+    getElementById: id => id === 'signup-iframe' ? iframe : portal,
+    querySelector: () => banner
+  }, appLeagues: [
+    { id: '3', name: 'Preseason <test>', simgridUrl: 'https://www.thesimgrid.com/championships/26866?s=invite' },
+    { id: '1', championshipId: 'assetto-id' }
+  ] });
+  vm.runInContext(source, context);
+  vm.runInContext(readFileSync(new URL('../../js/leagues.js', import.meta.url), 'utf8'), context);
+  vm.runInContext("currentLeagueId = '3'; loadSignupIframe();", context);
+  assert.equal(iframe.hidden, true);
+  assert.equal(banner.hidden, true);
+  assert.equal(portal.hidden, false);
+  assert.match(portal.innerHTML, /btn-primary simgrid-portal-link/);
+  assert.match(portal.innerHTML, /Preseason &lt;test&gt;/);
+  assert.match(portal.innerHTML, /26866\?s=invite/);
+  vm.runInContext("currentLeagueId = '1'; loadSignupIframe();", context);
+  assert.equal(iframe.hidden, false);
+  assert.equal(banner.hidden, false);
+  assert.equal(portal.hidden, true);
+  assert.match(iframe.src, /championship\/assetto-id$/);
 });

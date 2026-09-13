@@ -779,3 +779,62 @@
   width: 100%;
   position: relative;
 }
+
+#league-signup-content [hidden] { display: none; }
+
+.simgrid-portal {
+  padding: clamp(2rem, 6vw, 4rem) clamp(1.25rem, 4vw, 3rem);
+  background: var(--bg2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 3px solid var(--red);
+  text-align: center;
+  color: var(--text);
+}
+
+.simgrid-portal-label {
+  color: var(--red);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.simgrid-portal h2 {
+  margin: 0.75rem 0;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+
+.simgrid-portal p {
+  max-width: 36rem;
+  margin: 0 auto 1.75rem;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.simgrid-portal-link {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 100%;
+  text-decoration: none;
+  white-space: normal;
+}
+
+.simgrid-portal-link:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 5px;
+}
+
+.simgrid-portal-hint {
+  display: block;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #a6adb8;
+}
