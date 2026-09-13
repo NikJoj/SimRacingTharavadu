@@ -64,9 +64,10 @@ export async function testConnection() {
  * Initialize database tables (idempotent — safe to call on every cold start)
  * Creates tables and indexes if they don't exist, adds missing columns
  */
-export async function initializeTables() {
+export async function initializeTables(runQuery = (text) => getSql().query(text)) {
   try {
-    const neonSql = getSql();
+    // Neon 1.x accepts raw SQL through .query(); callable form is a template tag.
+    const neonSql = runQuery;
     // ── events ──────────────────────────────────────────────────────────────
     await neonSql(`
       CREATE TABLE IF NOT EXISTS events (

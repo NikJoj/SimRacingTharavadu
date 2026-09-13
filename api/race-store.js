@@ -12,9 +12,22 @@
  */
 
 import { app } from '@azure/functions';
-import { sql, query } from './db.js';
+import { sql, query, initializeTables } from './db.js';
 
 const ASSETTO_BASE = 'https://sg.assettohosting.com:10027';
+
+let schemaReady;
+async function ensureArchiveSchema() {
+  if (!schemaReady) {
+    schemaReady = initializeTables().then(result => {
+      if (!result.success) throw new Error('Race archive schema initialization failed');
+    }).catch(error => {
+      schemaReady = null; // Retry on the next request after a transient failure.
+      throw error;
+    });
+  }
+  await schemaReady;
+}
 
 app.http('raceStore', {
   route: 'race-store',
@@ -28,6 +41,7 @@ app.http('raceStore', {
     const params = new URL(request.url).searchParams;
 
     try {
+      await ensureArchiveSchema();
       // ── GET: list leagues ──────────────────────────────────────────────────
       if (request.method === 'GET' && params.get('action') === 'leagues') {
         const result = await sql`
