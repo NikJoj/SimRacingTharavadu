@@ -11,6 +11,7 @@ info:
     All deployed functions currently accept anonymous Azure Function requests.
     `POST /api/login-auth` issues and validates the dashboard's short-lived
     HMAC-SHA256 session token; it is not an API-wide authorization mechanism.
+    SimGrid POST requests are an exception: they validate this token server-side.
 
     Race archive requests use `leagueId`, the Neon `leagues.id` value. The
     legacy `blob_store` response field is read-only compatibility data and is
@@ -36,7 +37,102 @@ tags:
 # COMPONENTS
 # ─────────────────────────────────────────────────────────────────────────────
 components:
+  securitySchemes:
+    AdminSession:
+      type: http
+      scheme: bearer
+      description: Token issued by POST /api/login-auth (custom HMAC token, not JWT).
   schemas:
+
+    SimGridDriver:
+      type: object
+      required: [id, userId, name, carNumber, className]
+      properties:
+        id: { type: string, description: Stable SimGrid registration ID }
+        userId: { type: string }
+        name: { type: string }
+        carNumber: { type: string }
+        className: { type: string }
+
+    SimGridStanding:
+      allOf:
+        - $ref: '#/components/schemas/SimGridDriver'
+        - type: object
+          required: [car, position, points, score, penalties, adjustment, adjustmentReason]
+          properties:
+            car: { type: string }
+            position: { type: number, description: Official class position from SimGrid }
+            points: { type: number }
+            score: { type: number, description: Official adjusted championship score. Do not subtract penalties again. }
+            penalties: { type: number }
+            adjustment: { type: number }
+            adjustmentReason: { type: string }
+
+    SimGridRace:
+      type: object
+      required: [id, name, track, startsAt, resultsAvailable, publishedAt, ended]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        track: { type: string }
+        startsAt: { type: string, format: date-time }
+        resultsAvailable: { type: boolean, description: Publication status only; detailed results are not imported }
+        publishedAt: { type: string, format: date-time, nullable: true }
+        ended: { type: boolean }
+
+    SimGridSnapshot:
+      type: object
+      required: [championshipId, name, sim, capacity, drivers, standings, races, resultsDetailAvailable]
+      properties:
+        championshipId: { type: string, example: '26866' }
+        name: { type: string }
+        sim: { type: string, enum: [Le Mans Ultimate] }
+        capacity: { type: number }
+        drivers:
+          type: array
+          items: { $ref: '#/components/schemas/SimGridDriver' }
+        standings:
+          type: array
+          items: { $ref: '#/components/schemas/SimGridStanding' }
+        races:
+          type: array
+          items: { $ref: '#/components/schemas/SimGridRace' }
+        resultsDetailAvailable: { type: boolean, enum: [false] }
+
+    SimGridDiff:
+      type: object
+      required: [added, updated, removed]
+      properties:
+        added: { type: integer }
+        updated: { type: integer }
+        removed: { type: integer }
+
+    SimGridChanges:
+      type: object
+      required: [drivers, standings, races]
+      properties:
+        drivers: { $ref: '#/components/schemas/SimGridDiff' }
+        standings: { $ref: '#/components/schemas/SimGridDiff' }
+        races: { $ref: '#/components/schemas/SimGridDiff' }
+
+    SimGridPreview:
+      type: object
+      required: [snapshot, hash, revision, changes, syncedAt]
+      properties:
+        snapshot: { $ref: '#/components/schemas/SimGridSnapshot' }
+        hash: { type: string, description: SHA-256 fingerprint required for confirmation }
+        revision: { type: integer, description: Saved revision required for confirmation }
+        changes: { $ref: '#/components/schemas/SimGridChanges' }
+        syncedAt: { type: string, format: date-time, nullable: true }
+
+    SimGridSyncResult:
+      type: object
+      required: [success, changes, revision, syncedAt]
+      properties:
+        success: { type: boolean }
+        changes: { $ref: '#/components/schemas/SimGridChanges' }
+        revision: { type: integer }
+        syncedAt: { type: string, format: date-time }
 
     ErrorResponse:
       type: object
@@ -151,6 +247,83 @@ components:
 # PATHS
 # ─────────────────────────────────────────────────────────────────────────────
 paths:
+
+  /api/simgrid:
+    get:
+      tags: [Portal Data]
+      summary: Read the last saved SimGrid snapshot
+      description: Public, no-store response. Does not contact SimGrid or initialize tables. Returns null snapshot before the first sync or after the league championship changes.
+      parameters:
+        - in: query
+          name: leagueId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Saved snapshot or null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  snapshot:
+                    nullable: true
+                    allOf:
+                      - $ref: '#/components/schemas/SimGridSnapshot'
+                  syncedAt: { type: string, format: date-time, nullable: true }
+                  revision: { type: integer }
+        '400': { description: Invalid league ID or SimGrid URL }
+        '404': { description: League not found }
+        '500': { description: Database failure }
+    post:
+      tags: [Admin]
+      summary: Preview or confirm a manual SimGrid sync
+      security:
+        - AdminSession: []
+      description: |
+        Supports solo LMU championships. The league's simgrid_url selects the
+        championship; the client cannot provide arbitrary upstream URLs.
+        Preview is read-only. Confirm re-fetches and validates the complete
+        snapshot against hash and revision, then atomically saves it and upserts
+        provider-owned registrations. Missing imported drivers become inactive;
+        local-only registrations are untouched. Scores already include SimGrid
+        adjustments. Detailed race results and lap times are not imported.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [action, leagueId]
+                  properties:
+                    action: { type: string, enum: [preview] }
+                    leagueId: { type: integer, minimum: 1 }
+                - type: object
+                  required: [action, leagueId, hash, revision]
+                  properties:
+                    action: { type: string, enum: [sync] }
+                    leagueId: { type: integer, minimum: 1 }
+                    hash: { type: string }
+                    revision: { type: integer, minimum: 0 }
+      responses:
+        '200':
+          description: Preview or completed sync
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SimGridPreview'
+                  - $ref: '#/components/schemas/SimGridSyncResult'
+        '400': { description: Invalid JSON, action, league ID, or championship URL }
+        '401': { description: Invalid or expired admin session }
+        '404': { description: League not found }
+        '409': { description: Stale preview or concurrent update. Preview again. }
+        '422': { description: Unsupported simulator or team championship }
+        '429': { description: SimGrid rate limit reached }
+        '500': { description: Database failure; previous snapshot retained }
+        '502': { description: Upstream failure or incomplete/unrecognized data; no sync performed }
+        '503': { description: SIMGRID_API_TOKEN or JWT_SECRET missing }
 
   # ── /api/home ───────────────────────────────────────────────────────────────
   /api/home:

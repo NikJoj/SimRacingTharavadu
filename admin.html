@@ -154,8 +154,18 @@
           <!-- Update Races Section (Main Content) -->
           <div class="update-races-main">
             <div class="sync-card">
+              <h3>SimGrid — Manual Sync</h3>
+              <p>Preview LMU drivers, official adjusted standings, and the race schedule before saving to Neon. Detailed race results remain on SimGrid.</p>
+              <label for="simgrid-league">League</label>
+              <select id="simgrid-league" class="form-control" onchange="resetSimgridPreview()"></select>
+              <button type="button" id="simgrid-preview-button" class="btn-primary" onclick="previewSimgrid()">Preview SimGrid changes</button>
+              <button type="button" id="simgrid-sync-button" class="btn-primary" onclick="syncSimgrid()" disabled>Confirm sync</button>
+              <div id="simgrid-status" class="status-message" role="status" aria-live="polite"></div>
+              <div id="simgrid-preview"></div>
+            </div>
+            <div class="sync-card">
               <h3>Update Races</h3>
-              <p>Fetch available races from Assetto Corsa API and select which ones to sync to blob storage.</p>
+              <p>Fetch available races from Assetto Corsa API and select which ones to sync to Neon.</p>
               
               <button class="btn-primary" onclick="fetchAvailableRaces()">
                 📋 Fetch Available Races
@@ -227,5 +237,6 @@
   <!-- Scripts -->
   <script src="js/config.js"></script>
   <script src="js/admin.js"></script>
+  <script src="js/simgrid-admin.js"></script>
 </body>
 </html>

@@ -19,3 +19,4 @@ import './championships.js';
 import './live.js';
 import './races.js';
 import './results.js';
+import './simgrid.js';

@@ -28,9 +28,7 @@ function getLeaguesSortedLatestFirst() {
  */
 function buildLeagueCardHTML(l) {
   const statusLabel = l.status === 'ongoing' ? 'Live Now' : l.status === 'upcoming' ? 'Upcoming' : 'Closed';
-  const detailsAction = l.simgridUrl
-    ? `window.open('${l.simgridUrl}', '_blank')`
-    : `showLeagueDetails('${l.id}')`;
+  const detailsAction = `showLeagueDetails('${l.id}')`;
   return `
     <div class="league-card ${l.status}">
       <div class="league-poster">
@@ -128,12 +126,12 @@ function showLeagueDetails(leagueId) {
   // Update page title
   document.getElementById('league-details-title').textContent = league.name;
 
-  // For SimGrid leagues: hide Assetto-API tabs and rename the signup tab
+  // SimGrid standings/schedule use Neon; live timing remains Assetto-only.
   const isSimGrid = !!league.simgridUrl;
   const assettoTabs = ['live', 'standings', 'races'];
   assettoTabs.forEach(tab => {
     const btn = document.querySelector(`.league-tab[data-tab="${tab}"]`);
-    if (btn) btn.style.display = isSimGrid ? 'none' : '';
+    if (btn) btn.style.display = isSimGrid && tab === 'live' ? 'none' : '';
   });
   const signupBtn = document.querySelector('.league-tab[data-tab="signup"]');
   if (signupBtn) signupBtn.textContent = isSimGrid ? 'Championship Portal' : 'Sign up';
@@ -142,7 +140,7 @@ function showLeagueDetails(leagueId) {
   showPage('league-details');
   
   // Load initial tab content - default to signup tab
-  switchLeagueTab('signup');
+  switchLeagueTab(isSimGrid ? 'standings' : 'signup');
 }
 
 /**
@@ -215,6 +213,8 @@ function stopLiveTimingPolling() {
  * Load championship standings
  */
 async function loadLeagueStandings() {
+  const simgridLeague = appLeagues.find(l => l.id === currentLeagueId && l.simgridUrl);
+  if (simgridLeague) return loadSimgridView(simgridLeague, 'standings');
   const container = document.getElementById('league-standings-content');
   container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading standings…</div>';
   
@@ -393,6 +393,8 @@ function formatBestLapFromStandings(entry) {
  * Load race details list
  */
 async function loadLeagueRaces() {
+  const simgridLeague = appLeagues.find(l => l.id === currentLeagueId && l.simgridUrl);
+  if (simgridLeague) return loadSimgridView(simgridLeague, 'races');
   const container = document.getElementById('league-races-content');
   container.innerHTML = '<div class="data-loading"><span class="spinner"></span> Loading races…</div>';
   
@@ -1178,9 +1180,12 @@ function loadSignupIframe() {
   
   // SimGrid league — embed the SimGrid championship portal directly
   if (league.simgridUrl) {
-    iframe.src = league.simgridUrl;
+    const url = simgridPortalUrl(league.simgridUrl);
+    iframe.removeAttribute('src');
+    iframe.srcdoc = `<p style="font-family:system-ui;text-align:center;padding:40px">Registration and detailed race results are managed on SimGrid.<br><br><a href="${simgridEscape(url)}" target="_blank" rel="noopener noreferrer">Open championship on SimGrid</a></p>`;
     return;
   }
+  iframe.removeAttribute('srcdoc');
 
   // Check if league has a championship ID configured
   if (!league.championshipId) {

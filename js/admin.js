@@ -203,6 +203,7 @@ async function loadLeagues() {
         format: l.format || '',
         season: l.season || '',
         championshipId: l.championship_id || '',
+        simgridUrl: l.simgrid_url || '',
         drivers: String(l.drivers || 0),
         maxDrivers: String(l.max_drivers || 36),
         rounds: String(l.rounds || 8),
@@ -364,6 +365,7 @@ function showSection(sectionName) {
   
   // Populate dropdowns when switching to race-sync section
   if (sectionName === 'race-sync') {
+    populateSimgridLeagues();
     // League dropdown will be populated when races are fetched
   }
 }
@@ -598,6 +600,7 @@ let pendingDriverImport = {
 function populateUpdateRacesLeagueSelect() {
   const select = document.getElementById('update-races-league');
   const options = adminData.leagues
+    .filter(l => !l.simgridUrl)
     .map(l => `<option value="${l.id}">${l.name}</option>`)
     .join('');
   
@@ -806,7 +809,7 @@ async function syncSelectedRaces() {
  */
 function openDriverImportModal() {
   const modal = document.getElementById('modal');
-  const importableLeagues = adminData.leagues.filter(l => l.championshipId);
+  const importableLeagues = adminData.leagues.filter(l => l.championshipId && !l.simgridUrl);
   const options = importableLeagues
     .map(l => `<option value="${escapeHtml(l.id)}">${escapeHtml(l.name)}</option>`)
     .join('');
@@ -819,6 +822,7 @@ function openDriverImportModal() {
   document.getElementById('modal-title').textContent = 'Sync League Drivers';
   document.getElementById('modal-body').innerHTML = `
     <div class="modal-form">
+      <p>For SimGrid leagues, use the SimGrid preview and sync in Race Result Sync.</p>
       <div class="form-group">
         <label>League</label>
         <select class="form-control" id="driver-import-league">
@@ -1146,8 +1150,13 @@ function getLeagueForm(league = null) {
         <input type="datetime-local" class="form-control" id="league-end" value="${league?.endDate ? new Date(league.endDate).toISOString().slice(0, 16) : ''}" required>
       </div>
       <div class="form-group">
-        <label>Championship ID</label>
+        <label>Assetto Championship ID (leave empty for SimGrid)</label>
         <input type="text" class="form-control" id="league-champ" value="${league?.championshipId || ''}" placeholder="UUID from Assetto API">
+      </div>
+      <div class="form-group">
+        <label>SimGrid championship URL (optional)</label>
+        <input type="url" class="form-control" id="league-simgrid" value="${escapeHtml(league?.simgridUrl || '')}" placeholder="https://www.thesimgrid.com/championships/26866">
+        <small>Set this for LMU SimGrid leagues to enable manual sync.</small>
       </div>
       <div class="form-group">
         <label>League Poster ${league ? '' : '*'}</label>
@@ -1260,7 +1269,8 @@ async function saveLeague(e) {
     season: document.getElementById('league-season').value,
     start_date: new Date(document.getElementById('league-start').value).toISOString(),
     end_date: new Date(document.getElementById('league-end').value).toISOString(),
-    championship_id: document.getElementById('league-champ').value
+    championship_id: document.getElementById('league-champ').value,
+    simgrid_url: document.getElementById('league-simgrid').value.trim()
   };
 
   // Check if editing (has id) or creating new

@@ -8,6 +8,7 @@ node_modules/
 .env
 .env.local
 .env.production
+local.settings.json
 
 # OS files
 .DS_Store

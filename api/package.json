@@ -8,6 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "test": "node --test tests/*.test.js",
     "build": "echo 'No build step — pure ESM'",
     "start": "func start"
   },

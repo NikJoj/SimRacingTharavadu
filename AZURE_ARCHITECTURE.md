@@ -13,6 +13,7 @@ Azure Static Web Apps
   └── Managed Azure Functions: /api/*
           ├── Neon PostgreSQL: portal data and archived race results
           ├── Assetto Hosting API: live timing, championships, standings, results
+          ├── SimGrid GridOS: manual LMU registration, standings and schedule sync
           └── GitHub Contents API: optional poster uploads
 ```
 
@@ -35,6 +36,7 @@ The GitHub Actions workflow at `.github/workflows/azure-static-web-apps-delightf
 | Race archive | `/api/race-store` | Neon PostgreSQL + Assetto Hosting |
 | Assetto proxies | `/api/live`, `/api/races`, `/api/results`, `/api/championships`, `/api/standings` | Assetto Hosting |
 | Admin support | `/api/login-auth`, `/api/sync-poster` | Azure configuration + GitHub Contents API |
+| SimGrid | `/api/simgrid` | SimGrid GridOS → Neon snapshot + registrations |
 
 The complete request and response contract is in `docs/openapi.yaml`.
 
@@ -43,6 +45,11 @@ The complete request and response contract is in `docs/openapi.yaml`.
 The data layer is implemented in `api/db.js` with `@neondatabase/serverless`. It creates and evolves the schema idempotently during initialization.
 
 Primary tables: `events`, `leagues`, `leaderboard`, `registrations`, and `race_results`.
+
+`simgrid_snapshots` is created on the first confirmed SimGrid sync. It stores one
+current normalized snapshot per league, its revision, sync time and admin name.
+Registrations gain `simgrid_registration_id` (stable provider ID) and
+`simgrid_active` (withdrawal status). Existing registrations default to active.
 
 Race results use `race_results.league_id` for new records. The former `leagues.blob_store` value remains only as legacy compatibility data so historical records can be linked safely; it is not required for new leagues and is not a storage location.
 
@@ -56,6 +63,7 @@ Configure these application settings in Azure Static Web Apps. Never place their
 | `ADMIN_USERNAME` | `login-auth` | Dashboard username |
 | `ADMIN_PASSWORD` | `login-auth` | Dashboard password |
 | `JWT_SECRET` | `login-auth` | HMAC signing secret for the short-lived dashboard token |
+| `SIMGRID_API_TOKEN` | `simgrid` | Approved GridOS bearer token; backend only |
 | `GITHUB_TOKEN` | `sync-poster` | GitHub token with repository-contents write access |
 | `GITHUB_OWNER` | `sync-poster` | GitHub repository owner |
 | `GITHUB_REPO` | `sync-poster` | Repository name; defaults to `SimRacingTharavadu` |
@@ -68,6 +76,7 @@ Configure these application settings in Azure Static Web Apps. Never place their
 - The static site and API use same-origin `/api` requests; frontend code has no database credentials.
 - The admin login endpoint issues a two-hour HMAC-signed token and the browser validates it before showing the dashboard.
 - Azure Functions currently use anonymous function authorization. The dashboard token is a UI session check, not server-side authorization for CRUD routes. Add server-side token validation before treating the dashboard as a security boundary.
+- Exception: `POST /api/simgrid` validates the existing HMAC admin session server-side and requires an explicit `JWT_SECRET`. Public GET only reads normalized saved data, never the API token or raw participant metadata.
 - Rotate database, GitHub, and admin secrets if they have ever been committed or shared.
 - Add Application Insights if request-level monitoring is required.
 
@@ -77,6 +86,56 @@ Configure these application settings in Azure Static Web Apps. Never place their
 2. Install dependencies in `api/`.
 3. Run Azure Functions Core Tools from `api/`; functions are served under `http://localhost:7071/api`.
 4. Serve the repository root with a local static server that proxies `/api` to the Functions host, or test API endpoints directly.
+
+Core Tools does not automatically load `.env.local`. Supply the API settings in
+the process environment or in `api/local.settings.json` under `Values` when
+running locally. Never commit that file. For deployment, add `SIMGRID_API_TOKEN`
+to Azure Static Web Apps application settings; a local token is not deployed.
+
+## Manual SimGrid sync (Pre-Season 2)
+
+1. In the admin league editor, set simulator to **Le Mans Ultimate** and the
+   SimGrid URL to `https://www.thesimgrid.com/championships/26866`.
+   Keep the Assetto championship field empty. Existing SimGrid URLs are retained.
+2. Open **Race Result Sync → SimGrid — Manual Sync** and select the league.
+3. Click **Preview SimGrid changes**. Review drivers, official scores, schedule,
+   changes/withdrawals, and last successful sync time. Preview performs no writes.
+4. Click **Confirm sync**. The backend re-fetches the same data and rejects a
+   changed preview. A compare-and-swap revision and one SQL statement publish
+   the snapshot, update imported registrations, mark missing imported drivers
+   inactive and update the league driver count atomically. Local-only driver
+   records and local penalty values are preserved, but local penalty deductions
+   are never applied to SimGrid standings. No scheduler is installed.
+5. Visitors open **View Details** to see saved standings and race schedule.
+   They see the last sync time. The portal tab links to SimGrid for registration
+   and detailed race results; live timing is not available for this integration.
+
+Verified read-only against championship 26866 on 2026-09-13: 27 registrations,
+27 standings rows, five sessions. GridOS requests used:
+
+- `GET /api/v1/championships/:id`
+- `GET /api/v1/registrations?registerable_type=Championship&registerable_id=:id`
+- `GET /api/v1/championships/:id/standings?page=N`
+
+The standings endpoint was verified live despite being absent from the public
+[GridOS collection](https://gridos.thesimgrid.com/). Its response is a tuple with
+entries at index 0 and pagination at index 3. The integration checks pagination,
+IDs, registration counts and required numeric fields and rejects unexpected
+shapes. Official `championship_score` and `position_cache` are displayed directly;
+points and penalties are not recomputed. Subsequent manual syncs cascade corrections.
+
+Limitations: solo LMU is supported; team championships fail explicitly. Detailed
+race results/lap times are not imported because a working results-read endpoint
+has not been verified. Race publication status is imported, not assumed to mean
+final results. Changing a league's championship URL hides its old public snapshot
+until a new sync. Withdrawals remain recoverable in registrations; historical
+snapshot versions are not retained. Repeated syncs update the same stable IDs.
+
+Run `npm.cmd test` in `api/` for parser, authorization and mocked-handler tests.
+These do not write to Neon. Before production rollout, test preview/confirmation
+on a development Neon database, repeat it to check duplicates, and verify a
+changed SimGrid score flows through on the next confirmed sync. Deployment and
+the first database sync remain operator actions.
 
 ## Removed legacy infrastructure
 

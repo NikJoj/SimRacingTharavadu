@@ -42,16 +42,16 @@ app.http('registrations', {
         }
 
         if (event) {
-          const result = await sql`SELECT * FROM registrations WHERE event = ${event} ORDER BY timestamp DESC`;
+          const result = await sql`SELECT * FROM registrations WHERE event = ${event} AND simgrid_active = TRUE ORDER BY timestamp DESC`;
           return { status: 200, jsonBody: { registrations: result.rows } };
         }
 
         if (driver_tag) {
-          const result = await sql`SELECT * FROM registrations WHERE driver_tag = ${driver_tag} ORDER BY timestamp DESC`;
+          const result = await sql`SELECT * FROM registrations WHERE driver_tag = ${driver_tag} AND simgrid_active = TRUE ORDER BY timestamp DESC`;
           return { status: 200, jsonBody: { registrations: result.rows } };
         }
 
-        const result = await sql`SELECT * FROM registrations ORDER BY timestamp DESC`;
+        const result = await sql`SELECT * FROM registrations WHERE simgrid_active = TRUE ORDER BY timestamp DESC`;
         return { status: 200, jsonBody: { registrations: result.rows } };
       }
 
@@ -156,6 +156,7 @@ app.http('registrations', {
 });
 
 async function ensureRegistrationColumns() {
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS simgrid_active BOOLEAN NOT NULL DEFAULT TRUE`;
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS league_id INTEGER`;
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS car_number VARCHAR(50)`;
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS penalty_points INTEGER DEFAULT 0`;
