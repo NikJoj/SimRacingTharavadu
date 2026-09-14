@@ -149,7 +149,10 @@ also rejected server-side. Confirm resubmits the file with a hash covering the
 selected league, race, and normalized result. Re-uploading updates the same Neon
 race row. The raw XML, telemetry, incidents, and local installation paths are
 not stored. SimGrid standings remain authoritative for points, penalties, and
-stewarding corrections.
+stewarding corrections. The public Race Details tab combines the saved SimGrid
+schedule with `race_results` by the scheduled race timestamp. Synced entries
+open the existing Season 1-style result page; unsynced entries remain visible
+with a non-clickable status instead of implying that results are available.
 
 Run `npm.cmd test` in `api/` for parser, authorization and mocked-handler tests.
 These do not write to Neon. Before production rollout, test preview/confirmation

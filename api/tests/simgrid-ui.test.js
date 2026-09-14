@@ -7,7 +7,9 @@ const source = readFileSync(new URL('../../js/simgrid-public.js', import.meta.ur
 test('public standings render official score and escape imported text', async () => {
   const container = { innerHTML: '' };
   const context = vm.createContext({ URL, Date, currentLeagueId: '3', document: { getElementById: () => container },
-    fetch: async () => ({ ok: true, json: async () => ({ syncedAt: '2026-09-13T00:00:00Z', snapshot: {
+    CONFIG: { API_ENDPOINTS: { RACE_STORE: '/api/race-store' } }, fetch: async url => ({ ok: true, json: async () => String(url).startsWith('/api/race-store') ? ({ races: [
+      { race_timestamp: Date.parse('2026-09-14T10:00:00Z') }
+    ] }) : ({ syncedAt: '2026-09-13T00:00:00Z', snapshot: {
       standings: [{ position: 1, name: '<img src=x onerror=alert(1)>', car: 'Car', carNumber: '7', className: 'LMGT3', penalties: 2, adjustment: 7, adjustmentReason: '"test"', score: 65 }], races: []
     } }) }) });
   vm.runInContext(source, context);
@@ -18,6 +20,21 @@ test('public standings render official score and escape imported text', async ()
   assert.doesNotMatch(container.innerHTML, /Last synced|not deducted again|Open SimGrid championship/);
   await context.loadSimgridView({ id: '3', simgridUrl: 'https://www.thesimgrid.com/championships/26866' }, 'races');
   assert.doesNotMatch(container.innerHTML, /Last synced|Synced schedule|Open SimGrid championship/);
+});
+
+test('SimGrid race list opens synced results and labels missing results', () => {
+  const context = vm.createContext({ URL, Date });
+  vm.runInContext(source, context);
+  const races = [
+    { id: '1', name: 'Round <one>', track: 'Bahrain', startsAt: '2026-09-14T10:00:00Z' },
+    { id: '2', name: 'Round two', track: 'Spa', startsAt: '2026-09-21T10:00:00Z' }
+  ];
+  const html = context.buildSimgridRaceList(races, [{ race_timestamp: Date.parse(races[0].startsAt) }], '3');
+  assert.match(html, new RegExp(`showRaceResults\\('db:3:${Date.parse(races[0].startsAt)}'\\)`));
+  assert.match(html, /Results synced/);
+  assert.match(html, /Results not synced yet/);
+  assert.match(html, /Round &lt;one&gt;/);
+  assert.equal((html.match(/race-item-button/g) || []).length, 1);
 });
 test('public display rejects unsafe links and explains unsynced data', async () => {
   const container = { innerHTML: '' };
