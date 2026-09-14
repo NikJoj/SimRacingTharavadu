@@ -249,11 +249,46 @@ components:
 # ─────────────────────────────────────────────────────────────────────────────
 paths:
 
+  /api/simgrid-results:
+    post:
+      tags: [Admin]
+      summary: Preview or confirm an uploaded LMU XML race result
+      security:
+        - AdminSession: []
+      description: |
+        Accepts an LMU/rFactor XML result file up to 8 MB. Preview normalizes
+        the Race session and validates its timestamp and track against a race
+        in the saved SimGrid snapshot. Confirm requires the preview hash and
+        upserts the selected league/race slot in Neon. Raw XML, telemetry, and
+        incidents are not persisted. SimGrid remains authoritative for points
+        and stewarding adjustments.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [action, leagueId, raceId, file]
+              properties:
+                action: { type: string, enum: [preview, sync] }
+                leagueId: { type: integer, minimum: 1 }
+                raceId: { type: string, pattern: '^\\d+$' }
+                hash: { type: string, description: Required for sync; returned by preview }
+                file: { type: string, format: binary }
+      responses:
+        '200': { description: Read-only preview or completed race upsert }
+        '400': { description: Missing selection, invalid filename, upload, or XML }
+        '401': { description: Invalid or expired admin session }
+        '404': { description: League not found }
+        '409': { description: Championship not synced or preview changed }
+        '422': { description: Invalid results or date/track mismatch }
+        '500': { description: Database failure; existing race retained }
+
   /api/simgrid:
     get:
       tags: [Portal Data]
       summary: Read the last saved SimGrid snapshot
-      description: Public, no-store response. Does not contact SimGrid or initialize tables. Returns null snapshot before the first sync or after the league championship changes.
+      description: Public, no-store response used by standings, schedule, and the championship portal registration summary. Does not contact SimGrid or initialize tables. Returns null snapshot before the first sync or after the league championship changes.
       parameters:
         - in: query
           name: leagueId

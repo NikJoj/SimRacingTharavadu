@@ -37,6 +37,7 @@ The GitHub Actions workflow at `.github/workflows/azure-static-web-apps-delightf
 | Assetto proxies | `/api/live`, `/api/races`, `/api/results`, `/api/championships`, `/api/standings` | Assetto Hosting |
 | Admin support | `/api/login-auth`, `/api/sync-poster` | Azure configuration + GitHub Contents API |
 | SimGrid | `/api/simgrid` | SimGrid GridOS → Neon snapshot + registrations |
+| LMU result upload | `/api/simgrid-results` | Admin XML upload → normalized Neon race result |
 
 The complete request and response contract is in `docs/openapi.yaml`.
 
@@ -109,6 +110,8 @@ to Azure Static Web Apps application settings; a local token is not deployed.
    are never applied to SimGrid standings. No scheduler is installed.
 5. Visitors open **View Details** to see saved standings and race schedule.
    They see the last sync time. The portal tab links to SimGrid for registration
+   and shows the saved registration summary below the link. The browser reads
+   this from `/api/simgrid`; the GridOS bearer token remains server-side.
    and detailed race results; live timing is not available for this integration.
 
 Verified read-only against championship 26866 on 2026-09-13: 27 registrations,
@@ -125,12 +128,28 @@ IDs, registration counts and required numeric fields and rejects unexpected
 shapes. Official `championship_score` and `position_cache` are displayed directly;
 points and penalties are not recomputed. Subsequent manual syncs cascade corrections.
 
-Limitations: solo LMU is supported; team championships fail explicitly. Detailed
-race results/lap times are not imported because a working results-read endpoint
-has not been verified. Race publication status is imported, not assumed to mean
-final results. Changing a league's championship URL hides its old public snapshot
+Limitations: solo LMU is supported; team championships fail explicitly. GridOS
+does not supply detailed results to this integration, but admins can upload an
+LMU XML result as described below. Race publication status is imported, not
+assumed to mean final results. Changing a league's championship URL hides its old public snapshot
 until a new sync. Withdrawals remain recoverable in registrations; historical
 snapshot versions are not retained. Repeated syncs update the same stable IDs.
+
+### Manual LMU race-result upload
+
+After syncing the championship, an admin selects one of its races and uploads an
+LMU/rFactor XML result file. Filenames must use the server format
+`YYYY_MM_DD_HH_MM_SS-suffix` with an optional `.xml` extension. The backend
+accepts at most 8 MB and normalizes position, driver, team, car, class, laps,
+best lap, elapsed time, finish status, grid position, and pit stops.
+
+Preview compares the XML timestamp (36-hour tolerance) and meaningful track
+tokens with the selected SimGrid race. A mismatch disables confirmation and is
+also rejected server-side. Confirm resubmits the file with a hash covering the
+selected league, race, and normalized result. Re-uploading updates the same Neon
+race row. The raw XML, telemetry, incidents, and local installation paths are
+not stored. SimGrid standings remain authoritative for points, penalties, and
+stewarding corrections.
 
 Run `npm.cmd test` in `api/` for parser, authorization and mocked-handler tests.
 These do not write to Neon. Before production rollout, test preview/confirmation

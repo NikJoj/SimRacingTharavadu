@@ -37,11 +37,14 @@ test('switching leagues during a fetch does not render stale data', async () => 
   assert.doesNotMatch(container.innerHTML, /No standings or race data available yet/);
 });
 
-test('portal uses site-themed content and restores Assetto iframe when switching leagues', () => {
+test('portal uses site-themed content, renders saved registrations, and restores Assetto iframe', async () => {
   const iframe = { removeAttribute(name) { delete this[name]; } };
-  const portal = { innerHTML: '' }, banner = {};
-  const context = vm.createContext({ URL, console, document: {
-    getElementById: id => id === 'signup-iframe' ? iframe : portal,
+  const portal = { innerHTML: '' }, summary = { innerHTML: '' }, banner = {};
+  const context = vm.createContext({ URL, Date, console, fetch: async () => ({ ok: true, json: async () => ({
+    syncedAt: '2026-09-14T10:00:00Z', snapshot: { capacity: 30,
+      drivers: [{ name: 'Driver <one>', carNumber: '7', className: 'Hypercar' }] }
+  }) }), document: {
+    getElementById: id => id === 'signup-iframe' ? iframe : id === 'simgrid-registration-summary' ? summary : portal,
     querySelector: () => banner
   }, appLeagues: [
     { id: '3', name: 'Preseason <test>', simgridUrl: 'https://www.thesimgrid.com/championships/26866?s=invite' },
@@ -56,6 +59,9 @@ test('portal uses site-themed content and restores Assetto iframe when switching
   assert.match(portal.innerHTML, /btn-primary simgrid-portal-link/);
   assert.match(portal.innerHTML, /Preseason &lt;test&gt;/);
   assert.match(portal.innerHTML, /26866\?s=invite/);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(summary.innerHTML, /Driver &lt;one&gt;/);
+  assert.match(summary.innerHTML, /1<\/strong><span>of 30 spots/);
   vm.runInContext("currentLeagueId = '1'; loadSignupIframe();", context);
   assert.equal(iframe.hidden, false);
   assert.equal(banner.hidden, false);

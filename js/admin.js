@@ -1045,6 +1045,7 @@ function openCreateModal(type) {
  */
 function closeModal() {
   document.getElementById('modal').style.display = 'none';
+  document.querySelector('#modal .modal-dialog')?.classList.remove('modal-dialog-wide');
 }
 
 /**

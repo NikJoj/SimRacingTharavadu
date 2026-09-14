@@ -869,6 +869,7 @@ async function showRaceResults(resultsUrl) {
  * @param {Object} data - Race results data
  */
 function updateRaceResultsHeader(data) {
+  const safe = value => typeof simgridEscape === 'function' ? simgridEscape(value) : String(value ?? '');
   // Update title
   const trackName = data.TrackName ? data.TrackName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown Track';
   const trackConfig = data.TrackConfig ? ` (${data.TrackConfig})` : '';
@@ -883,13 +884,13 @@ function updateRaceResultsHeader(data) {
     year: 'numeric'
   }) : 'N/A';
   
-  const totalLaps = data.Laps ? data.Laps.length : 0;
+  const totalLaps = data.TotalLaps ?? (data.Laps ? data.Laps.length : 0);
   const totalDrivers = data.Result ? data.Result.length : 0;
   
   metaContainer.innerHTML = `
     <div class="race-meta-item">
       <div class="race-meta-label">Session Type</div>
-      <div class="race-meta-value">${sessionType}</div>
+      <div class="race-meta-value">${safe(sessionType)}</div>
     </div>
     <div class="race-meta-item">
       <div class="race-meta-label">Date</div>
@@ -912,6 +913,7 @@ function updateRaceResultsHeader(data) {
  * @returns {string} HTML string
  */
 function buildRaceResultsDisplay(data) {
+  const safe = value => typeof simgridEscape === 'function' ? simgridEscape(value) : String(value ?? '');
   let html = '<div class="lb-body">';
   
   // Podium (Top 3)
@@ -931,8 +933,8 @@ function buildRaceResultsDisplay(data) {
       html += `
         <div class="podium-card ${posClass}">
           <div class="podium-position">${getPositionSuffix(position)}</div>
-          <div class="podium-driver">${driver.DriverName || 'Unknown Driver'}</div>
-          <div class="podium-car">${carModel}</div>
+          <div class="podium-driver">${safe(driver.DriverName || 'Unknown Driver')}</div>
+          <div class="podium-car">${safe(carModel)}</div>
           <div class="podium-stats">
             <div class="podium-stat">
               <span class="podium-stat-label">Best Lap</span>
@@ -965,7 +967,7 @@ function buildRaceResultsDisplay(data) {
         <div class="fastest-lap-highlight">
           <div class="fastest-lap-info">
             <div class="fastest-lap-label">⚡ FASTEST LAP</div>
-            <div class="fastest-lap-driver">${fastestDriver.DriverName || 'Unknown Driver'}</div>
+            <div class="fastest-lap-driver">${safe(fastestDriver.DriverName || 'Unknown Driver')}</div>
           </div>
           <div class="fastest-lap-time">${formatLapTime(fastestDriver.BestLap)}</div>
         </div>
@@ -978,7 +980,7 @@ function buildRaceResultsDisplay(data) {
     html += '<div class="race-results-section">';
     html += '<h3 class="race-results-section-title">📊 FULL RESULTS</h3>';
     html += '<table class="lb-table"><thead><tr>';
-    html += '<th>Pos</th><th>Driver</th><th>Car</th><th>Laps</th><th>Best Lap</th><th>Total Time</th>';
+    html += '<th>Pos</th><th>Driver</th><th>Car</th><th>Laps</th><th>Best Lap</th><th>Total Time</th><th>Status</th>';
     html += '</tr></thead><tbody>';
     
     data.Result.forEach((driver, index) => {
@@ -988,14 +990,15 @@ function buildRaceResultsDisplay(data) {
       const totalTime = driver.TotalTime ? formatLapTime(driver.TotalTime) : 'N/A';
       
       html += `<tr class="${posClass}">
-        <td class="pos-cell">${index + 1}</td>
+        <td class="pos-cell">${driver.Position || index + 1}</td>
         <td class="driver-cell">
-          <div class="driver-name">${driver.DriverName || 'Unknown Driver'}</div>
+          <div class="driver-name">${safe(driver.DriverName || 'Unknown Driver')}</div>
         </td>
-        <td class="team-cell">${carModel}</td>
+        <td class="team-cell">${safe(carModel)}${driver.CarNumber ? ` <small>#${safe(driver.CarNumber)}</small>` : ''}</td>
         <td class="pts-cell">${driver.NumLaps || 0}</td>
         <td class="time-cell">${bestLap}</td>
         <td class="time-cell">${totalTime}</td>
+        <td class="team-cell">${safe(driver.FinishStatus || 'Finished')}</td>
       </tr>`;
     });
     
@@ -1190,11 +1193,17 @@ function loadSignupIframe() {
     iframe.removeAttribute('src');
     iframe.removeAttribute('srcdoc');
     if (portal) portal.innerHTML = `
-      <span class="simgrid-portal-label">Championship Portal</span>
-      <h2>${simgridEscape(league.name)}</h2>
-      <p>Visit SimGrid for championship registration and detailed race results.</p>
-      <a class="btn-primary simgrid-portal-link" href="${simgridEscape(url)}" target="_blank" rel="noopener noreferrer">Open championship on SimGrid <span aria-hidden="true">↗</span></a>
-      <span class="simgrid-portal-hint">Opens in a new tab</span>`;
+      <div class="simgrid-portal-intro">
+        <span class="simgrid-portal-label">Championship Portal</span>
+        <h2>${simgridEscape(league.name)}</h2>
+        <p>Visit SimGrid to register for the championship or update your entry.</p>
+        <a class="btn-primary simgrid-portal-link" href="${simgridEscape(url)}" target="_blank" rel="noopener noreferrer">Open championship on SimGrid <span aria-hidden="true">↗</span></a>
+        <span class="simgrid-portal-hint">Opens in a new tab</span>
+      </div>
+      <div id="simgrid-registration-summary" class="simgrid-registration-summary">
+        <div class="data-loading"><span class="spinner"></span> Loading registered drivers…</div>
+      </div>`;
+    loadSimgridRegistrationSummary(league);
     return;
   }
   iframe.removeAttribute('srcdoc');
@@ -1219,6 +1228,41 @@ function loadSignupIframe() {
   iframe.src = signupUrl;
   
   console.log('Loading signup page:', signupUrl);
+}
+
+async function loadSimgridRegistrationSummary(league) {
+  const expectedLeagueId = String(league.id);
+  const container = document.getElementById('simgrid-registration-summary');
+  if (!container) return;
+  try {
+    const response = await fetch(`/api/simgrid?leagueId=${encodeURIComponent(league.id)}`, { cache: 'no-store' });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Could not load registrations.');
+    if (String(currentLeagueId) !== expectedLeagueId) return;
+    const currentContainer = document.getElementById('simgrid-registration-summary');
+    if (!currentContainer) return;
+    const snapshot = data.snapshot;
+    if (!snapshot) {
+      currentContainer.innerHTML = '<div class="empty-state">Registration summary will appear after the next manual SimGrid sync.</div>';
+      return;
+    }
+    const drivers = Array.isArray(snapshot.drivers) ? snapshot.drivers : [];
+    currentContainer.innerHTML = `
+      <div class="simgrid-registration-heading">
+        <div><span class="simgrid-portal-label">Registration summary</span><h3>Confirmed entries</h3></div>
+        <div class="simgrid-registration-count"><strong>${simgridEscape(drivers.length)}</strong><span>of ${simgridEscape(snapshot.capacity)} spots</span></div>
+      </div>
+      <div class="simgrid-registration-table"><table class="lb-table"><thead><tr><th>#</th><th>Driver</th><th>Car #</th><th>Class</th></tr></thead><tbody>
+        ${drivers.map((driver, index) => `<tr><td>${index + 1}</td><td>${simgridEscape(driver.name)}</td><td>${simgridEscape(driver.carNumber || '—')}</td><td>${simgridEscape(driver.className || '—')}</td></tr>`).join('')}
+      </tbody></table></div>
+      ${drivers.length ? '' : '<div class="empty-state">No confirmed registrations yet.</div>'}
+      <p class="simgrid-registration-updated">Last updated ${data.syncedAt ? simgridEscape(new Date(data.syncedAt).toLocaleString()) : 'during the latest manual sync'}.</p>`;
+  } catch (error) {
+    if (String(currentLeagueId) === expectedLeagueId) {
+      const currentContainer = document.getElementById('simgrid-registration-summary');
+      if (currentContainer) currentContainer.innerHTML = `<div class="data-error">${simgridEscape(error.message)}</div>`;
+    }
+  }
 }
 
 

@@ -159,9 +159,28 @@
               <label for="simgrid-league">League</label>
               <select id="simgrid-league" class="form-control" onchange="resetSimgridPreview()"></select>
               <button type="button" id="simgrid-preview-button" class="btn-primary" onclick="previewSimgrid()">Preview SimGrid changes</button>
-              <button type="button" id="simgrid-sync-button" class="btn-primary" onclick="syncSimgrid()" disabled>Confirm sync</button>
               <div id="simgrid-status" class="status-message" role="status" aria-live="polite"></div>
-              <div id="simgrid-preview"></div>
+            </div>
+            <div class="sync-card">
+              <h3>Upload League Race Result</h3>
+              <p>Select a synced SimGrid race and upload its LMU XML result file. Preview validation runs before anything is saved.</p>
+              <div class="sync-field-grid">
+                <div class="form-group">
+                  <label for="result-sync-league">League</label>
+                  <select id="result-sync-league" class="form-control" onchange="loadResultSyncRaces()"></select>
+                </div>
+                <div class="form-group">
+                  <label for="result-sync-race">Race</label>
+                  <select id="result-sync-race" class="form-control" disabled></select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="result-sync-file">LMU result file</label>
+                <input id="result-sync-file" class="form-control file-control" type="file">
+                <small>Expected filename: 2026_07_25_21_31_50-71R1 or the same name ending in .xml. Maximum 8 MB.</small>
+              </div>
+              <button type="button" id="result-preview-button" class="btn-primary" onclick="previewRaceResult()">Preview race result</button>
+              <div id="result-sync-status" class="status-message" role="status" aria-live="polite"></div>
             </div>
             <div class="sync-card">
               <h3>Update Races</h3>

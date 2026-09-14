@@ -783,12 +783,16 @@
 #league-signup-content [hidden] { display: none; }
 
 .simgrid-portal {
-  padding: clamp(2rem, 6vw, 4rem) clamp(1.25rem, 4vw, 3rem);
+  padding: 0;
   background: var(--bg2);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-top: 3px solid var(--red);
   text-align: center;
   color: var(--text);
+}
+
+.simgrid-portal-intro {
+  padding: clamp(2rem, 6vw, 4rem) clamp(1.25rem, 4vw, 3rem);
 }
 
 .simgrid-portal-label {
@@ -837,4 +841,44 @@
   margin-top: 1rem;
   font-size: 0.85rem;
   color: #a6adb8;
+}
+
+.simgrid-registration-summary {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  text-align: left;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.simgrid-registration-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.simgrid-registration-heading h3 {
+  margin: 0.35rem 0 0;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.simgrid-registration-count { text-align: right; }
+.simgrid-registration-count strong { display: block; color: var(--red); font-size: 1.5rem; }
+.simgrid-registration-count span { color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.simgrid-registration-table { overflow-x: auto; }
+.simgrid-registration-table .lb-table { min-width: 34rem; }
+.simgrid-portal .simgrid-registration-updated {
+  max-width: none;
+  margin: 1rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+@media (max-width: 560px) {
+  .simgrid-registration-heading { align-items: start; }
 }
