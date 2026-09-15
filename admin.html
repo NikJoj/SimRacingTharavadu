@@ -163,7 +163,7 @@
         <div class="mapping-panel">
           <div class="mapping-panel-header"><div><h3>Discord server members</h3><p>Fetch members through the SRT bot, review suggested matches, and link permanent Discord IDs. Confirmed drivers can sign in immediately without a login approval.</p></div>
             <button class="btn-primary" id="discord-members-button" onclick="previewDiscordMembers()">Fetch Discord members</button></div>
-          <div id="mapping-discord-members" class="data-table"><div class="loading">Fetch members when you are ready to review identity links.</div></div>
+          <div id="mapping-discord-members" class="data-table"><div class="mapping-empty">Fetch members when you are ready to review identity links.</div></div>
         </div>
         <div class="mapping-panel" id="mapping-claims-panel" hidden>
           <div class="mapping-panel-header"><div><h3>Pending Discord login claims</h3><p>Approve only after confirming this Discord account belongs to the mapped driver.</p></div></div>
@@ -171,7 +171,7 @@
         </div>
         <div class="mapping-panel">
           <div class="mapping-panel-header"><div><h3>Discovered names</h3><p>Assign an unmatched name to a new or existing driver. Approved aliases are reused during future race syncs.</p></div>
-            <input id="mapping-search" class="search-input" placeholder="Search driver names…" oninput="renderDriverMappings()"></div>
+            <input id="mapping-search" class="search-input" placeholder="Search driver names…" oninput="mappingSearchChanged()"></div>
           <div id="mapping-candidates" class="data-table"><div class="loading">Open this section to load driver names.</div></div>
         </div>
         <div class="mapping-panel">
