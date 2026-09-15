@@ -308,6 +308,9 @@ paths:
         the configured SRT bot and suggests exact username matches without writing.
         `confirm-discord-members` revalidates server membership and binds selected
         immutable Discord user IDs, allowing those drivers to sign in immediately.
+        A link can target an existing profile or an unmatched discovered racing
+        name; the latter creates the profile, approves the alias, and backfills
+        historical race entries and registrations in the same operation.
       requestBody:
         required: true
         content:
@@ -328,10 +331,14 @@ paths:
                   maxItems: 500
                   items:
                     type: object
-                    required: [memberId, profileId]
+                    required: [memberId]
+                    oneOf:
+                      - required: [profileId]
+                      - required: [candidateId]
                     properties:
                       memberId: { type: string, pattern: '^\\d+$' }
                       profileId: { type: integer }
+                      candidateId: { type: integer }
       responses:
         '200': { description: Operation completed }
         '400': { description: Invalid action or fields }

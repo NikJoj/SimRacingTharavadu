@@ -7,6 +7,22 @@ import { fetchDiscordMembers } from './discord-members.js';
 
 function clean(value, max = 120) { return String(value || '').trim().slice(0, max); }
 
+async function approveCandidate(db, candidate, profileId, admin) {
+  await db(`INSERT INTO driver_aliases (driver_profile_id,alias,normalized_alias,source,approved_by)
+    VALUES ($1,$2,$3,'global',$4) ON CONFLICT (source,normalized_alias) DO UPDATE SET
+    driver_profile_id=EXCLUDED.driver_profile_id, alias=EXCLUDED.alias, approved_by=EXCLUDED.approved_by`,
+    [profileId, candidate.sample_name, candidate.normalized_name, admin]);
+  await db(`UPDATE race_entries SET driver_profile_id=$1,mapping_method='approved_alias',updated_at=NOW()
+    WHERE normalized_name=$2`, [profileId, candidate.normalized_name]);
+  const registrations = (await db(`SELECT id,driver_tag FROM registrations WHERE driver_profile_id IS DISTINCT FROM $1`, [profileId])).rows;
+  for (const registration of registrations) if (normalizeDriverName(registration.driver_tag) === candidate.normalized_name) {
+    await db('UPDATE registrations SET driver_profile_id=$1 WHERE id=$2', [profileId, registration.id]);
+  }
+  await db(`UPDATE driver_name_candidates SET driver_profile_id=$1,status='approved',updated_at=NOW() WHERE id=$2`, [profileId, candidate.id]);
+  await db(`INSERT INTO driver_mapping_audit(action,driver_profile_id,normalized_name,details,admin_username)
+    VALUES('assign',$1,$2,$3::jsonb,$4)`, [profileId, candidate.normalized_name, JSON.stringify({ alias: candidate.sample_name }), admin]);
+}
+
 export function createDriverMappingsHandler({ db = query, discordMembers = fetchDiscordMembers } = {}) {
   return async function handler(request, context) {
     const headers = { 'Cache-Control': 'no-store' };
@@ -58,14 +74,28 @@ export function createDriverMappingsHandler({ db = query, discordMembers = fetch
       }
       if (body.action === 'confirm-discord-members') {
         if (!Array.isArray(body.links) || !body.links.length || body.links.length > 500) throw new SyncError('Choose at least one valid Discord member link.', 400);
-        const selected = body.links.map(link => ({ memberId: String(link.memberId || ''), profileId: Number(link.profileId) }));
-        if (selected.some(link => !/^\d+$/.test(link.memberId) || !Number.isSafeInteger(link.profileId) || link.profileId <= 0)
+        const selected = body.links.map(link => ({ memberId: String(link.memberId || ''),
+          profileId: link.profileId ? Number(link.profileId) : null, candidateId: link.candidateId ? Number(link.candidateId) : null }));
+        if (selected.some(link => !/^\d+$/.test(link.memberId) || (!!link.profileId === !!link.candidateId)
+          || (link.profileId && (!Number.isSafeInteger(link.profileId) || link.profileId <= 0))
+          || (link.candidateId && (!Number.isSafeInteger(link.candidateId) || link.candidateId <= 0)))
           || new Set(selected.map(link => link.memberId)).size !== selected.length
-          || new Set(selected.map(link => link.profileId)).size !== selected.length) throw new SyncError('Each Discord member and driver profile may be linked only once.', 400);
+          || new Set(selected.filter(link => link.profileId).map(link => link.profileId)).size !== selected.filter(link => link.profileId).length
+          || new Set(selected.filter(link => link.candidateId).map(link => link.candidateId)).size !== selected.filter(link => link.candidateId).length) {
+          throw new SyncError('Each Discord member, driver profile, and discovered name may be linked only once.', 400);
+        }
         const currentMembers = new Map((await discordMembers()).map(member => [member.id, member]));
         for (const link of selected) {
           const member = currentMembers.get(link.memberId);
           if (!member) throw new SyncError('A selected account is no longer a member of the SRT Discord server. Refresh the preview.', 409);
+          if (link.candidateId) {
+            const candidate = (await db('SELECT * FROM driver_name_candidates WHERE id=$1', [link.candidateId])).rows[0];
+            if (!candidate || candidate.status === 'approved' || candidate.driver_profile_id) throw new SyncError('A selected discovered name is no longer unmatched. Refresh the preview.', 409);
+            const usernameOwner = (await db('SELECT id FROM driver_profiles WHERE LOWER(discord_username)=$1', [normalizeDiscordUsername(member.username)])).rows[0];
+            if (usernameOwner) throw new SyncError('This Discord username already belongs to a driver profile. Select that existing profile instead.', 409);
+            link.candidate = candidate;
+            continue;
+          }
           const profile = (await db('SELECT id,discord_user_id FROM driver_profiles WHERE id=$1', [link.profileId])).rows[0];
           if (!profile) throw new SyncError('A selected driver profile no longer exists. Refresh the preview.', 409);
           if (profile.discord_user_id && String(profile.discord_user_id) !== member.id) throw new SyncError('A selected profile is already linked to another Discord account.', 409);
@@ -74,6 +104,13 @@ export function createDriverMappingsHandler({ db = query, discordMembers = fetch
         }
         for (const link of selected) {
           const member = currentMembers.get(link.memberId), username = normalizeDiscordUsername(member.username);
+          if (link.candidate) {
+            link.profileId = (await db(`INSERT INTO driver_profiles
+              (display_name,discord_username,discord_user_id,discord_global_name,discord_avatar_hash,status)
+              VALUES($1,$2,$3,$4,$5,'verified') RETURNING id`,
+              [link.candidate.sample_name, username, member.id, member.globalName, member.avatarHash])).rows[0].id;
+            await approveCandidate(db, link.candidate, link.profileId, admin);
+          }
           const usernameOwner = (await db(`SELECT id FROM driver_profiles WHERE LOWER(discord_username)=$1 AND id<>$2`, [username, link.profileId])).rows[0];
           await db(`UPDATE driver_profiles SET discord_user_id=$1,
             discord_username=CASE WHEN $2::boolean THEN discord_username ELSE $3 END,
@@ -100,18 +137,7 @@ export function createDriverMappingsHandler({ db = query, discordMembers = fetch
           profileId = (await db(`INSERT INTO driver_profiles (display_name, discord_username)
             VALUES ($1,$2) RETURNING id`, [displayName, discord])).rows[0].id;
         }
-        await db(`INSERT INTO driver_aliases (driver_profile_id,alias,normalized_alias,source,approved_by)
-          VALUES ($1,$2,$3,'global',$4) ON CONFLICT (source,normalized_alias) DO UPDATE SET
-          driver_profile_id=EXCLUDED.driver_profile_id, alias=EXCLUDED.alias, approved_by=EXCLUDED.approved_by`,
-          [profileId, candidate.sample_name, candidate.normalized_name, admin]);
-        await db(`UPDATE race_entries SET driver_profile_id=$1,mapping_method='approved_alias',updated_at=NOW() WHERE normalized_name=$2`, [profileId, candidate.normalized_name]);
-        const registrations = (await db(`SELECT id,driver_tag FROM registrations WHERE driver_profile_id IS DISTINCT FROM $1`, [profileId])).rows;
-        for (const registration of registrations) if (normalizeDriverName(registration.driver_tag) === candidate.normalized_name) {
-          await db('UPDATE registrations SET driver_profile_id=$1 WHERE id=$2', [profileId, registration.id]);
-        }
-        await db(`UPDATE driver_name_candidates SET driver_profile_id=$1,status='approved',updated_at=NOW() WHERE id=$2`, [profileId, candidateId]);
-        await db(`INSERT INTO driver_mapping_audit(action,driver_profile_id,normalized_name,details,admin_username)
-          VALUES('assign',$1,$2,$3::jsonb,$4)`, [profileId, candidate.normalized_name, JSON.stringify({ alias: candidate.sample_name }), admin]);
+        await approveCandidate(db, candidate, profileId, admin);
         return { status: 200, headers, jsonBody: { success: true, profileId } };
       }
       if (body.action === 'unassign') {
