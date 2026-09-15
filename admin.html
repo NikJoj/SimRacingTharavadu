@@ -160,6 +160,11 @@
         </div>
         <div id="mapping-status" class="status-message" role="status" aria-live="polite"></div>
         <div class="mapping-stats" id="mapping-stats"></div>
+        <div class="mapping-panel">
+          <div class="mapping-panel-header"><div><h3>Discord server members</h3><p>Fetch members through the SRT bot, review suggested matches, and link permanent Discord IDs. Confirmed drivers can sign in immediately without a login approval.</p></div>
+            <button class="btn-primary" id="discord-members-button" onclick="previewDiscordMembers()">Fetch Discord members</button></div>
+          <div id="mapping-discord-members" class="data-table"><div class="loading">Fetch members when you are ready to review identity links.</div></div>
+        </div>
         <div class="mapping-panel" id="mapping-claims-panel" hidden>
           <div class="mapping-panel-header"><div><h3>Pending Discord login claims</h3><p>Approve only after confirming this Discord account belongs to the mapped driver.</p></div></div>
           <div id="mapping-claims" class="data-table"></div>

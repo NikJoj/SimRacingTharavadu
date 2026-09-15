@@ -3,10 +3,11 @@ import { query } from './db.js';
 import { requireAdmin, SyncError } from './simgrid-client.js';
 import { ensureIdentitySchema, indexAllHistory, normalizeDriverName } from './driver-identity.js';
 import { normalizeDiscordUsername } from './discord-session.js';
+import { fetchDiscordMembers } from './discord-members.js';
 
 function clean(value, max = 120) { return String(value || '').trim().slice(0, max); }
 
-export function createDriverMappingsHandler({ db = query } = {}) {
+export function createDriverMappingsHandler({ db = query, discordMembers = fetchDiscordMembers } = {}) {
   return async function handler(request, context) {
     const headers = { 'Cache-Control': 'no-store' };
     try {
@@ -34,6 +35,56 @@ export function createDriverMappingsHandler({ db = query } = {}) {
       if (body.action === 'index') {
         const result = await indexAllHistory(db);
         return { status: 200, headers, jsonBody: { success: true, ...result } };
+      }
+      if (body.action === 'preview-discord-members') {
+        const members = await discordMembers();
+        const profiles = (await db(`SELECT id,display_name,discord_username,discord_user_id FROM driver_profiles ORDER BY display_name`)).rows;
+        const byId = new Map(profiles.filter(profile => profile.discord_user_id).map(profile => [String(profile.discord_user_id), profile]));
+        const byUsername = new Map();
+        for (const profile of profiles) {
+          const username = normalizeDiscordUsername(profile.discord_username);
+          if (!username) continue;
+          const matches = byUsername.get(username) || [];
+          matches.push(profile); byUsername.set(username, matches);
+        }
+        return { status: 200, headers, jsonBody: { success: true, members: members.map(member => {
+          const linked = byId.get(member.id);
+          const usernameMatches = byUsername.get(normalizeDiscordUsername(member.username)) || [];
+          const suggested = linked || (usernameMatches.length === 1 ? usernameMatches[0] : null);
+          return { ...member, linkedProfileId: linked?.id || null, linkedProfileName: linked?.display_name || '',
+            suggestedProfileId: suggested?.id || null, suggestedProfileName: suggested?.display_name || '',
+            matchMethod: linked ? 'discord_id' : suggested ? 'username' : 'unmatched' };
+        }) } };
+      }
+      if (body.action === 'confirm-discord-members') {
+        if (!Array.isArray(body.links) || !body.links.length || body.links.length > 500) throw new SyncError('Choose at least one valid Discord member link.', 400);
+        const selected = body.links.map(link => ({ memberId: String(link.memberId || ''), profileId: Number(link.profileId) }));
+        if (selected.some(link => !/^\d+$/.test(link.memberId) || !Number.isSafeInteger(link.profileId) || link.profileId <= 0)
+          || new Set(selected.map(link => link.memberId)).size !== selected.length
+          || new Set(selected.map(link => link.profileId)).size !== selected.length) throw new SyncError('Each Discord member and driver profile may be linked only once.', 400);
+        const currentMembers = new Map((await discordMembers()).map(member => [member.id, member]));
+        for (const link of selected) {
+          const member = currentMembers.get(link.memberId);
+          if (!member) throw new SyncError('A selected account is no longer a member of the SRT Discord server. Refresh the preview.', 409);
+          const profile = (await db('SELECT id,discord_user_id FROM driver_profiles WHERE id=$1', [link.profileId])).rows[0];
+          if (!profile) throw new SyncError('A selected driver profile no longer exists. Refresh the preview.', 409);
+          if (profile.discord_user_id && String(profile.discord_user_id) !== member.id) throw new SyncError('A selected profile is already linked to another Discord account.', 409);
+          const owner = (await db('SELECT id FROM driver_profiles WHERE discord_user_id=$1 AND id<>$2', [member.id, link.profileId])).rows[0];
+          if (owner) throw new SyncError('A selected Discord account is already linked to another driver profile.', 409);
+        }
+        for (const link of selected) {
+          const member = currentMembers.get(link.memberId), username = normalizeDiscordUsername(member.username);
+          const usernameOwner = (await db(`SELECT id FROM driver_profiles WHERE LOWER(discord_username)=$1 AND id<>$2`, [username, link.profileId])).rows[0];
+          await db(`UPDATE driver_profiles SET discord_user_id=$1,
+            discord_username=CASE WHEN $2::boolean THEN discord_username ELSE $3 END,
+            discord_global_name=$4,discord_avatar_hash=$5,status='verified',updated_at=NOW() WHERE id=$6`,
+            [member.id, !!usernameOwner, username, member.globalName, member.avatarHash, link.profileId]);
+          await db(`UPDATE driver_login_claims SET status='approved',reviewed_by=$1,reviewed_at=NOW()
+            WHERE driver_profile_id=$2 AND discord_user_id=$3 AND status='pending'`, [admin, link.profileId, member.id]);
+          await db(`INSERT INTO driver_mapping_audit(action,driver_profile_id,details,admin_username)
+            VALUES('discord_member_link',$1,$2::jsonb,$3)`, [link.profileId, JSON.stringify({ discordUserId: member.id, discordUsername: username }), admin]);
+        }
+        return { status: 200, headers, jsonBody: { success: true, linked: selected.length } };
       }
       if (body.action === 'assign') {
         const candidateId = Number(body.candidateId), existingId = body.profileId ? Number(body.profileId) : null;

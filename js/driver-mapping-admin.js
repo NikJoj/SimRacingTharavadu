@@ -1,4 +1,4 @@
-let driverMappingData = { profiles: [], candidates: [], audit: [], claims: [] };
+let driverMappingData = { profiles: [], candidates: [], audit: [], claims: [], discordMembers: [] };
 
 function mappingAuthHeaders(json = false) {
   const headers = { 'X-SRT-Admin-Token': localStorage.getItem('srt_admin_token') || '' };
@@ -43,6 +43,43 @@ async function indexDriverHistory() {
     await loadDriverMappings();
   } catch (error) { mappingStatus(error.message, true); }
   finally { button.disabled = false; button.textContent = 'Scan & refresh history'; }
+}
+
+async function previewDiscordMembers() {
+  const button = document.getElementById('discord-members-button');
+  button.disabled = true; button.textContent = 'Fetching…';
+  mappingStatus('Reading members from the SRT Discord server. No profiles are being changed yet.');
+  try {
+    const result = await mappingRequest({ action: 'preview-discord-members' });
+    driverMappingData.discordMembers = result.members || [];
+    renderDiscordMembers();
+    mappingStatus(`Fetched ${driverMappingData.discordMembers.length} Discord members. Review the selections before confirming.`);
+  } catch (error) { mappingStatus(error.message, true); }
+  finally { button.disabled = false; button.textContent = 'Fetch Discord members'; }
+}
+
+function renderDiscordMembers() {
+  const container = document.getElementById('mapping-discord-members'), members = driverMappingData.discordMembers || [];
+  if (!members.length) return container.innerHTML = '<div class="loading">No Discord members loaded.</div>';
+  const options = driverMappingData.profiles.map(profile => `<option value="${profile.id}">${escapeHtml(profile.display_name)} · @${escapeHtml(profile.discord_username || 'unassigned')}</option>`).join('');
+  container.innerHTML = `<div class="discord-member-toolbar"><span><strong>${members.length}</strong> non-bot members · ${members.filter(member => member.matchMethod === 'discord_id').length} already linked · ${members.filter(member => member.matchMethod === 'username').length} suggested</span>
+    <button class="btn-primary" onclick="confirmDiscordMembers()">Confirm selected links</button></div><div class="table-wrapper"><table><thead><tr><th>Discord member</th><th>User ID</th><th>Match</th><th>Driver profile</th></tr></thead><tbody>
+    ${members.map((member, index) => `<tr class="${member.matchMethod === 'discord_id' ? 'mapping-approved' : ''}"><td><strong>${escapeHtml(member.nickname || member.globalName || member.username)}</strong><small class="mapping-normalized">@${escapeHtml(member.username)}</small></td>
+      <td><code>${escapeHtml(member.id)}</code></td><td>${member.matchMethod === 'discord_id' ? '<span class="status-badge status-ongoing">Linked</span>' : member.matchMethod === 'username' ? '<span class="mapping-source">Username suggestion</span>' : '<span class="mapping-source">Needs review</span>'}</td>
+      <td><select class="form-control discord-member-profile" data-member-id="${escapeHtml(member.id)}" ${member.matchMethod === 'discord_id' ? 'disabled' : ''}><option value="">Do not link</option>${options}</select></td></tr>`).join('')}</tbody></table></div>`;
+  members.forEach((member, index) => { const select = container.querySelectorAll('.discord-member-profile')[index]; if (member.suggestedProfileId) select.value = String(member.suggestedProfileId); });
+}
+
+async function confirmDiscordMembers() {
+  const links = [...document.querySelectorAll('.discord-member-profile:not(:disabled)')].filter(select => select.value)
+    .map(select => ({ memberId: select.dataset.memberId, profileId: Number(select.value) }));
+  if (!links.length) return mappingStatus('Select at least one unlinked Discord member and driver profile.', true);
+  if (!confirm(`Link ${links.length} Discord member${links.length === 1 ? '' : 's'} to the selected driver profiles?`)) return;
+  try {
+    const result = await mappingRequest({ action: 'confirm-discord-members', links });
+    mappingStatus(`Linked ${result.linked} Discord member${result.linked === 1 ? '' : 's'}. They can now sign in without approval.`);
+    await loadDriverMappings(); await previewDiscordMembers();
+  } catch (error) { mappingStatus(error.message, true); }
 }
 
 function renderDriverMappings() {
