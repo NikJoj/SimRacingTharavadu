@@ -8,9 +8,14 @@ import { SyncError } from './simgrid-client.js';
 const DISCORD_API = 'https://discord.com/api/v10';
 const redirect = location => ({ status: 302, headers: { Location: location, 'Cache-Control': 'no-store' } });
 function configured() {
-  const clientId = process.env.DISCORD_CLIENT_ID, clientSecret = process.env.DISCORD_CLIENT_SECRET;
-  const redirectUri = process.env.DISCORD_REDIRECT_URI;
-  if (!clientId || !clientSecret || !redirectUri) throw new SyncError('Discord login is not configured.', 503);
+  const clientId = process.env.DISCORD_CLIENT_ID?.trim(), clientSecret = process.env.DISCORD_CLIENT_SECRET?.trim();
+  const redirectUri = process.env.DISCORD_REDIRECT_URI?.trim();
+  const missing = [
+    ['DISCORD_CLIENT_ID', clientId],
+    ['DISCORD_CLIENT_SECRET', clientSecret],
+    ['DISCORD_REDIRECT_URI', redirectUri]
+  ].filter(([, value]) => !value).map(([name]) => name);
+  if (missing.length) throw new SyncError(`Discord login is missing server setting${missing.length === 1 ? '' : 's'}: ${missing.join(', ')}.`, 503);
   return { clientId, clientSecret, redirectUri };
 }
 function profileRedirect(error = '') { return `/profile.html${error ? `?error=${encodeURIComponent(error)}` : ''}`; }
