@@ -85,7 +85,7 @@ export function createDiscordAuthHandler({ db = query, fetcher = fetch } = {}) {
       throw new SyncError('Unknown login action.', 400);
     } catch (error) {
       if (!(error instanceof SyncError)) context.error('Discord login failed.');
-      if (action === 'callback') return { ...redirect(profileRedirect(error instanceof SyncError ? error.message : 'Discord login failed.')),
+      if (action === 'callback' || action === 'login') return { ...redirect(profileRedirect(error instanceof SyncError ? error.message : 'Discord login failed.')),
         cookies: [authCookie('srt_discord_state', '', 0)] };
       return { status: error.status || 500, headers: { 'Cache-Control': 'no-store' }, jsonBody: { error: error instanceof SyncError ? error.message : 'Discord login failed.' } };
     }

@@ -1,5 +1,6 @@
 .driver-profile-page { min-height:100vh; padding:9rem 6vw 5rem; background:radial-gradient(circle at 80% 5%,rgba(220,38,38,.12),transparent 34%); }
 .profile-state { min-height:55vh; display:flex; justify-content:center; align-items:center; gap:.75rem; color:var(--muted); }
+.profile-state[hidden] { display:none; }
 .profile-login { max-width:860px; margin:5vh auto; padding:clamp(2rem,7vw,5rem); text-align:center; border:1px solid var(--border); border-top:3px solid var(--red); background:rgba(255,255,255,.025); }
 .profile-login-mark { color:var(--red); font:700 .8rem 'Barlow Condensed',sans-serif; letter-spacing:.22em; text-transform:uppercase; }
 .profile-login h1 { margin:1rem 0; font:400 clamp(3rem,8vw,6rem)/.9 'Bebas Neue',sans-serif; letter-spacing:.02em; }
