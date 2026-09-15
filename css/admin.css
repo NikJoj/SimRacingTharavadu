@@ -830,6 +830,12 @@ input[type="datetime-local"].form-control::-webkit-calendar-picker-indicator {
 .mapping-stats > div { padding: 1.1rem; text-align: center; background: rgba(255,255,255,.03); border: 1px solid var(--border); }
 .mapping-stats strong { display: block; color: var(--red); font-family: 'Bebas Neue', sans-serif; font-size: 2rem; font-weight: 400; }
 .mapping-stats span { color: var(--muted); font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .09em; font-size: .78rem; }
+.mapping-tabs { display: flex; gap: .35rem; margin-top: 1.25rem; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.mapping-tab { flex: 0 0 auto; padding: .9rem 1.2rem; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font-family: 'Barlow Condensed', sans-serif; font-size: .9rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: color .2s, background .2s, border-color .2s; }
+.mapping-tab:hover { color: var(--text); background: var(--bg3); }
+.mapping-tab.active { color: var(--red); border-bottom-color: var(--red); background: rgba(255,255,255,.02); }
+.mapping-tab-count { display: inline-grid; min-width: 1.25rem; min-height: 1.25rem; margin-left: .35rem; padding: 0 .3rem; place-items: center; border-radius: 999px; background: var(--red); color: white; font-size: .7rem; }
+.mapping-tab-count[hidden], .mapping-tab-panel[hidden] { display: none; }
 .mapping-panel { margin-top: 1rem; padding: 1.25rem; background: rgba(255,255,255,.025); border: 1px solid var(--border); }
 .mapping-panel-header { margin-bottom: 1rem; }
 .mapping-panel-header h3 { font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .08em; }

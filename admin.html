@@ -160,25 +160,32 @@
         </div>
         <div id="mapping-status" class="status-message" role="status" aria-live="polite"></div>
         <div class="mapping-stats" id="mapping-stats"></div>
-        <div class="mapping-panel">
+        <div class="mapping-tabs" role="tablist" aria-label="Driver mapping sections">
+          <button class="mapping-tab active" role="tab" aria-selected="true" data-mapping-tab="discord" onclick="switchMappingTab('discord')">Discord Members</button>
+          <button class="mapping-tab" role="tab" aria-selected="false" data-mapping-tab="claims" onclick="switchMappingTab('claims')">Login Claims <span id="mapping-claims-count" class="mapping-tab-count" hidden></span></button>
+          <button class="mapping-tab" role="tab" aria-selected="false" data-mapping-tab="candidates" onclick="switchMappingTab('candidates')">Discovered Names</button>
+          <button class="mapping-tab" role="tab" aria-selected="false" data-mapping-tab="profiles" onclick="switchMappingTab('profiles')">Driver Profiles</button>
+          <button class="mapping-tab" role="tab" aria-selected="false" data-mapping-tab="audit" onclick="switchMappingTab('audit')">Activity</button>
+        </div>
+        <div class="mapping-panel mapping-tab-panel" id="mapping-tab-discord" role="tabpanel">
           <div class="mapping-panel-header"><div><h3>Discord server members</h3><p>Fetch members through the SRT bot, review suggested matches, and link permanent Discord IDs. Confirmed drivers can sign in immediately without a login approval.</p></div>
             <button class="btn-primary" id="discord-members-button" onclick="previewDiscordMembers()">Fetch Discord members</button></div>
           <div id="mapping-discord-members" class="data-table"><div class="mapping-empty">Fetch members when you are ready to review identity links.</div></div>
         </div>
-        <div class="mapping-panel" id="mapping-claims-panel" hidden>
+        <div class="mapping-panel mapping-tab-panel" id="mapping-tab-claims" role="tabpanel" hidden>
           <div class="mapping-panel-header"><div><h3>Pending Discord login claims</h3><p>Approve only after confirming this Discord account belongs to the mapped driver.</p></div></div>
           <div id="mapping-claims" class="data-table"></div>
         </div>
-        <div class="mapping-panel">
+        <div class="mapping-panel mapping-tab-panel" id="mapping-tab-candidates" role="tabpanel" hidden>
           <div class="mapping-panel-header"><div><h3>Discovered names</h3><p>Assign an unmatched name to a new or existing driver. Approved aliases are reused during future race syncs.</p></div>
             <input id="mapping-search" class="search-input" placeholder="Search driver names…" oninput="mappingSearchChanged()"></div>
           <div id="mapping-candidates" class="data-table"><div class="loading">Open this section to load driver names.</div></div>
         </div>
-        <div class="mapping-panel">
+        <div class="mapping-panel mapping-tab-panel" id="mapping-tab-profiles" role="tabpanel" hidden>
           <div class="mapping-panel-header"><div><h3>Driver profiles</h3><p>Discord usernames are pre-approved labels until a future OAuth login verifies the immutable Discord user ID.</p></div></div>
           <div id="mapping-profiles" class="data-table"><div class="loading">No profiles loaded.</div></div>
         </div>
-        <div class="mapping-panel">
+        <div class="mapping-panel mapping-tab-panel" id="mapping-tab-audit" role="tabpanel" hidden>
           <div class="mapping-panel-header"><div><h3>Recent mapping activity</h3></div></div>
           <div id="mapping-audit" class="mapping-audit"></div>
         </div>
