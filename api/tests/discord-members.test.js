@@ -23,3 +23,7 @@ test('fetches non-bot Discord members without exposing the bot token', async () 
 test('explains Discord member-list permission failures', async () => {
   await assert.rejects(() => fetchDiscordMembers(async () => new Response('', { status: 403 })), /Server Members Intent/);
 });
+
+test('explains when the configured bot cannot see the guild', async () => {
+  await assert.rejects(() => fetchDiscordMembers(async () => new Response('', { status: 404 })), /install this exact bot application/);
+});

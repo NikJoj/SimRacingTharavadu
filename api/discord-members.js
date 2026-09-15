@@ -31,6 +31,7 @@ export async function fetchDiscordMembers(fetcher = fetch) {
     if (!response.ok) {
       const message = response.status === 401 ? 'Discord rejected the bot token.'
         : response.status === 403 ? 'The Discord bot cannot list this server. Check the server ID, bot membership, and Server Members Intent.'
+        : response.status === 404 ? 'Discord could not find this server for the configured bot. Check that DISCORD_GUILD_ID is the SRT server ID and install this exact bot application in that server.'
         : response.status === 429 ? 'Discord rate limited the member sync. Try again shortly.'
         : `Discord member sync returned HTTP ${response.status}.`;
       throw new SyncError(message, response.status === 429 ? 429 : 502);
