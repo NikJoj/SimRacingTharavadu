@@ -249,6 +249,47 @@ components:
 # ─────────────────────────────────────────────────────────────────────────────
 paths:
 
+  /api/driver-mappings:
+    get:
+      tags: [Admin]
+      summary: List driver identity profiles, discovered names, and mapping audit
+      security:
+        - AdminSession: []
+      responses:
+        '200': { description: Current internal identity-mapping workspace }
+        '401': { description: Invalid or expired admin session }
+    post:
+      tags: [Admin]
+      summary: Index history or approve and reverse driver mappings
+      security:
+        - AdminSession: []
+      description: |
+        `index` rebuilds the searchable race-entry index without changing archived
+        race JSON. `assign` creates or selects a driver profile and approves the
+        discovered name as a global alias. `unassign` reverses that alias link.
+        `update-profile` edits the administrative display name and expected Discord
+        username. A later Discord login must bind the immutable Discord user ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [index, assign, unassign, update-profile] }
+                candidateId: { type: integer }
+                profileId: { type: integer }
+                displayName: { type: string }
+                discordUsername: { type: string }
+      responses:
+        '200': { description: Operation completed }
+        '400': { description: Invalid action or fields }
+        '401': { description: Invalid or expired admin session }
+        '404': { description: Candidate or profile not found }
+        '409': { description: Discord username or provider identity conflict }
+        '500': { description: Mapping operation failed }
+
   /api/simgrid-results:
     post:
       tags: [Admin]

@@ -57,7 +57,8 @@ test('matching confirmation upserts one stable league/race slot', async () => {
   const race={id:'30',name:'Bahrain',track:'Bahrain Paddock Circuit',startsAt:data.Date}; const e=endpoint(race);
   const preview=await e.handler(request('preview'),{error(){}});
   const confirm=await e.handler(request('sync',preview.jsonBody.hash),{error(){}});
-  assert.equal(confirm.status,200); assert.equal(e.writes.length,1);
-  assert.match(e.writes[0].sql,/ON CONFLICT \(league, race_timestamp\) DO UPDATE/);
-  assert.equal(e.writes[0].params[5],Date.parse(data.Date));
+  assert.equal(confirm.status,200);
+  const raceWrite=e.writes.find(write => write.sql.includes('INSERT INTO race_results'));
+  assert.ok(raceWrite); assert.match(raceWrite.sql,/ON CONFLICT \(league, race_timestamp\) DO UPDATE/);
+  assert.equal(raceWrite.params[5],Date.parse(data.Date));
 });

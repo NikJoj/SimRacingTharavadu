@@ -21,3 +21,4 @@ import './races.js';
 import './results.js';
 import './simgrid.js';
 import './simgrid-results.js';
+import './driver-mappings.js';

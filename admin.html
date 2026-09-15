@@ -38,6 +38,10 @@
         <span class="nav-icon">📝</span>
         <span class="nav-label">Registrations</span>
       </a>
+      <a href="#driver-mapping" class="nav-item" onclick="showSection('driver-mapping')">
+        <span class="nav-icon">🪪</span>
+        <span class="nav-label">Driver Mapping</span>
+      </a>
       <a href="#race-sync" class="nav-item" onclick="showSection('race-sync')">
         <span class="nav-icon">🔄</span>
         <span class="nav-label">Race Sync</span>
@@ -145,6 +149,29 @@
         </div>
         <div id="registrations-table" class="data-table">
           <div class="loading">Loading registrations...</div>
+        </div>
+      </section>
+
+      <section id="section-driver-mapping" class="admin-section">
+        <div class="mapping-intro">
+          <div><span class="preview-kicker">Identity foundation</span><h2>Driver Mapping</h2>
+            <p>Discover names from registrations and archived race results, then approve each alias against a permanent driver profile and Discord username.</p></div>
+          <button class="btn-primary" id="mapping-index-button" onclick="indexDriverHistory()">Scan &amp; refresh history</button>
+        </div>
+        <div id="mapping-status" class="status-message" role="status" aria-live="polite"></div>
+        <div class="mapping-stats" id="mapping-stats"></div>
+        <div class="mapping-panel">
+          <div class="mapping-panel-header"><div><h3>Discovered names</h3><p>Assign an unmatched name to a new or existing driver. Approved aliases are reused during future race syncs.</p></div>
+            <input id="mapping-search" class="search-input" placeholder="Search driver names…" oninput="renderDriverMappings()"></div>
+          <div id="mapping-candidates" class="data-table"><div class="loading">Open this section to load driver names.</div></div>
+        </div>
+        <div class="mapping-panel">
+          <div class="mapping-panel-header"><div><h3>Driver profiles</h3><p>Discord usernames are pre-approved labels until a future OAuth login verifies the immutable Discord user ID.</p></div></div>
+          <div id="mapping-profiles" class="data-table"><div class="loading">No profiles loaded.</div></div>
+        </div>
+        <div class="mapping-panel">
+          <div class="mapping-panel-header"><div><h3>Recent mapping activity</h3></div></div>
+          <div id="mapping-audit" class="mapping-audit"></div>
         </div>
       </section>
 
@@ -257,5 +284,6 @@
   <script src="js/config.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/simgrid-admin.js"></script>
+  <script src="js/driver-mapping-admin.js"></script>
 </body>
 </html>

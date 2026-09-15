@@ -2,6 +2,7 @@ import { app } from '@azure/functions';
 import { query, initializeTables } from './db.js';
 import { requireAdmin, championshipId, SyncError } from './simgrid-client.js';
 import { parseLmuResult, validateRaceMatch, resultHash } from './lmu-result-parser.js';
+import { ensureIdentitySchema, indexRaceResult, previewRaceMappings, rebuildCandidates } from './driver-identity.js';
 
 async function readUpload(request) {
   let form;
@@ -34,13 +35,15 @@ export function createResultHandler({ db = query, init = initializeTables } = {}
       if (!race) throw new SyncError('Sync the SimGrid championship first, then select one of its races.', 409);
       const result = parseLmuResult(upload.xml, upload.fileName);
       const validation = validateRaceMatch(result, race);
-      const preview = { leagueId: upload.leagueId, leagueName: league.name, race, result, validation };
+      const mapping = await previewRaceMappings(db, result);
+      const preview = { leagueId: upload.leagueId, leagueName: league.name, race, result, validation, mapping };
       const hash = resultHash(preview);
       if (upload.action === 'preview') return { status: 200, headers, jsonBody: { preview, hash } };
       if (!validation.valid) throw new SyncError('The XML date or track does not match the selected race. Choose the correct file.', 422);
       if (upload.hash !== hash) throw new SyncError('The file or selection changed since preview. Preview again.', 409);
       const initialized = await init();
       if (!initialized.success) throw new SyncError('Race archive schema initialization failed.', 500);
+      await ensureIdentitySchema(db);
       const timestamp = Date.parse(race.startsAt);
       const pageUrl = `${league.simgrid_url.replace(/[?#].*$/, '')}/results?race_id=${encodeURIComponent(race.id)}`;
       const saved = await db(`INSERT INTO race_results
@@ -52,6 +55,8 @@ export function createResultHandler({ db = query, init = initializeTables } = {}
           session_type = EXCLUDED.session_type, stored_at = NOW()
         RETURNING id, stored_at`, [String(league.id), league.id, race.track, race.startsAt,
         JSON.stringify(result), timestamp, pageUrl]);
+      await indexRaceResult(db, saved.rows[0].id);
+      await rebuildCandidates(db);
       return { status: 200, headers, jsonBody: { success: true, raceId: race.id,
         drivers: result.Result.length, storedAt: saved.rows[0].stored_at, syncedBy: username } };
     } catch (error) {

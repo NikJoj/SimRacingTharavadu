@@ -37,6 +37,7 @@ The GitHub Actions workflow at `.github/workflows/azure-static-web-apps-delightf
 | Assetto proxies | `/api/live`, `/api/races`, `/api/results`, `/api/championships`, `/api/standings` | Assetto Hosting |
 | Admin support | `/api/login-auth`, `/api/sync-poster` | Azure configuration + GitHub Contents API |
 | SimGrid | `/api/simgrid` | SimGrid GridOS → Neon snapshot + registrations |
+| Driver identity | `/api/driver-mappings` | Admin-approved aliases → searchable race-entry index |
 | LMU result upload | `/api/simgrid-results` | Admin XML upload → normalized Neon race result |
 
 The complete request and response contract is in `docs/openapi.yaml`.
@@ -46,6 +47,41 @@ The complete request and response contract is in `docs/openapi.yaml`.
 The data layer is implemented in `api/db.js` with `@neondatabase/serverless`. It creates and evolves the schema idempotently during initialization.
 
 Primary tables: `events`, `leagues`, `leaderboard`, `registrations`, and `race_results`.
+
+Driver identity is maintained separately from archived result JSON in
+`driver_profiles`, `driver_aliases`, `driver_name_candidates`, `race_sessions`,
+`race_entries`, and `driver_mapping_audit`. The admin dashboard scans existing
+registrations and results, approves racing-name aliases against a Discord-labelled
+profile, and can reverse a link. Discord usernames are preparatory metadata; a
+future login flow must bind and authenticate by immutable Discord user ID.
+
+### Applying the driver-identity schema
+
+The `/api/driver-mappings` endpoint and future sync hooks create the identity
+tables idempotently. For a controlled production rollout, run
+`docs/neon-driver-identity-migration.sql` once in the Neon SQL Editor before
+deploying the matching application code. The migration only creates new tables,
+indexes, and the nullable `registrations.driver_profile_id` column; it does not
+rewrite or delete archived `race_results.result_data`.
+
+After deployment, open **Admin → Driver Mapping** and choose **Scan & refresh
+history**. This creates the searchable index from existing registrations and
+race results. Re-running the scan is safe: race sessions are upserted, their
+derived entries are rebuilt, and approved aliases are reapplied.
+
+### Temporary database selection in Azure
+
+Set `USE_TEST_DATABASE=true` and provide `TEST_DATABASE_URL` to switch every
+database-backed API in that Azure environment to a separate Neon branch. An
+invalid flag or a missing test URL fails closed instead of falling back to
+production. Azure restarts the Functions environment after application settings
+change; database selection is then fixed for that process lifetime.
+
+This is intentionally a full-API switch because mapping tables have foreign keys
+to registrations and the race archive in the same database. During test mode,
+public registrations, admin edits, race syncs, and mapping changes all go to the
+test database. Set the flag back to `false` to return to `DATABASE_URL`; writes
+made while testing are not copied automatically to production.
 
 `simgrid_snapshots` is created on the first confirmed SimGrid sync. It stores one
 current normalized snapshot per league, its revision, sync time and admin name.
@@ -61,6 +97,8 @@ Configure these application settings in Azure Static Web Apps. Never place their
 | Setting | Required by | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | Data and race archive functions | Neon PostgreSQL connection string |
+| `USE_TEST_DATABASE` | All database-backed functions | Optional `true`/`false` selector; defaults to production |
+| `TEST_DATABASE_URL` | All database-backed functions in test mode | Separate Neon test branch connection string |
 | `ADMIN_USERNAME` | `login-auth` | Dashboard username |
 | `ADMIN_PASSWORD` | `login-auth` | Dashboard password |
 | `JWT_SECRET` | `login-auth` | HMAC signing secret for the short-lived dashboard token |

@@ -8,10 +8,20 @@ import { neon } from '@neondatabase/serverless';
 // Lazy-initialize: don't call neon() at module load time — DATABASE_URL may
 // not be set in the Functions runtime until the first request is handled.
 let _sql = null;
+export function selectDatabaseUrl(env = process.env) {
+  const flag = String(env.USE_TEST_DATABASE || '').trim().toLowerCase();
+  if (!['', 'false', 'true'].includes(flag)) throw new Error('USE_TEST_DATABASE must be true or false');
+  if (flag === 'true') {
+    if (!env.TEST_DATABASE_URL) throw new Error('USE_TEST_DATABASE is true but TEST_DATABASE_URL is not configured');
+    return env.TEST_DATABASE_URL;
+  }
+  if (!env.DATABASE_URL) throw new Error('DATABASE_URL is not configured');
+  return env.DATABASE_URL;
+}
+
 function getSql() {
   if (!_sql) {
-    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not configured');
-    _sql = neon(process.env.DATABASE_URL);
+    _sql = neon(selectDatabaseUrl());
   }
   return _sql;
 }

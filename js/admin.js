@@ -359,6 +359,7 @@ function showSection(sectionName) {
     'events': 'Events Management',
     'leagues': 'Leagues Management',
     'registrations': 'Registrations',
+    'driver-mapping': 'Driver Mapping',
     'race-sync': 'Race Result Sync'
   };
   document.getElementById('page-title').textContent = titles[sectionName] || 'Dashboard';
@@ -368,6 +369,7 @@ function showSection(sectionName) {
     populateSimgridLeagues();
     // League dropdown will be populated when races are fetched
   }
+  if (sectionName === 'driver-mapping') loadDriverMappings();
 }
 
 /**

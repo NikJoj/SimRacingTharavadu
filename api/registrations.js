@@ -14,6 +14,7 @@
 
 import { app } from '@azure/functions';
 import { sql, query as dbQuery } from './db.js';
+import { ensureIdentitySchema, rebuildCandidates } from './driver-identity.js';
 
 app.http('registrations', {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -26,6 +27,7 @@ app.http('registrations', {
     try {
       await ensureRegistrationColumns();
       const params = new URL(request.url).searchParams;
+      if (request.method !== 'GET') await ensureIdentitySchema(dbQuery);
 
       // ── GET ─────────────────────────────────────────────────────────────────
       if (request.method === 'GET') {
@@ -85,6 +87,7 @@ app.http('registrations', {
 
         // Increment driver count
         await incrementDriverCount(event);
+        await rebuildCandidates(dbQuery);
 
         return { status: 201, jsonBody: { success: true, message: 'Registration successful', registration: result.rows[0] } };
       }
@@ -122,6 +125,7 @@ app.http('registrations', {
         if (result.rows.length === 0) {
           return { status: 404, jsonBody: { error: 'Registration not found' } };
         }
+        await rebuildCandidates(dbQuery);
         return { status: 200, jsonBody: { success: true, message: 'Registration updated', registration: result.rows[0] } };
       }
 
@@ -142,6 +146,7 @@ app.http('registrations', {
         const eventName = regResult.rows[0].event;
         await sql`DELETE FROM registrations WHERE id = ${id}`;
         await decrementDriverCount(eventName);
+        await rebuildCandidates(dbQuery);
 
         return { status: 200, jsonBody: { success: true, message: 'Registration deleted' } };
       }
@@ -235,6 +240,7 @@ async function handleBulkImport(request, context) {
 
   // Sync driver count from actual registration count
   await sql`UPDATE leagues SET drivers = (SELECT COUNT(*) FROM registrations WHERE event = ${league_name}) WHERE id = ${league_id}`;
+  await rebuildCandidates(dbQuery);
 
   return {
     status: 200,

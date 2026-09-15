@@ -1,6 +1,7 @@
 import { app } from '@azure/functions';
 import { query } from './db.js';
 import { championshipId, requireAdmin, fetchSnapshot, snapshotHash, changes, SyncError } from './simgrid-client.js';
+import { ensureIdentitySchema, rebuildCandidates } from './driver-identity.js';
 
 async function savedSnapshot(leagueId, query) {
   // Reads never run migrations or contact SimGrid.
@@ -51,6 +52,7 @@ return async function handler(request, context) {
     }
     if (body.hash !== hash || body.revision !== revision) throw new SyncError('Data changed since preview. Preview again before syncing.', 409);
     await ensureSchema(db);
+    await ensureIdentitySchema(db);
     // One SQL statement atomically publishes the snapshot and updates only
     // provider-owned registrations. Compare-and-swap rejects concurrent syncs.
     const result = await db(`WITH saved AS (
@@ -82,6 +84,7 @@ return async function handler(request, context) {
       WHERE id = $1 AND EXISTS (SELECT 1 FROM saved) RETURNING id
     ) SELECT revision, synced_at FROM saved`, [leagueId, revision, JSON.stringify(snapshot), username, league.simgrid_url, league.name]);
     if (!result.rows.length) throw new SyncError('Another sync or league edit occurred. Preview again.', 409);
+    await rebuildCandidates(db);
     return { status: 200, headers, jsonBody: { success: true, changes: summary, revision: result.rows[0].revision, syncedAt: result.rows[0].synced_at } };
   } catch (error) {
     if (!(error instanceof SyncError)) context.error('SimGrid sync failed; no snapshot published.');

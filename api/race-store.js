@@ -13,6 +13,7 @@
 
 import { app } from '@azure/functions';
 import { sql, query, initializeTables } from './db.js';
+import { ensureIdentitySchema, indexRaceResult, rebuildCandidates } from './driver-identity.js';
 
 const ASSETTO_BASE = 'https://sg.assettohosting.com:10027';
 
@@ -101,6 +102,7 @@ app.http('raceStore', {
       // ── POST: store latest race from Assetto ───────────────────────────────
       if (request.method === 'POST') {
         const action = params.get('action');
+        await ensureIdentitySchema(query);
 
         if (action === 'store') {
           const reference = await resolveLeague(params.get('leagueId'), params.get('league'));
@@ -125,14 +127,18 @@ app.http('raceStore', {
           const raceData = await fetchRaceData(latestRace.results_json_url);
           const raceTimestamp = new Date(latestRace.date).getTime();
 
-          await sql`
+          const inserted = await sql`
             INSERT INTO race_results
               (league, league_id, track, session_date, result_data, race_timestamp, results_json_url, results_page_url, session_type)
             VALUES
               (${reference.storageKey}, ${reference.id}, ${latestRace.track}, ${latestRace.date}, ${JSON.stringify(raceData)},
                ${raceTimestamp}, ${latestRace.results_json_url}, ${latestRace.results_page_url || ''}, 'RACE')
             ON CONFLICT (league, race_timestamp) DO NOTHING
+            RETURNING id
           `;
+          const storedId = inserted.rows[0]?.id || (await query('SELECT id FROM race_results WHERE league=$1 AND race_timestamp=$2', [reference.storageKey, raceTimestamp])).rows[0]?.id;
+          if (storedId) await indexRaceResult(query, storedId);
+          await rebuildCandidates(query);
 
           return {
             status: 200,
@@ -167,14 +173,17 @@ app.http('raceStore', {
               const raceData = await fetchRaceData(race.results_json_url);
               const raceTimestamp = new Date(race.date).getTime();
 
-              await sql`
+              const inserted = await sql`
                 INSERT INTO race_results
                   (league, league_id, track, session_date, result_data, race_timestamp, results_json_url, results_page_url, session_type)
                 VALUES
                   (${reference.storageKey}, ${reference.id}, ${race.track}, ${race.date}, ${JSON.stringify(raceData)},
                    ${raceTimestamp}, ${race.results_json_url}, ${race.results_page_url || ''}, ${race.session_type || 'RACE'})
                 ON CONFLICT (league, race_timestamp) DO NOTHING
+                RETURNING id
               `;
+              const storedId = inserted.rows[0]?.id || (await query('SELECT id FROM race_results WHERE league=$1 AND race_timestamp=$2', [reference.storageKey, raceTimestamp])).rows[0]?.id;
+              if (storedId) await indexRaceResult(query, storedId);
               results.success.push({ track: race.track, date: race.date, race_timestamp: raceTimestamp });
             } catch (err) {
               context.error(`Failed to sync race ${race.track} (${race.date}):`, err);
@@ -182,6 +191,7 @@ app.http('raceStore', {
             }
           }
 
+          await rebuildCandidates(query);
           return {
             status: 200,
             jsonBody: {
