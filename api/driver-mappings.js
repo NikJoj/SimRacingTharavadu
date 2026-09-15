@@ -72,6 +72,19 @@ export function createDriverMappingsHandler({ db = query, discordMembers = fetch
             matchMethod: linked ? 'discord_id' : suggested ? 'username' : 'unmatched' };
         }) } };
       }
+      if (body.action === 'unlink-discord-member') {
+        const profileId = Number(body.profileId), discordUserId = String(body.discordUserId || '');
+        if (!Number.isSafeInteger(profileId) || profileId <= 0 || !/^\d+$/.test(discordUserId)) throw new SyncError('Choose a valid linked Discord member.', 400);
+        const profile = (await db(`UPDATE driver_profiles SET discord_user_id=NULL,discord_username=NULL,
+          discord_global_name=NULL,discord_avatar_hash=NULL,status='awaiting_login',updated_at=NOW()
+          WHERE id=$1 AND discord_user_id=$2 RETURNING id,display_name`, [profileId, discordUserId])).rows[0];
+        if (!profile) throw new SyncError('That Discord account is no longer linked to this profile. Refresh the member list.', 409);
+        await db(`UPDATE driver_login_claims SET status='rejected',reviewed_by=$1,reviewed_at=NOW()
+          WHERE driver_profile_id=$2 AND discord_user_id=$3 AND status IN ('pending','approved')`, [admin, profileId, discordUserId]);
+        await db(`INSERT INTO driver_mapping_audit(action,driver_profile_id,details,admin_username)
+          VALUES('discord_member_unlink',$1,$2::jsonb,$3)`, [profileId, JSON.stringify({ discordUserId }), admin]);
+        return { status: 200, headers, jsonBody: { success: true, profileId, displayName: profile.display_name } };
+      }
       if (body.action === 'confirm-discord-members') {
         if (!Array.isArray(body.links) || !body.links.length || body.links.length > 500) throw new SyncError('Choose at least one valid Discord member link.', 400);
         const selected = body.links.map(link => ({ memberId: String(link.memberId || ''),

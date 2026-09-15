@@ -851,6 +851,7 @@ input[type="datetime-local"].form-control::-webkit-calendar-picker-indicator {
 .mapping-pagination { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-top: 1rem; color: var(--muted); font-size: .85rem; }
 .mapping-pagination > div { display: flex; gap: .5rem; }
 .mapping-pagination button:disabled { opacity: .4; cursor: not-allowed; }
+.mapping-unlink { display: block; margin-top: .45rem; }
 .btn-small { padding: .45rem .7rem; font-size: .75rem; white-space: nowrap; }
 .mapping-audit strong { color: var(--text); text-transform: capitalize; }
 .mapping-preview-strip { display: grid; grid-template-columns: repeat(3,1fr); gap: .75rem; margin: 1rem 0; }

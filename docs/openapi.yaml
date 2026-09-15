@@ -319,13 +319,14 @@ paths:
               type: object
               required: [action]
               properties:
-                action: { type: string, enum: [index, assign, unassign, update-profile, review-claim, preview-discord-members, confirm-discord-members] }
+                action: { type: string, enum: [index, assign, unassign, update-profile, review-claim, preview-discord-members, confirm-discord-members, unlink-discord-member] }
                 candidateId: { type: integer }
                 profileId: { type: integer }
                 claimId: { type: integer }
                 decision: { type: string, enum: [approve, reject] }
                 displayName: { type: string }
                 discordUsername: { type: string }
+                discordUserId: { type: string, pattern: '^\\d+$' }
                 links:
                   type: array
                   maxItems: 500

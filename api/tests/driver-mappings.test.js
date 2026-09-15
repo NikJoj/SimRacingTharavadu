@@ -30,3 +30,17 @@ test('linking a Discord member to a discovered name creates a verified profile a
   assert.ok(statements.some(call => call.sql.includes('UPDATE race_entries') && call.params.includes('race driver')));
   assert.ok(statements.some(call => call.sql.includes("status='approved'") && call.params.includes(8)));
 });
+
+test('unlinking Discord preserves the driver profile and race mappings', async () => {
+  const statements = [];
+  const db = async (sql, params = []) => {
+    statements.push({ sql, params });
+    if (sql.includes('UPDATE driver_profiles SET discord_user_id=NULL')) return { rows: [{ id: 22, display_name: 'Race Driver' }] };
+    return { rows: [] };
+  };
+  const response = await createDriverMappingsHandler({ db })(request({ action: 'unlink-discord-member', profileId: 22, discordUserId: '998877' }), { error() {} });
+  assert.equal(response.status, 200);
+  assert.equal(response.jsonBody.displayName, 'Race Driver');
+  assert.ok(statements.some(call => call.sql.includes('discord_user_id=NULL') && call.params.includes('998877')));
+  assert.ok(!statements.some(call => /UPDATE race_entries|DELETE FROM driver_aliases/.test(call.sql)));
+});
