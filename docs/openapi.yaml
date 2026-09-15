@@ -1,28 +1,32 @@
+# API contract: update alongside api/ handlers. See docs/README.md.
 openapi: 3.0.3
-
 info:
   title: SimRacingTharavadu Portal API
-  version: "2.0"
-  description: |
-    REST API for the SimRacingTharavadu sim racing community portal.
-    Hosted on Azure Static Web Apps + Azure Functions (Node.js v4).
-    Database: Neon PostgreSQL (serverless).
+  version: 2.1.0
+  description: >-
+    REST API for the SimRacingTharavadu community portal, implemented by Azure Functions v4 and Neon
+    PostgreSQL. Reviewed against the repository on 2026-09-16.
 
-    All deployed functions currently accept anonymous Azure Function requests.
-    `POST /api/login-auth` issues and validates the dashboard's short-lived
-    HMAC-SHA256 session token; it is not an API-wide authorization mechanism.
-    SimGrid POST requests are an exception: they validate this token server-side.
 
-    Race archive requests use `leagueId`, the Neon `leagues.id` value. The
-    legacy `blob_store` response field is read-only compatibility data and is
-    not required for new leagues.
+    Azure Functions use anonymous host authorization. Application-level admin authentication is enforced only
+    by POST /api/simgrid, POST /api/simgrid-results, and GET/POST /api/driver-mappings. /api/driver-profile
+    requires the signed driver cookie. The other operations have no application-level session check in the
+    current handlers.
 
+
+    Database backfills are not additional HTTP endpoints. Social results can be read through the legacy
+    archive key (for example league=event:9) and mapped driver history. No driver rating, pace, consistency,
+    raw XML export, or eventId archive filter is implemented.
+
+
+    Result JSON varies by simulator and importer. Detailed laps and sectors may be absent. A missing value or
+    empty Penalties array is not evidence of a clean race. Do not compare timing values across different
+    tracks or simulators without normalization.
 servers:
-  - url: https://your-site.azurestaticapps.net
-    description: Production (Azure Static Web Apps)
+  - url: /
+    description: Same origin as the hosted specification; includes the /api paths below
   - url: http://localhost:7071
-    description: Local development (Azure Functions Core Tools)
-
+    description: Local Azure Functions
 tags:
   - name: Portal Data
     description: Events, leagues, leaderboard — backed by Neon PostgreSQL
@@ -32,109 +36,207 @@ tags:
     description: Pass-through proxy to the Assetto Corsa server API (CORS bypass)
   - name: Admin
     description: Admin authentication and poster management
-
-# ─────────────────────────────────────────────────────────────────────────────
-# COMPONENTS
-# ─────────────────────────────────────────────────────────────────────────────
+  - name: Driver Portal
+    description: Discord login and the authenticated driver profile
 components:
   securitySchemes:
     AdminSession:
       type: apiKey
       in: header
       name: X-SRT-Admin-Token
-      description: Raw token issued by POST /api/login-auth (custom HMAC token, not JWT; no Bearer prefix). Avoid Authorization through Azure SWA, which may overwrite it. Direct/local clients may still use Authorization Bearer as a fallback.
+      description: Raw token issued by POST /api/login-auth (custom HMAC token, not JWT; no Bearer prefix). Avoid
+        Authorization through Azure SWA, which may overwrite it. Direct/local clients may still use
+        Authorization Bearer as a fallback.
+    DriverSession:
+      type: apiKey
+      in: cookie
+      name: srt_driver_session
+      description: Signed HttpOnly, Secure, SameSite=Lax cookie issued after approved Discord login; expires after
+        seven days. Use the website login flow. Cross-origin Swagger UI cannot set this HttpOnly cookie.
   schemas:
-
     SimGridDriver:
       type: object
-      required: [id, userId, name, carNumber, className]
+      required:
+        - id
+        - userId
+        - name
+        - carNumber
+        - className
       properties:
-        id: { type: string, description: Stable SimGrid registration ID }
-        userId: { type: string }
-        name: { type: string }
-        carNumber: { type: string }
-        className: { type: string }
-
+        id:
+          type: string
+          description: Stable SimGrid registration ID
+        userId:
+          type: string
+        name:
+          type: string
+        carNumber:
+          type: string
+        className:
+          type: string
     SimGridStanding:
       allOf:
-        - $ref: '#/components/schemas/SimGridDriver'
+        - $ref: "#/components/schemas/SimGridDriver"
         - type: object
-          required: [car, position, points, score, penalties, adjustment, adjustmentReason]
+          required:
+            - car
+            - position
+            - points
+            - score
+            - penalties
+            - adjustment
+            - adjustmentReason
           properties:
-            car: { type: string }
-            position: { type: number, description: Official class position from SimGrid }
-            points: { type: number }
-            score: { type: number, description: Official adjusted championship score. Do not subtract penalties again. }
-            penalties: { type: number }
-            adjustment: { type: number }
-            adjustmentReason: { type: string }
-
+            car:
+              type: string
+            position:
+              type: number
+              description: Official class position from SimGrid
+            points:
+              type: number
+            score:
+              type: number
+              description: Official adjusted championship score. Do not subtract penalties again.
+            penalties:
+              type: number
+            adjustment:
+              type: number
+            adjustmentReason:
+              type: string
     SimGridRace:
       type: object
-      required: [id, name, track, startsAt, resultsAvailable, publishedAt, ended]
+      required:
+        - id
+        - name
+        - track
+        - startsAt
+        - resultsAvailable
+        - publishedAt
+        - ended
       properties:
-        id: { type: string }
-        name: { type: string }
-        track: { type: string }
-        startsAt: { type: string, format: date-time }
-        resultsAvailable: { type: boolean, description: Publication status only; detailed results are not imported }
-        publishedAt: { type: string, format: date-time, nullable: true }
-        ended: { type: boolean }
-
+        id:
+          type: string
+        name:
+          type: string
+        track:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        resultsAvailable:
+          type: boolean
+          description: Publication status only; detailed results are not imported
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        ended:
+          type: boolean
     SimGridSnapshot:
       type: object
-      required: [championshipId, name, sim, capacity, drivers, standings, races, resultsDetailAvailable]
+      required:
+        - championshipId
+        - name
+        - sim
+        - capacity
+        - drivers
+        - standings
+        - races
+        - resultsDetailAvailable
       properties:
-        championshipId: { type: string, example: '26866' }
-        name: { type: string }
-        sim: { type: string, enum: [Le Mans Ultimate] }
-        capacity: { type: number }
+        championshipId:
+          type: string
+          example: "26866"
+        name:
+          type: string
+        sim:
+          type: string
+          enum:
+            - Le Mans Ultimate
+        capacity:
+          type: number
         drivers:
           type: array
-          items: { $ref: '#/components/schemas/SimGridDriver' }
+          items:
+            $ref: "#/components/schemas/SimGridDriver"
         standings:
           type: array
-          items: { $ref: '#/components/schemas/SimGridStanding' }
+          items:
+            $ref: "#/components/schemas/SimGridStanding"
         races:
           type: array
-          items: { $ref: '#/components/schemas/SimGridRace' }
-        resultsDetailAvailable: { type: boolean, enum: [false] }
-
+          items:
+            $ref: "#/components/schemas/SimGridRace"
+        resultsDetailAvailable:
+          type: boolean
+          enum:
+            - false
     SimGridDiff:
       type: object
-      required: [added, updated, removed]
+      required:
+        - added
+        - updated
+        - removed
       properties:
-        added: { type: integer }
-        updated: { type: integer }
-        removed: { type: integer }
-
+        added:
+          type: integer
+        updated:
+          type: integer
+        removed:
+          type: integer
     SimGridChanges:
       type: object
-      required: [drivers, standings, races]
+      required:
+        - drivers
+        - standings
+        - races
       properties:
-        drivers: { $ref: '#/components/schemas/SimGridDiff' }
-        standings: { $ref: '#/components/schemas/SimGridDiff' }
-        races: { $ref: '#/components/schemas/SimGridDiff' }
-
+        drivers:
+          $ref: "#/components/schemas/SimGridDiff"
+        standings:
+          $ref: "#/components/schemas/SimGridDiff"
+        races:
+          $ref: "#/components/schemas/SimGridDiff"
     SimGridPreview:
       type: object
-      required: [snapshot, hash, revision, changes, syncedAt]
+      required:
+        - snapshot
+        - hash
+        - revision
+        - changes
+        - syncedAt
       properties:
-        snapshot: { $ref: '#/components/schemas/SimGridSnapshot' }
-        hash: { type: string, description: SHA-256 fingerprint required for confirmation }
-        revision: { type: integer, description: Saved revision required for confirmation }
-        changes: { $ref: '#/components/schemas/SimGridChanges' }
-        syncedAt: { type: string, format: date-time, nullable: true }
-
+        snapshot:
+          $ref: "#/components/schemas/SimGridSnapshot"
+        hash:
+          type: string
+          description: SHA-256 fingerprint required for confirmation
+        revision:
+          type: integer
+          description: Saved revision required for confirmation
+        changes:
+          $ref: "#/components/schemas/SimGridChanges"
+        syncedAt:
+          type: string
+          format: date-time
+          nullable: true
     SimGridSyncResult:
       type: object
-      required: [success, changes, revision, syncedAt]
+      required:
+        - success
+        - changes
+        - revision
+        - syncedAt
       properties:
-        success: { type: boolean }
-        changes: { $ref: '#/components/schemas/SimGridChanges' }
-        revision: { type: integer }
-        syncedAt: { type: string, format: date-time }
-
+        success:
+          type: boolean
+        changes:
+          $ref: "#/components/schemas/SimGridChanges"
+        revision:
+          type: integer
+        syncedAt:
+          type: string
+          format: date-time
     ErrorResponse:
       type: object
       properties:
@@ -142,262 +244,1384 @@ components:
           type: string
         message:
           type: string
-      required: [error]
-
+      required:
+        - error
     Event:
       type: object
       properties:
-        id:          { type: integer }
-        name:        { type: string }
-        sim:         { type: string }
-        status:      { type: string, enum: [upcoming, ongoing, closed] }
-        track:       { type: string }
-        start_date:  { type: string }
-        end_date:    { type: string }
-        format:      { type: string }
-        drivers:     { type: integer }
-        max_drivers: { type: integer }
-        rounds:      { type: integer }
-        season:      { type: string }
-        description: { type: string }
-        track_mod:   { type: string }
-        car_mod:     { type: string }
-        practice_server: { type: string }
-        car_options: { type: string }
-        created_at:  { type: string, format: date-time }
-        updated_at:  { type: string, format: date-time }
-
+        id:
+          type: integer
+        name:
+          type: string
+        sim:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - upcoming
+            - ongoing
+            - closed
+          nullable: true
+        track:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+          nullable: true
+          description: "Stored text: may be date-only or an ISO timestamp."
+        end_date:
+          type: string
+          nullable: true
+        format:
+          type: string
+          nullable: true
+        drivers:
+          type: integer
+          nullable: true
+          description: Recorded event count; its meaning depends on the event/import. May be null when unknown.
+        max_drivers:
+          type: integer
+          nullable: true
+        rounds:
+          type: integer
+          nullable: true
+        season:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        track_mod:
+          type: string
+          nullable: true
+        car_mod:
+          type: string
+          nullable: true
+        practice_server:
+          type: string
+          nullable: true
+        car_options:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
     League:
       type: object
       properties:
-        id:             { type: integer }
-        name:           { type: string }
-        sim:            { type: string }
-        status:         { type: string, enum: [upcoming, ongoing, closed] }
-        start_date:     { type: string }
-        end_date:       { type: string }
-        format:         { type: string }
-        season:         { type: string }
-        championship_id: { type: string }
-        simgrid_url:    { type: string, format: uri }
-        blob_store:     { type: string, deprecated: true, description: "Legacy read-only compatibility field" }
-        drivers:        { type: integer }
-        max_drivers:    { type: integer }
-        rounds:         { type: integer }
-        track:          { type: string }
-        description:    { type: string }
-        car_options:    { type: string }
-        created_at:     { type: string, format: date-time }
-        updated_at:     { type: string, format: date-time }
-
+        id:
+          type: integer
+        name:
+          type: string
+        sim:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - upcoming
+            - ongoing
+            - closed
+          nullable: true
+        start_date:
+          type: string
+          nullable: true
+        end_date:
+          type: string
+          nullable: true
+        format:
+          type: string
+          nullable: true
+        season:
+          type: string
+          nullable: true
+        championship_id:
+          type: string
+          nullable: true
+        simgrid_url:
+          type: string
+          format: uri
+          nullable: true
+        blob_store:
+          type: string
+          deprecated: true
+          description: Legacy read-only compatibility field
+          nullable: true
+        drivers:
+          type: integer
+          nullable: true
+        max_drivers:
+          type: integer
+          nullable: true
+        rounds:
+          type: integer
+          nullable: true
+        track:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        car_options:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
     LeaderboardEntry:
       type: object
       properties:
-        id:       { type: integer }
-        event_id: { type: integer }
-        race:     { type: string, example: "Race 1" }
-        position: { type: integer }
-        driver:   { type: string }
-        tag:      { type: string }
-        team:     { type: string }
-        points:   { type: number }
-        time:     { type: string, example: "1:44.218" }
-        gap:      { type: string, example: "+0.301" }
-        created_at: { type: string, format: date-time }
-
+        id:
+          type: integer
+        event_id:
+          type: integer
+          nullable: true
+        race:
+          type: string
+          example: Race 1
+          nullable: true
+        position:
+          type: integer
+          nullable: true
+        driver:
+          type: string
+          nullable: true
+        tag:
+          type: string
+          nullable: true
+        team:
+          type: string
+          nullable: true
+        points:
+          oneOf:
+            - type: number
+              nullable: true
+            - type: string
+              pattern: ^-?[0-9]+(\.[0-9]+)?$
+          description: Stored points, or null when points were not assigned. Neon may serialize DECIMAL as a string.
+        time:
+          type: string
+          example: 1:44.218
+          nullable: true
+        gap:
+          type: string
+          example: "+0.301"
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
     Registration:
       type: object
       properties:
-        id:             { type: integer }
-        timestamp:      { type: string }
-        driver_tag:     { type: string }
-        discord:        { type: string }
-        car_class:      { type: string }
-        event:          { type: string }
-        league_id:      { type: integer, nullable: true }
-        car_number:     { type: string, nullable: true }
-        penalty_points: { type: integer, default: 0 }
-        created_at:     { type: string, format: date-time }
-
+        id:
+          type: integer
+        timestamp:
+          type: string
+          nullable: true
+        driver_tag:
+          type: string
+        discord:
+          type: string
+          nullable: true
+        car_class:
+          type: string
+          nullable: true
+        event:
+          type: string
+          nullable: true
+        league_id:
+          type: integer
+          nullable: true
+        car_number:
+          type: string
+          nullable: true
+        penalty_points:
+          type: integer
+          default: 0
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        driver_profile_id:
+          type: integer
+          nullable: true
+        simgrid_registration_id:
+          type: string
+          nullable: true
+        simgrid_active:
+          type: boolean
     RaceResultMeta:
       type: object
       description: Race result metadata (without full result_data for list responses)
       properties:
-        id:               { type: integer }
-        league:           { type: string }
-        league_id:        { type: integer, nullable: true }
-        track:            { type: string }
-        date:             { type: string, format: date-time }
-        race_timestamp:   { type: integer, description: "Unix timestamp in milliseconds" }
-        results_json_url: { type: string }
-        results_page_url: { type: string }
-        session_type:     { type: string, example: "RACE" }
-        stored_at:        { type: string, format: date-time }
-
+        id:
+          type: integer
+        league:
+          type: string
+        league_id:
+          type: integer
+          nullable: true
+        track:
+          type: string
+          nullable: true
+        date:
+          type: string
+          format: date-time
+          nullable: true
+        race_timestamp:
+          oneOf:
+            - type: integer
+              nullable: true
+            - type: string
+              pattern: ^-?[0-9]+$
+          description: Milliseconds. PostgreSQL BIGINT values may be serialized as decimal strings; null means
+            unavailable.
+        results_json_url:
+          type: string
+          nullable: true
+        results_page_url:
+          type: string
+          nullable: true
+        session_type:
+          type: string
+          example: RACE
+          nullable: true
+        stored_at:
+          type: string
+          format: date-time
+          nullable: true
     RaceResultFull:
-      allOf:
-        - $ref: '#/components/schemas/RaceResultMeta'
-        - type: object
+      type: object
+      required:
+        - success
+        - leagueId
+        - league
+        - timestamp
+        - metadata
+        - data
+      properties:
+        success:
+          type: boolean
+        leagueId:
+          type: integer
+          nullable: true
+        league:
+          type: string
+        timestamp:
+          type: string
+          description: Echoes the timestamp query parameter.
+        metadata:
+          type: object
           properties:
-            data:
+            track:
+              type: string
+              nullable: true
+            session_date:
+              type: string
+              format: date-time
+              nullable: true
+            race_timestamp:
+              oneOf:
+                - type: integer
+                  nullable: true
+                - type: string
+                  pattern: ^-?[0-9]+$
+              description: Milliseconds. PostgreSQL BIGINT values may be serialized as decimal strings; null means
+                unavailable.
+            session_type:
+              type: string
+              nullable: true
+            results_json_url:
+              type: string
+              nullable: true
+            results_page_url:
+              type: string
+              nullable: true
+            stored_at:
+              type: string
+              format: date-time
+              nullable: true
+        data:
+          $ref: "#/components/schemas/RaceData"
+    Success:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+    RaceData:
+      type: object
+      additionalProperties: true
+      description: Assetto result JSON or normalized LMU result JSON. Fields depend on the importer; optional
+        backfill fields are not produced by the standard LMU upload.
+      properties:
+        source:
+          type: string
+        sourceFile:
+          type: string
+        Type:
+          type: string
+        Date:
+          type: string
+        TrackName:
+          type: string
+        TrackConfig:
+          type: string
+        TotalLaps:
+          type: integer
+        Result:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            properties:
+              DriverName:
+                type: string
+              Position:
+                type: integer
+              GridPosition:
+                type: integer
+                nullable: true
+              CarModel:
+                type: string
+              CarClass:
+                type: string
+              CarNumber:
+                type: string
+              TeamName:
+                type: string
+              NumLaps:
+                type: integer
+              BestLap:
+                type: integer
+                nullable: true
+                description: Milliseconds
+              TotalTime:
+                type: integer
+                nullable: true
+                description: Milliseconds; meaning depends on importer. Standard LMU upload uses the final lap elapsed
+                  timestamp; social backfill uses official FinishTime.
+              FinishStatus:
+                type: string
+              Pitstops:
+                type: integer
+        Laps:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        Penalties:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        PenaltyEvents:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        Events:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        DataQuality:
+          type: object
+          additionalProperties: true
+        EventName:
+          type: string
+        eventId:
+          type: integer
+        eventCategory:
+          type: string
+    DriverProfile:
+      type: object
+      required:
+        - id
+        - display_name
+        - status
+        - avatarUrl
+      properties:
+        id:
+          type: integer
+        display_name:
+          type: string
+        discord_username:
+          type: string
+          nullable: true
+        discord_user_id:
+          type: string
+          nullable: true
+        discord_global_name:
+          type: string
+          nullable: true
+        discord_avatar_hash:
+          type: string
+          nullable: true
+        status:
+          type: string
+        avatarUrl:
+          type: string
+          description: Empty string if no avatar.
+    DriverStats:
+      type: object
+      required:
+        - races
+        - wins
+        - podiums
+        - averageFinish
+        - completedLaps
+      properties:
+        races:
+          type: integer
+        wins:
+          type: integer
+        podiums:
+          type: integer
+        averageFinish:
+          type: number
+          nullable: true
+        completedLaps:
+          type: integer
+      description: Computed across all indexed entries mapped to this driver. No simulator/class/competition filter
+        or rating is currently exposed. One entry counts as one race, including zero-lap entries. Finishes use
+        stored overall position; current numeric conversion treats a null position as zero in averageFinish.
+    DriverHistoryEntry:
+      type: object
+      properties:
+        position:
+          type: integer
+          nullable: true
+        grid_position:
+          type: integer
+          nullable: true
+        car_number:
+          type: string
+          nullable: true
+        car_model:
+          type: string
+          nullable: true
+        car_class:
+          type: string
+          nullable: true
+        team_name:
+          type: string
+          nullable: true
+        laps:
+          type: integer
+          nullable: true
+        best_lap:
+          oneOf:
+            - type: integer
+              nullable: true
+            - type: string
+              pattern: ^-?[0-9]+$
+          description: Milliseconds. PostgreSQL BIGINT values may be serialized as decimal strings; null means
+            unavailable.
+        total_time:
+          oneOf:
+            - type: integer
+              nullable: true
+            - type: string
+              pattern: ^-?[0-9]+$
+          description: Milliseconds. PostgreSQL BIGINT values may be serialized as decimal strings; null means
+            unavailable.
+        finish_status:
+          type: string
+          nullable: true
+        track:
+          type: string
+          nullable: true
+        session_date:
+          type: string
+          format: date-time
+          nullable: true
+        session_type:
+          type: string
+          nullable: true
+        league_id:
+          type: integer
+          nullable: true
+        race_timestamp:
+          oneOf:
+            - type: integer
+              nullable: true
+            - type: string
+              pattern: ^-?[0-9]+$
+          description: Milliseconds. PostgreSQL BIGINT values may be serialized as decimal strings; null means
+            unavailable.
+        race_result_id:
+          type: integer
+        competition:
+          type: string
+          description: League name, or SRT Race for results without a league. Event display names are not yet joined.
+    DriverProfileResponse:
+      type: object
+      required:
+        - profile
+        - stats
+        - history
+      properties:
+        profile:
+          $ref: "#/components/schemas/DriverProfile"
+        stats:
+          $ref: "#/components/schemas/DriverStats"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/DriverHistoryEntry"
+    DriverRaceResponse:
+      type: object
+      required:
+        - race
+      properties:
+        race:
+          type: object
+          properties:
+            result_data:
+              $ref: "#/components/schemas/RaceData"
+            track:
+              type: string
+              nullable: true
+            session_date:
+              type: string
+              format: date-time
+              nullable: true
+            session_type:
+              type: string
+              nullable: true
+            competition:
+              type: string
+    MappingProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        display_name:
+          type: string
+        discord_username:
+          type: string
+          nullable: true
+        discord_user_id:
+          type: string
+          nullable: true
+        discord_global_name:
+          type: string
+          nullable: true
+        discord_avatar_hash:
+          type: string
+          nullable: true
+        status:
+          type: string
+        simgrid_user_id:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        alias_count:
+          type: integer
+        race_count:
+          type: integer
+    DriverCandidate:
+      type: object
+      properties:
+        id:
+          type: integer
+        normalized_name:
+          type: string
+        sample_name:
+          type: string
+        appearances:
+          type: integer
+        sources:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        driver_profile_id:
+          type: integer
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+    MappingAudit:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: integer
+            - type: string
+              pattern: ^[0-9]+$
+          description: Database BIGSERIAL ID, possibly serialized as a string.
+        action:
+          type: string
+        driver_profile_id:
+          type: integer
+          nullable: true
+        normalized_name:
+          type: string
+          nullable: true
+        details:
+          type: object
+          additionalProperties: true
+        admin_username:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+    LoginClaim:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: integer
+            - type: string
+              pattern: ^[0-9]+$
+          description: Database BIGSERIAL ID, possibly serialized as a string.
+        driver_profile_id:
+          type: integer
+        discord_user_id:
+          type: string
+        discord_username:
+          type: string
+        discord_global_name:
+          type: string
+          nullable: true
+        discord_avatar_hash:
+          type: string
+          nullable: true
+        status:
+          type: string
+        reviewed_by:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        display_name:
+          type: string
+    MappingWorkspace:
+      type: object
+      required:
+        - profiles
+        - candidates
+        - audit
+        - claims
+      properties:
+        profiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/MappingProfile"
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/DriverCandidate"
+        audit:
+          type: array
+          items:
+            $ref: "#/components/schemas/MappingAudit"
+        claims:
+          type: array
+          items:
+            $ref: "#/components/schemas/LoginClaim"
+    DiscordMember:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: ^[0-9]+$
+        username:
+          type: string
+        globalName:
+          type: string
+        nickname:
+          type: string
+        avatarHash:
+          type: string
+        linkedProfileId:
+          type: integer
+          nullable: true
+        linkedProfileName:
+          type: string
+        suggestedProfileId:
+          type: integer
+          nullable: true
+        suggestedProfileName:
+          type: string
+        matchMethod:
+          type: string
+          enum:
+            - discord_id
+            - username
+            - unmatched
+    RaceMappingPreview:
+      type: object
+      required:
+        - total
+        - matched
+        - unmatched
+        - drivers
+      properties:
+        total:
+          type: integer
+        matched:
+          type: integer
+        unmatched:
+          type: integer
+        drivers:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              matched:
+                type: boolean
+              profile:
+                type: string
+                nullable: true
+    LmuUploadPreview:
+      type: object
+      required:
+        - preview
+        - hash
+      properties:
+        preview:
+          type: object
+          required:
+            - leagueId
+            - leagueName
+            - race
+            - result
+            - validation
+            - mapping
+          properties:
+            leagueId:
+              type: integer
+            leagueName:
+              type: string
+            race:
+              $ref: "#/components/schemas/SimGridRace"
+            result:
+              $ref: "#/components/schemas/RaceData"
+            validation:
               type: object
-              additionalProperties: true
-              description: Full race result JSON as returned by Assetto Corsa server
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PATHS
-# ─────────────────────────────────────────────────────────────────────────────
+              required:
+                - valid
+                - warnings
+                - hoursApart
+                - trackMatched
+              properties:
+                valid:
+                  type: boolean
+                warnings:
+                  type: array
+                  items:
+                    type: string
+                hoursApart:
+                  type: number
+                trackMatched:
+                  type: boolean
+            mapping:
+              $ref: "#/components/schemas/RaceMappingPreview"
+        hash:
+          type: string
+    LmuUploadResult:
+      type: object
+      required:
+        - success
+        - raceId
+        - drivers
+        - storedAt
+        - syncedBy
+      properties:
+        success:
+          type: boolean
+        raceId:
+          type: string
+        drivers:
+          type: integer
+        storedAt:
+          type: string
+          format: date-time
+          nullable: true
+        syncedBy:
+          type: string
 paths:
-
   /api/discord-auth:
     get:
-      tags: [Driver Portal]
+      tags:
+        - Driver Portal
       summary: Start or complete Discord OAuth, inspect login state, or sign out
-      description: |
-        `action=login` starts Discord's authorization-code flow with the
-        `identify` scope. `action=callback` verifies state, exchanges the code
-        server-side, and binds the immutable Discord user ID only to one exact
-        pre-approved username. `action=me` is a public login-state check and
-        `action=logout` clears the signed HttpOnly driver session.
+      description: action=login redirects to Discord with identify scope and a ten-minute srt_discord_state cookie.
+        The callback verifies state and looks up an already-linked immutable Discord user ID, then falls back
+        to an exact approved username. A username-only match creates a pending claim requiring admin approval;
+        it does not sign the driver in. An approved ID match issues the seven-day driver cookie. Login and
+        callback errors redirect to profile.html?error=...; pending claims redirect to
+        profile.html?claim=pending. action=me only validates the signed cookie and does not recheck the
+        database link; driver-profile does. action=logout clears the driver cookie and redirects to /.
       parameters:
         - in: query
           name: action
-          schema: { type: string, enum: [login, callback, me, logout] }
+          schema:
+            type: string
+            enum:
+              - login
+              - callback
+              - me
+              - logout
+            default: me
+        - in: query
+          name: code
+          schema:
+            type: string
+          description: Discord callback authorization code.
+        - in: query
+          name: state
+          schema:
+            type: string
+          description: Discord callback state; must match the srt_discord_state cookie.
       responses:
-        '200': { description: Login-state response }
-        '302': { description: Redirect to Discord or the driver profile }
-        '401': { description: Invalid OAuth state or session }
-        '503': { description: Discord OAuth environment variables are missing }
-
+        "200":
+          description: Login state
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authenticated
+                properties:
+                  authenticated:
+                    type: boolean
+                  profileId:
+                    type: integer
+                    description: Only present when authenticated.
+        "302":
+          description: Redirect to Discord, profile (including errors/pending claims), or home on logout.
+          headers:
+            Location:
+              schema:
+                type: string
+            Set-Cookie:
+              schema:
+                type: string
+              description: Sets or clears signed state/session cookies.
+        "400":
+          description: Unknown action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getDiscordAuth
   /api/driver-profile:
     get:
-      tags: [Driver Portal]
+      tags:
+        - Driver Portal
       summary: Get the authenticated driver's consolidated profile and race history
-      description: Requires the signed HttpOnly driver session. With raceResultId,
-        returns an individual mapped race result for the same driver.
+      description: Returns only the authenticated driver profile and mapped history, newest first (unknown dates
+        last). raceResultId instead returns the entire archived race JSON if this driver has a mapped entry in
+        that race. The race payload includes the other classified drivers. Unmapped names and separate event
+        leaderboard rows are not part of this history. There is no simulator filter, progress metric, or
+        rating yet.
       parameters:
         - in: query
           name: raceResultId
-          schema: { type: integer }
+          schema:
+            type: integer
       responses:
-        '200': { description: Profile/history or one accessible race result }
-        '400': { description: Invalid race result ID }
-        '401': { description: Missing, expired, or unlinked driver session }
-        '404': { description: Race is not mapped to this driver }
-
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/DriverProfileResponse"
+                  - $ref: "#/components/schemas/DriverRaceResponse"
+        "400":
+          description: Invalid race result ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing, expired, or unlinked driver session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Race is not mapped to this driver
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Driver session signing is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - DriverSession: []
+      operationId: getDriverProfile
   /api/driver-mappings:
     get:
-      tags: [Admin]
+      tags:
+        - Admin
       summary: List driver identity profiles, discovered names, and mapping audit
       security:
         - AdminSession: []
       responses:
-        '200': { description: Current internal identity-mapping workspace }
-        '401': { description: Invalid or expired admin session }
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MappingWorkspace"
+        "401":
+          description: Invalid or expired admin session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Mapping workspace could not be loaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: JWT_SECRET is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getDriverMappings
     post:
-      tags: [Admin]
+      tags:
+        - Admin
       summary: Manage driver mappings and pre-link Discord server members
       security:
         - AdminSession: []
-      description: |
+      description: >-
         `index` rebuilds the searchable race-entry index without changing archived
+
         race JSON. `assign` creates or selects a driver profile and approves the
+
         discovered name as a global alias. `unassign` reverses that alias link.
+
         `update-profile` edits the administrative display name and expected Discord
+
         username. `preview-discord-members` securely fetches non-bot members through
+
         the configured SRT bot and suggests exact username matches without writing.
+
         `confirm-discord-members` revalidates server membership and binds selected
+
         immutable Discord user IDs, allowing those drivers to sign in immediately.
+
         A link can target an existing profile or an unmatched discovered racing
+
         name; the latter creates the profile, approves the alias, and backfills
+
         historical race entries and registrations in the same operation.
+
+
+        review-claim approves or rejects a pending Discord login claim. unlink-discord-member requires
+        profileId and the currently linked discordUserId and clears the login link. Member confirmation
+        revalidates membership; operations use sequential database writes, not an all-or-nothing batch
+        transaction.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [action]
-              properties:
-                action: { type: string, enum: [index, assign, unassign, update-profile, review-claim, preview-discord-members, confirm-discord-members, unlink-discord-member] }
-                candidateId: { type: integer }
-                profileId: { type: integer }
-                claimId: { type: integer }
-                decision: { type: string, enum: [approve, reject] }
-                displayName: { type: string }
-                discordUsername: { type: string }
-                discordUserId: { type: string, pattern: '^\\d+$' }
-                links:
-                  type: array
-                  maxItems: 500
-                  items:
-                    type: object
-                    required: [memberId]
-                    oneOf:
-                      - required: [profileId]
-                      - required: [candidateId]
-                    properties:
-                      memberId: { type: string, pattern: '^\\d+$' }
-                      profileId: { type: integer }
-                      candidateId: { type: integer }
+              oneOf:
+                - type: object
+                  required:
+                    - action
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - index
+                - type: object
+                  required:
+                    - action
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - preview-discord-members
+                - type: object
+                  required:
+                    - action
+                    - candidateId
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - assign
+                    candidateId:
+                      type: integer
+                      minimum: 1
+                    profileId:
+                      type: integer
+                      minimum: 1
+                    displayName:
+                      type: string
+                    discordUsername:
+                      type: string
+                  description: "Without profileId, creates a profile: discordUsername is required and displayName defaults to
+                    the discovered sample name."
+                - type: object
+                  required:
+                    - action
+                    - candidateId
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - unassign
+                    candidateId:
+                      type: integer
+                      minimum: 1
+                - type: object
+                  required:
+                    - action
+                    - profileId
+                    - displayName
+                    - discordUsername
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - update-profile
+                    profileId:
+                      type: integer
+                      minimum: 1
+                    displayName:
+                      type: string
+                    discordUsername:
+                      type: string
+                - type: object
+                  required:
+                    - action
+                    - claimId
+                    - decision
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - review-claim
+                    claimId:
+                      type: integer
+                      minimum: 1
+                    decision:
+                      type: string
+                      enum:
+                        - approve
+                        - reject
+                - type: object
+                  required:
+                    - action
+                    - profileId
+                    - discordUserId
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - unlink-discord-member
+                    profileId:
+                      type: integer
+                      minimum: 1
+                    discordUserId:
+                      type: string
+                      pattern: ^[0-9]+$
+                - type: object
+                  required:
+                    - action
+                    - links
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - confirm-discord-members
+                    links:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - memberId
+                        properties:
+                          memberId:
+                            type: string
+                            pattern: ^[0-9]+$
+                          profileId:
+                            type: integer
+                            minimum: 1
+                          candidateId:
+                            type: integer
+                            minimum: 1
+                        oneOf:
+                          - required:
+                              - profileId
+                          - required:
+                              - candidateId
+                      minItems: 1
+                      maxItems: 500
       responses:
-        '200': { description: Operation completed }
-        '400': { description: Invalid action or fields }
-        '401': { description: Invalid or expired admin session }
-        '404': { description: Candidate or profile not found }
-        '409': { description: Discord username or provider identity conflict }
-        '429': { description: Discord rate limit reached }
-        '502': { description: Discord bot request or permission failure }
-        '503': { description: Discord bot token or guild ID is missing }
-        '500': { description: Mapping operation failed }
-
+        "200":
+          description: "Action-specific result: index returns races/entries; preview returns members; confirm returns
+            linked; assign returns profileId; unlink returns profileId/displayName; other actions return
+            success."
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+                  profileId:
+                    type: integer
+                  displayName:
+                    type: string
+                  linked:
+                    type: integer
+                  races:
+                    type: integer
+                  entries:
+                    type: integer
+                  members:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DiscordMember"
+        "400":
+          description: Invalid action or fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid or expired admin session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Candidate or profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Discord username or provider identity conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Discord rate limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Mapping operation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Discord bot request or permission failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Discord bot token or guild ID is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: postDriverMappings
+    options:
+      tags:
+        - Admin
+      operationId: optionsDriverMappings
+      summary: Handle preflight request
+      security: []
+      responses:
+        "204":
+          description: Empty preflight response
   /api/simgrid-results:
     post:
-      tags: [Admin]
+      tags:
+        - Admin
       summary: Preview or confirm an uploaded LMU XML race result
       security:
         - AdminSession: []
-      description: |
-        Accepts an LMU/rFactor XML result file up to 8 MB. Preview normalizes
-        the Race session and validates its timestamp and track against a race
-        in the saved SimGrid snapshot. Confirm requires the preview hash and
-        upserts the selected league/race slot in Neon. Raw XML, telemetry, and
-        incidents are not persisted. SimGrid remains authoritative for points
-        and stewarding adjustments.
+      description: Accepts an LMU/rFactor XML file up to 8 MiB (8,388,608 UTF-8 bytes). Preview normalizes the Race
+        summary and compares its timestamp (within 36 hours) and track words against the selected saved
+        SimGrid race, returning validation warnings and driver mapping suggestions. Preview may succeed with
+        validation.valid=false; sync rejects that preview. Sync requires the same file/selection/hash, upserts
+        the league and scheduled race timestamp, then indexes drivers. This endpoint does not preserve raw
+        XML, individual laps/sectors, or incident/penalty events. Social-race backfills retain additional data
+        through a separate offline process. SimGrid remains the source of championship points. Archive write
+        and driver indexing are sequential; a later indexing failure can occur after the archive has been
+        saved.
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
               type: object
-              required: [action, leagueId, raceId, file]
+              required:
+                - action
+                - leagueId
+                - raceId
+                - file
               properties:
-                action: { type: string, enum: [preview, sync] }
-                leagueId: { type: integer, minimum: 1 }
-                raceId: { type: string, pattern: '^\\d+$' }
-                hash: { type: string, description: Required for sync; returned by preview }
-                file: { type: string, format: binary }
+                action:
+                  type: string
+                  enum:
+                    - preview
+                    - sync
+                leagueId:
+                  type: integer
+                  minimum: 1
+                raceId:
+                  type: string
+                  pattern: ^[0-9]+$
+                hash:
+                  type: string
+                  description: Required for sync; returned by preview
+                file:
+                  type: string
+                  format: binary
       responses:
-        '200': { description: Read-only preview or completed race upsert }
-        '400': { description: Missing selection, invalid filename, upload, or XML }
-        '401': { description: Invalid or expired admin session }
-        '404': { description: League not found }
-        '409': { description: Championship not synced or preview changed }
-        '422': { description: Invalid results or date/track mismatch }
-        '500': { description: Database failure; existing race retained }
-
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/LmuUploadPreview"
+                  - $ref: "#/components/schemas/LmuUploadResult"
+        "400":
+          description: Missing selection, invalid filename, upload, or XML
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid or expired admin session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: League not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Championship not synced or preview changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Invalid results or date/track mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Upload, storage, or indexing failed. The archive may already have been saved if a later indexing
+            step failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: JWT_SECRET is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: postSimgridResults
+    options:
+      tags:
+        - Admin
+      operationId: optionsSimgridResults
+      summary: Handle preflight request
+      security: []
+      responses:
+        "204":
+          description: Empty preflight response
   /api/simgrid:
     get:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Read the last saved SimGrid snapshot
-      description: Public, no-store response used by standings, schedule, and the championship portal registration summary. Does not contact SimGrid or initialize tables. Returns null snapshot before the first sync or after the league championship changes.
+      description: Public, no-store response used by standings, schedule, and the championship portal registration
+        summary. Does not contact SimGrid or initialize tables. Returns null snapshot before the first sync or
+        after the league championship changes.
       parameters:
         - in: query
           name: leagueId
           required: true
-          schema: { type: integer, minimum: 1 }
+          schema:
+            type: integer
+            minimum: 1
       responses:
-        '200':
+        "200":
           description: Saved snapshot or null
           content:
             application/json:
@@ -407,14 +1631,35 @@ paths:
                   snapshot:
                     nullable: true
                     allOf:
-                      - $ref: '#/components/schemas/SimGridSnapshot'
-                  syncedAt: { type: string, format: date-time, nullable: true }
-                  revision: { type: integer }
-        '400': { description: Invalid league ID or SimGrid URL }
-        '404': { description: League not found }
-        '500': { description: Database failure }
+                      - $ref: "#/components/schemas/SimGridSnapshot"
+                  syncedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  revision:
+                    type: integer
+        "400":
+          description: Invalid league ID or SimGrid URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: League not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Database failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getSimgrid
     post:
-      tags: [Admin]
+      tags:
+        - Admin
       summary: Preview or confirm a manual SimGrid sync
       security:
         - AdminSession: []
@@ -433,40 +1678,114 @@ paths:
             schema:
               oneOf:
                 - type: object
-                  required: [action, leagueId]
+                  required:
+                    - action
+                    - leagueId
                   properties:
-                    action: { type: string, enum: [preview] }
-                    leagueId: { type: integer, minimum: 1 }
+                    action:
+                      type: string
+                      enum:
+                        - preview
+                    leagueId:
+                      type: integer
+                      minimum: 1
                 - type: object
-                  required: [action, leagueId, hash, revision]
+                  required:
+                    - action
+                    - leagueId
+                    - hash
+                    - revision
                   properties:
-                    action: { type: string, enum: [sync] }
-                    leagueId: { type: integer, minimum: 1 }
-                    hash: { type: string }
-                    revision: { type: integer, minimum: 0 }
+                    action:
+                      type: string
+                      enum:
+                        - sync
+                    leagueId:
+                      type: integer
+                      minimum: 1
+                    hash:
+                      type: string
+                    revision:
+                      type: integer
+                      minimum: 0
       responses:
-        '200':
+        "200":
           description: Preview or completed sync
           content:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/SimGridPreview'
-                  - $ref: '#/components/schemas/SimGridSyncResult'
-        '400': { description: Invalid JSON, action, league ID, or championship URL }
-        '401': { description: Invalid or expired admin session }
-        '404': { description: League not found }
-        '409': { description: Stale preview or concurrent update. Preview again. }
-        '422': { description: Unsupported simulator or team championship }
-        '429': { description: SimGrid rate limit reached }
-        '500': { description: Database failure; previous snapshot retained }
-        '502': { description: Upstream failure or incomplete/unrecognized data; no sync performed }
-        '503': { description: SIMGRID_API_TOKEN or JWT_SECRET missing }
-
-  # ── /api/home ───────────────────────────────────────────────────────────────
+                  - $ref: "#/components/schemas/SimGridPreview"
+                  - $ref: "#/components/schemas/SimGridSyncResult"
+        "400":
+          description: Invalid JSON, action, league ID, or championship URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid or expired admin session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: League not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Stale preview or concurrent update. Preview again.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unsupported simulator or team championship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: SimGrid rate limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Database or candidate indexing failure. Snapshot publication is atomic, but a subsequent
+            candidate rebuild may fail after publication.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Upstream failure or incomplete/unrecognized data; no sync performed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: SIMGRID_API_TOKEN or JWT_SECRET missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: postSimgrid
+    options:
+      tags:
+        - Portal Data
+      operationId: optionsSimgrid
+      summary: Handle preflight request
+      security: []
+      responses:
+        "204":
+          description: Empty preflight response
   /api/home:
     get:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Get all home page data in one call
       description: |
         Returns events, leagues, and leaderboard in a single response.
@@ -480,20 +1799,44 @@ paths:
               schema:
                 type: object
                 properties:
-                  events:      { type: array, items: { $ref: '#/components/schemas/Event' } }
-                  leagues:     { type: array, items: { $ref: '#/components/schemas/League' } }
-                  leaderboard: { type: array, items: { $ref: '#/components/schemas/LeaderboardEntry' } }
-        "500": { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-
-  # ── /api/events ─────────────────────────────────────────────────────────────
+                  events:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Event"
+                  leagues:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/League"
+                  leaderboard:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LeaderboardEntry"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getHome
+    options:
+      tags:
+        - Portal Data
+      operationId: optionsHome
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/events:
     get:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: List all events or get one by ID
       parameters:
         - in: query
           name: id
-          schema: { type: integer }
+          schema:
+            type: integer
           description: If provided, returns a single event
       responses:
         "200":
@@ -503,16 +1846,35 @@ paths:
               schema:
                 oneOf:
                   - type: object
+                    required:
+                      - event
                     properties:
-                      events: { type: array, items: { $ref: '#/components/schemas/Event' } }
+                      event:
+                        $ref: "#/components/schemas/Event"
                   - type: object
+                    required:
+                      - events
                     properties:
-                      event: { $ref: '#/components/schemas/Event' }
-        "404": { description: Event not found }
-        "500": { description: Server error }
-
+                      events:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Event"
+        "404":
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getEvents
     post:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Create a new event
       requestBody:
         required: true
@@ -520,31 +1882,100 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name]
+              required:
+                - name
               properties:
-                name:        { type: string }
-                sim:         { type: string }
-                status:      { type: string, default: upcoming }
-                track:       { type: string }
-                start_date:  { type: string }
-                end_date:    { type: string }
-                format:      { type: string }
-                drivers:     { type: integer, default: 0 }
-                max_drivers: { type: integer, default: 30 }
-                rounds:      { type: integer, default: 1 }
-                season:      { type: string }
-                description: { type: string }
-                track_mod:   { type: string }
-                car_mod:     { type: string }
-                practice_server: { type: string }
-                car_options: { type: string }
+                name:
+                  type: string
+                sim:
+                  type: string
+                  nullable: true
+                status:
+                  type: string
+                  enum:
+                    - upcoming
+                    - ongoing
+                    - closed
+                  nullable: true
+                  default: upcoming
+                track:
+                  type: string
+                  nullable: true
+                start_date:
+                  type: string
+                  nullable: true
+                  description: "Stored text: may be date-only or an ISO timestamp."
+                end_date:
+                  type: string
+                  nullable: true
+                format:
+                  type: string
+                  nullable: true
+                drivers:
+                  type: integer
+                  nullable: true
+                  description: Recorded event count; its meaning depends on the event/import. May be null when unknown.
+                  default: 0
+                max_drivers:
+                  type: integer
+                  nullable: true
+                  default: 30
+                rounds:
+                  type: integer
+                  nullable: true
+                  default: 1
+                season:
+                  type: string
+                  nullable: true
+                description:
+                  type: string
+                  nullable: true
+                track_mod:
+                  type: string
+                  nullable: true
+                car_mod:
+                  type: string
+                  nullable: true
+                practice_server:
+                  type: string
+                  nullable: true
+                car_options:
+                  type: string
+                  nullable: true
       responses:
-        "201": { description: Created }
-        "400": { description: Validation error }
-        "500": { description: Server error }
-
+        "201":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - event
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  event:
+                    $ref: "#/components/schemas/Event"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: postEvents
     put:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Update an event
       requestBody:
         required: true
@@ -552,17 +1983,110 @@ paths:
           application/json:
             schema:
               type: object
-              required: [id]
+              required:
+                - id
               properties:
-                id: { type: integer }
-              additionalProperties: true
+                id:
+                  type: integer
+                  minimum: 1
+                name:
+                  type: string
+                sim:
+                  type: string
+                  nullable: true
+                status:
+                  type: string
+                  enum:
+                    - upcoming
+                    - ongoing
+                    - closed
+                  nullable: true
+                  default: upcoming
+                track:
+                  type: string
+                  nullable: true
+                start_date:
+                  type: string
+                  nullable: true
+                  description: "Stored text: may be date-only or an ISO timestamp."
+                end_date:
+                  type: string
+                  nullable: true
+                format:
+                  type: string
+                  nullable: true
+                drivers:
+                  type: integer
+                  nullable: true
+                  description: Recorded event count; its meaning depends on the event/import. May be null when unknown.
+                  default: 0
+                max_drivers:
+                  type: integer
+                  nullable: true
+                  default: 30
+                rounds:
+                  type: integer
+                  nullable: true
+                  default: 1
+                season:
+                  type: string
+                  nullable: true
+                description:
+                  type: string
+                  nullable: true
+                track_mod:
+                  type: string
+                  nullable: true
+                car_mod:
+                  type: string
+                  nullable: true
+                practice_server:
+                  type: string
+                  nullable: true
+                car_options:
+                  type: string
+                  nullable: true
       responses:
-        "200": { description: Updated }
-        "400": { description: Missing ID or no fields }
-        "404": { description: Event not found }
-
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - event
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  event:
+                    $ref: "#/components/schemas/Event"
+        "400":
+          description: Missing ID or update fields, or invalid deletion selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      description: Requires id and at least one update field.
+      operationId: putEvents
     delete:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Delete an event
       requestBody:
         required: true
@@ -570,27 +2094,93 @@ paths:
           application/json:
             schema:
               type: object
-              required: [id]
+              required:
+                - id
               properties:
-                id: { type: integer }
+                id:
+                  type: integer
       responses:
-        "200": { description: Deleted }
-        "404": { description: Event not found }
-
-  # ── /api/leagues ─────────────────────────────────────────────────────────────
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "400":
+          description: Missing ID or update fields, or invalid deletion selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: deleteEvents
+    options:
+      tags:
+        - Portal Data
+      operationId: optionsEvents
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/leagues:
     get:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: List all leagues or get one by ID
       parameters:
         - in: query
           name: id
-          schema: { type: integer }
+          schema:
+            type: integer
       responses:
-        "200": { description: Success }
-        "404": { description: League not found }
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required:
+                      - league
+                    properties:
+                      league:
+                        $ref: "#/components/schemas/League"
+                  - type: object
+                    required:
+                      - leagues
+                    properties:
+                      leagues:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/League"
+        "404":
+          description: League not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getLeagues
     post:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Create a new league
       requestBody:
         required: true
@@ -598,29 +2188,96 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name]
+              required:
+                - name
               properties:
-                name:           { type: string }
-                sim:            { type: string }
-                status:         { type: string, default: upcoming }
-                start_date:     { type: string }
-                end_date:       { type: string }
-                format:         { type: string }
-                season:         { type: string }
-                championship_id: { type: string }
-                simgrid_url:    { type: string, format: uri }
-                blob_store:     { type: string }
-                drivers:        { type: integer, default: 0 }
-                max_drivers:    { type: integer, default: 36 }
-                rounds:         { type: integer, default: 8 }
-                track:          { type: string }
-                description:    { type: string }
-                car_options:    { type: string }
+                name:
+                  type: string
+                sim:
+                  type: string
+                  nullable: true
+                status:
+                  type: string
+                  enum:
+                    - upcoming
+                    - ongoing
+                    - closed
+                  nullable: true
+                  default: upcoming
+                start_date:
+                  type: string
+                  nullable: true
+                end_date:
+                  type: string
+                  nullable: true
+                format:
+                  type: string
+                  nullable: true
+                season:
+                  type: string
+                  nullable: true
+                championship_id:
+                  type: string
+                  nullable: true
+                simgrid_url:
+                  type: string
+                  format: uri
+                  nullable: true
+                drivers:
+                  type: integer
+                  nullable: true
+                  default: 0
+                max_drivers:
+                  type: integer
+                  nullable: true
+                  default: 36
+                rounds:
+                  type: integer
+                  nullable: true
+                  default: 8
+                track:
+                  type: string
+                  nullable: true
+                description:
+                  type: string
+                  nullable: true
+                car_options:
+                  type: string
+                  nullable: true
       responses:
-        "201": { description: Created }
-        "400": { description: Validation error }
+        "201":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - league
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  league:
+                    $ref: "#/components/schemas/League"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: postLeagues
     put:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Update a league
       requestBody:
         required: true
@@ -628,13 +2285,106 @@ paths:
           application/json:
             schema:
               type: object
-              required: [id]
-              additionalProperties: true
+              required:
+                - id
+              properties:
+                id:
+                  type: integer
+                  minimum: 1
+                name:
+                  type: string
+                sim:
+                  type: string
+                  nullable: true
+                status:
+                  type: string
+                  enum:
+                    - upcoming
+                    - ongoing
+                    - closed
+                  nullable: true
+                  default: upcoming
+                start_date:
+                  type: string
+                  nullable: true
+                end_date:
+                  type: string
+                  nullable: true
+                format:
+                  type: string
+                  nullable: true
+                season:
+                  type: string
+                  nullable: true
+                championship_id:
+                  type: string
+                  nullable: true
+                simgrid_url:
+                  type: string
+                  format: uri
+                  nullable: true
+                drivers:
+                  type: integer
+                  nullable: true
+                  default: 0
+                max_drivers:
+                  type: integer
+                  nullable: true
+                  default: 36
+                rounds:
+                  type: integer
+                  nullable: true
+                  default: 8
+                track:
+                  type: string
+                  nullable: true
+                description:
+                  type: string
+                  nullable: true
+                car_options:
+                  type: string
+                  nullable: true
       responses:
-        "200": { description: Updated }
-        "404": { description: League not found }
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - league
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  league:
+                    $ref: "#/components/schemas/League"
+        "400":
+          description: Missing ID or update fields, or invalid deletion selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: League not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      description: Requires id and at least one update field.
+      operationId: putLeagues
     delete:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Delete a league
       requestBody:
         required: true
@@ -642,36 +2392,104 @@ paths:
           application/json:
             schema:
               type: object
-              required: [id]
+              required:
+                - id
               properties:
-                id: { type: integer }
+                id:
+                  type: integer
       responses:
-        "200": { description: Deleted }
-        "404": { description: League not found }
-
-  # ── /api/leaderboard ─────────────────────────────────────────────────────────
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "400":
+          description: Missing ID or update fields, or invalid deletion selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: League not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: deleteLeagues
+    options:
+      tags:
+        - Portal Data
+      operationId: optionsLeagues
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/leaderboard:
     get:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Get leaderboard entries
       parameters:
         - in: query
           name: id
-          schema: { type: integer }
+          schema:
+            type: integer
           description: Single entry by ID
         - in: query
           name: event_id
-          schema: { type: integer }
+          schema:
+            type: integer
           description: Filter by event
         - in: query
           name: race
-          schema: { type: string }
+          schema:
+            type: string
           description: Filter by race name (use with event_id)
       responses:
-        "200": { description: Success }
-        "404": { description: Entry not found }
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required:
+                      - entry
+                    properties:
+                      entry:
+                        $ref: "#/components/schemas/LeaderboardEntry"
+                  - type: object
+                    required:
+                      - leaderboard
+                    properties:
+                      leaderboard:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/LeaderboardEntry"
+        "404":
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getLeaderboard
     post:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Create a leaderboard entry
       requestBody:
         required: true
@@ -679,22 +2497,80 @@ paths:
           application/json:
             schema:
               type: object
-              required: [event_id, driver, position]
+              required:
+                - event_id
+                - driver
+                - position
               properties:
-                event_id: { type: integer }
-                race:     { type: string, default: "Race 1" }
-                position: { type: integer }
-                driver:   { type: string }
-                tag:      { type: string }
-                team:     { type: string }
-                points:   { type: number }
-                time:     { type: string }
-                gap:      { type: string }
+                event_id:
+                  type: integer
+                  nullable: true
+                race:
+                  type: string
+                  example: Race 1
+                  nullable: true
+                  default: Race 1
+                position:
+                  type: integer
+                  nullable: true
+                driver:
+                  type: string
+                  nullable: true
+                tag:
+                  type: string
+                  nullable: true
+                team:
+                  type: string
+                  nullable: true
+                points:
+                  oneOf:
+                    - type: number
+                      nullable: true
+                    - type: string
+                      pattern: ^-?[0-9]+(\.[0-9]+)?$
+                  description: Stored points, or null when points were not assigned. Neon may serialize DECIMAL as a string.
+                time:
+                  type: string
+                  example: 1:44.218
+                  nullable: true
+                gap:
+                  type: string
+                  example: "+0.301"
+                  nullable: true
       responses:
-        "201": { description: Created }
-        "400": { description: Validation error }
+        "201":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - entry
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  entry:
+                    $ref: "#/components/schemas/LeaderboardEntry"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: postLeaderboard
     put:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Update a leaderboard entry
       requestBody:
         required: true
@@ -702,13 +2578,88 @@ paths:
           application/json:
             schema:
               type: object
-              required: [id]
-              additionalProperties: true
+              required:
+                - id
+              properties:
+                id:
+                  type: integer
+                  minimum: 1
+                event_id:
+                  type: integer
+                  nullable: true
+                race:
+                  type: string
+                  example: Race 1
+                  nullable: true
+                  default: Race 1
+                position:
+                  type: integer
+                  nullable: true
+                driver:
+                  type: string
+                  nullable: true
+                tag:
+                  type: string
+                  nullable: true
+                team:
+                  type: string
+                  nullable: true
+                points:
+                  oneOf:
+                    - type: number
+                      nullable: true
+                    - type: string
+                      pattern: ^-?[0-9]+(\.[0-9]+)?$
+                  description: Stored points, or null when points were not assigned. Neon may serialize DECIMAL as a string.
+                time:
+                  type: string
+                  example: 1:44.218
+                  nullable: true
+                gap:
+                  type: string
+                  example: "+0.301"
+                  nullable: true
       responses:
-        "200": { description: Updated }
-        "404": { description: Entry not found }
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - entry
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  entry:
+                    $ref: "#/components/schemas/LeaderboardEntry"
+        "400":
+          description: Missing ID or update fields, or invalid deletion selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      description: Requires id and at least one update field.
+      operationId: putLeaderboard
     delete:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Delete entry by id or bulk-delete by event_id+race
       requestBody:
         required: true
@@ -717,41 +2668,122 @@ paths:
             schema:
               type: object
               properties:
-                id:       { type: integer, description: "Delete single entry" }
-                event_id: { type: integer, description: "Bulk delete — use with race" }
-                race:     { type: string, description: "Bulk delete — use with event_id" }
+                id:
+                  type: integer
+                  description: Delete single entry
+                event_id:
+                  type: integer
+                  description: Bulk delete — use with race
+                race:
+                  type: string
+                  description: Bulk delete — use with event_id
+              anyOf:
+                - required:
+                    - id
+                - required:
+                    - event_id
+                    - race
       responses:
-        "200": { description: Deleted }
-        "400": { description: Missing parameters }
-        "404": { description: Entry not found }
-
-  # ── /api/registrations ───────────────────────────────────────────────────────
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "400":
+          description: Missing ID or update fields, or invalid deletion selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: deleteLeaderboard
+    options:
+      tags:
+        - Portal Data
+      operationId: optionsLeaderboard
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/registrations:
     get:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Get registrations
       parameters:
         - in: query
           name: id
-          schema: { type: integer }
+          schema:
+            type: integer
         - in: query
           name: event
-          schema: { type: string }
+          schema:
+            type: string
           description: Filter by event name
         - in: query
           name: driver_tag
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: Success }
-        "404": { description: Not found }
-
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required:
+                      - registration
+                    properties:
+                      registration:
+                        $ref: "#/components/schemas/Registration"
+                  - type: object
+                    required:
+                      - registrations
+                    properties:
+                      registrations:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Registration"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      description: Lists active registrations only (simgrid_active=true). The id lookup includes inactive records.
+        Query precedence is id, event, driver_tag, then all active records.
+      operationId: getRegistrations
     post:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Create a registration or bulk-import drivers
       parameters:
         - in: query
           name: action
-          schema: { type: string, enum: [bulk-import] }
+          schema:
+            type: string
+            enum:
+              - bulk-import
           description: Use bulk-import to import from standings
       requestBody:
         required: true
@@ -761,38 +2793,136 @@ paths:
               oneOf:
                 - description: Single registration
                   type: object
-                  required: [driver_tag, event]
+                  required:
+                    - driver_tag
+                    - event
                   properties:
-                    driver_tag:     { type: string }
-                    discord:        { type: string }
-                    car_class:      { type: string }
-                    event:          { type: string }
-                    league_id:      { type: integer }
-                    car_number:     { type: string }
-                    penalty_points: { type: integer, default: 0 }
+                    driver_tag:
+                      type: string
+                    discord:
+                      type: string
+                    car_class:
+                      type: string
+                    event:
+                      type: string
+                    league_id:
+                      type: integer
+                    car_number:
+                      type: string
+                    penalty_points:
+                      type: integer
+                      default: 0
                 - description: Bulk import body
                   type: object
-                  required: [league_id, league_name, drivers]
+                  required:
+                    - league_id
+                    - league_name
+                    - drivers
                   properties:
-                    league_id:   { type: integer }
-                    league_name: { type: string }
+                    league_id:
+                      type: integer
+                    league_name:
+                      type: string
                     drivers:
                       type: array
                       items:
                         type: object
                         properties:
-                          driver_tag: { type: string }
-                          discord:    { type: string }
-                          car_class:  { type: string }
-                          car_number: { type: string }
+                          driver_tag:
+                            type: string
+                          discord:
+                            type: string
+                          car_class:
+                            type: string
+                          car_number:
+                            type: string
+                          driverName:
+                            type: string
+                            description: Fallback for driver_tag
+                          className:
+                            type: string
+                            description: Fallback for car_class
+                      minItems: 1
       responses:
-        "200": { description: Bulk import result }
-        "201": { description: Registration created }
-        "409": { description: Duplicate registration }
-        "400": { description: Validation error }
-
+        "200":
+          description: Bulk import results; individual drivers may be skipped.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - results
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  results:
+                    type: object
+                    required:
+                      - imported
+                      - updated
+                      - skipped
+                    properties:
+                      imported:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Registration"
+                      updated:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Registration"
+                      skipped:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            driver:
+                              type: object
+                              additionalProperties: true
+                            reason:
+                              type: string
+        "201":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - registration
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  registration:
+                    $ref: "#/components/schemas/Registration"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Duplicate registration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: postRegistrations
     put:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Update a registration
       requestBody:
         required: true
@@ -800,14 +2930,77 @@ paths:
           application/json:
             schema:
               type: object
-              required: [id]
-              additionalProperties: true
+              required:
+                - id
+              properties:
+                id:
+                  type: integer
+                  minimum: 1
+                timestamp:
+                  type: string
+                  nullable: true
+                driver_tag:
+                  type: string
+                discord:
+                  type: string
+                  nullable: true
+                car_class:
+                  type: string
+                  nullable: true
+                event:
+                  type: string
+                  nullable: true
+                league_id:
+                  type: integer
+                  nullable: true
+                car_number:
+                  type: string
+                  nullable: true
+                penalty_points:
+                  type: integer
+                  default: 0
+                  nullable: true
       responses:
-        "200": { description: Updated }
-        "404": { description: Not found }
-
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - registration
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  registration:
+                    $ref: "#/components/schemas/Registration"
+        "400":
+          description: Missing ID or update fields, or invalid deletion selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      description: Requires id and at least one update field.
+      operationId: putRegistrations
     delete:
-      tags: [Portal Data]
+      tags:
+        - Portal Data
       summary: Delete a registration
       requestBody:
         required: true
@@ -815,31 +3008,75 @@ paths:
           application/json:
             schema:
               type: object
-              required: [id]
+              required:
+                - id
               properties:
-                id: { type: integer }
+                id:
+                  type: integer
       responses:
-        "200": { description: Deleted }
-        "404": { description: Not found }
-
-  # ── /api/race-store ──────────────────────────────────────────────────────────
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "400":
+          description: Missing ID or update fields, or invalid deletion selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: deleteRegistrations
+    options:
+      tags:
+        - Portal Data
+      operationId: optionsRegistrations
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/race-store:
     get:
-      tags: [Race Archive]
+      tags:
+        - Race Archive
       summary: List leagues, list races for a league, or fetch a specific race
       parameters:
         - in: query
           name: action
-          schema: { type: string, enum: [leagues] }
+          schema:
+            type: string
+            enum:
+              - leagues
           description: Use action=leagues to list all leagues that have stored races
         - in: query
           name: leagueId
-          schema: { type: integer }
+          schema:
+            type: integer
           description: League database ID
         - in: query
           name: timestamp
-          schema: { type: integer }
+          schema:
+            type: integer
           description: Race timestamp in ms — returns full result_data when combined with leagueId
+        - in: query
+          name: league
+          schema:
+            type: string
+          description: Legacy storage key, used only when leagueId is absent. Also reads backfilled social events, e.g.
+            event:9.
       responses:
         "200":
           description: Success
@@ -847,68 +3084,246 @@ paths:
             application/json:
               schema:
                 oneOf:
-                  - description: Leagues list
-                    type: object
+                  - type: object
+                    required:
+                      - success
+                      - leagues
                     properties:
-                      leagues: { type: array, items: { type: object } }
-                  - description: Races for league
-                    type: object
+                      success:
+                        type: boolean
+                      leagues:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            league_id:
+                              type: integer
+                              nullable: true
+                            key:
+                              type: string
+                            name:
+                              type: string
+                  - type: object
+                    required:
+                      - success
+                      - leagueId
+                      - league
+                      - count
+                      - races
                     properties:
-                      races: { type: array, items: { $ref: '#/components/schemas/RaceResultMeta' } }
-                  - description: Single race with full data
-                    $ref: '#/components/schemas/RaceResultFull'
-        "404": { description: Race not found }
-
+                      success:
+                        type: boolean
+                      leagueId:
+                        type: integer
+                        nullable: true
+                      league:
+                        type: string
+                      count:
+                        type: integer
+                      races:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RaceResultMeta"
+                  - $ref: "#/components/schemas/RaceResultFull"
+        "400":
+          description: Missing or invalid league reference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Race not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      description: action=leagues lists distinct archive groups, including social event keys with league_id=null.
+        Otherwise provide leagueId or the legacy league storage key. timestamp selects one full result.
+        eventId is not a supported filter, and event_id is not returned in list metadata.
+      operationId: getRaceStore
     post:
-      tags: [Race Archive]
+      tags:
+        - Race Archive
       summary: Store latest race or sync multiple races from Assetto server
       parameters:
         - in: query
           name: action
           required: true
-          schema: { type: string, enum: [store, sync] }
+          schema:
+            type: string
+            enum:
+              - store
+              - sync
         - in: query
           name: leagueId
-          schema: { type: integer }
+          schema:
+            type: integer
           description: Required for action=store
+        - in: query
+          name: league
+          schema:
+            type: string
+          description: Legacy storage key for action=store, when leagueId is absent.
       requestBody:
         content:
           application/json:
             schema:
               description: Required for action=sync
               type: object
-              required: [leagueId, races]
+              required:
+                - races
               properties:
-                leagueId: { type: integer }
+                leagueId:
+                  type: integer
                 races:
                   type: array
                   items:
                     type: object
-                    required: [results_json_url, track, date]
+                    required:
+                      - results_json_url
+                      - track
+                      - date
                     properties:
-                      results_json_url: { type: string }
-                      results_page_url: { type: string }
-                      track:            { type: string }
-                      date:             { type: string }
-                      session_type:     { type: string, default: RACE }
+                      results_json_url:
+                        type: string
+                      results_page_url:
+                        type: string
+                      track:
+                        type: string
+                      date:
+                        type: string
+                      session_type:
+                        type: string
+                        default: RACE
+                  minItems: 1
+                league:
+                  type: string
+                  description: Legacy storage key, used when leagueId is absent.
+              anyOf:
+                - required:
+                    - leagueId
+                - required:
+                    - league
       responses:
-        "200": { description: Success }
-        "400": { description: Missing parameters }
-        "404": { description: No race found on Assetto server }
-
-  # ── /api/races ───────────────────────────────────────────────────────────────
+        "200":
+          description: store returns race metadata; sync returns results.success and results.failed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - leagueId
+                  - league
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  leagueId:
+                    type: integer
+                    nullable: true
+                  league:
+                    type: string
+                  track:
+                    type: string
+                  date:
+                    type: string
+                  race_timestamp:
+                    oneOf:
+                      - type: integer
+                        nullable: true
+                      - type: string
+                        pattern: ^-?[0-9]+$
+                    description: Milliseconds. PostgreSQL BIGINT values may be serialized as decimal strings; null means
+                      unavailable.
+                  results:
+                    type: object
+                    properties:
+                      success:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            track:
+                              type: string
+                            date:
+                              type: string
+                            race_timestamp:
+                              oneOf:
+                                - type: integer
+                                  nullable: true
+                                - type: string
+                                  pattern: ^-?[0-9]+$
+                              description: Milliseconds. PostgreSQL BIGINT values may be serialized as decimal strings; null means
+                                unavailable.
+                      failed:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            track:
+                              type: string
+                            date:
+                              type: string
+                            error:
+                              type: string
+        "400":
+          description: Missing parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No race found on Assetto server
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      description: store fetches the latest upstream RACE; sync fetches the selected URLs. Existing league/timestamp
+        rows are preserved, then indexed. sync reports per-race failures while returning HTTP 200; inspect
+        results.failed. Writes and indexing are sequential, not a batch transaction.
+      operationId: postRaceStore
+    options:
+      tags:
+        - Race Archive
+      operationId: optionsRaceStore
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/races:
     get:
-      tags: [Assetto Proxy]
+      tags:
+        - Assetto Proxy
       summary: List RACE sessions or download a race result JSON from Assetto server
       parameters:
         - in: query
           name: action
           required: true
-          schema: { type: string, enum: [list, result] }
+          schema:
+            type: string
+            enum:
+              - list
+              - result
         - in: query
           name: file
-          schema: { type: string }
+          schema:
+            type: string
           description: Required for action=result — filename like 2026_4_29_10_38_RACE.json
       responses:
         "200":
@@ -916,21 +3331,50 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-        "400": { description: Missing action or file }
-        "404": { description: No races found }
-        "500": { description: Assetto server unreachable }
-
-  # ── /api/live ────────────────────────────────────────────────────────────────
+                description: action=list returns success, count and races (id, track, date, session_type, results_json_url,
+                  results_page_url, timestamp in milliseconds). action=result returns the upstream result JSON
+                  unchanged.
+        "400":
+          description: Missing action or file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No races found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Assetto server unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getRaces
+    options:
+      tags:
+        - Assetto Proxy
+      operationId: optionsRaces
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/live:
     get:
-      tags: [Assetto Proxy]
+      tags:
+        - Assetto Proxy
       summary: Live timing data from Assetto server
       parameters:
         - in: query
           name: type
-          schema: { type: string, enum: [basic, leaderboard] }
+          schema:
+            type: string
+            enum:
+              - basic
+              - leaderboard
           description: Omit to get both. basic=session info, leaderboard=driver positions
       responses:
         "200":
@@ -938,20 +3382,41 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-        "500": { description: Assetto server unreachable }
-
-  # ── /api/standings ───────────────────────────────────────────────────────────
+                description: Upstream JSON is passed through without a fixed schema. /api/live without type wraps responses in
+                  basic and leaderboard.
+        "400":
+          description: Invalid type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Assetto server unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getLive
+    options:
+      tags:
+        - Assetto Proxy
+      operationId: optionsLive
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/standings:
     get:
-      tags: [Assetto Proxy]
+      tags:
+        - Assetto Proxy
       summary: Championship standings from Assetto server
       parameters:
         - in: query
           name: championshipId
           required: true
-          schema: { type: string }
+          schema:
+            type: string
           example: 1bb2f11c-d4db-45e8-9505-97cd6ec1e806
       responses:
         "200":
@@ -959,15 +3424,34 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-        "400": { description: Missing championshipId }
-        "500": { description: Assetto server unreachable }
-
-  # ── /api/championships ───────────────────────────────────────────────────────
+                description: Upstream JSON is passed through without a fixed schema. /api/live without type wraps responses in
+                  basic and leaderboard.
+        "400":
+          description: Missing championshipId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Assetto server unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getStandings
+    options:
+      tags:
+        - Assetto Proxy
+      operationId: optionsStandings
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/championships:
     get:
-      tags: [Assetto Proxy]
+      tags:
+        - Assetto Proxy
       summary: List all championships from Assetto server
       responses:
         "200":
@@ -975,14 +3459,28 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-        "500": { description: Assetto server unreachable }
-
-  # ── /api/results ─────────────────────────────────────────────────────────────
+                description: Upstream JSON is passed through without a fixed schema. /api/live without type wraps responses in
+                  basic and leaderboard.
+        "500":
+          description: Assetto server unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getChampionships
+    options:
+      tags:
+        - Assetto Proxy
+      operationId: optionsChampionships
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/results:
     get:
-      tags: [Assetto Proxy]
+      tags:
+        - Assetto Proxy
       summary: Full results list from Assetto server
       responses:
         "200":
@@ -990,14 +3488,28 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-        "500": { description: Assetto server unreachable }
-
-  # ── /api/login-auth ──────────────────────────────────────────────────────────
+                description: Upstream JSON is passed through without a fixed schema. /api/live without type wraps responses in
+                  basic and leaderboard.
+        "500":
+          description: Assetto server unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getResults
+    options:
+      tags:
+        - Assetto Proxy
+      operationId: optionsResults
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/login-auth:
     post:
-      tags: [Admin]
+      tags:
+        - Admin
       summary: Login or validate admin token
       requestBody:
         required: true
@@ -1007,16 +3519,26 @@ paths:
               oneOf:
                 - description: Login
                   type: object
-                  required: [username, password]
+                  required:
+                    - username
+                    - password
                   properties:
-                    username: { type: string }
-                    password: { type: string }
+                    username:
+                      type: string
+                    password:
+                      type: string
                 - description: Validate token
                   type: object
-                  required: [action, token]
+                  required:
+                    - action
+                    - token
                   properties:
-                    action: { type: string, enum: [validate] }
-                    token:  { type: string }
+                    action:
+                      type: string
+                      enum:
+                        - validate
+                    token:
+                      type: string
       responses:
         "200":
           description: Success
@@ -1027,23 +3549,58 @@ paths:
                   - description: Login success
                     type: object
                     properties:
-                      success:   { type: boolean }
-                      token:     { type: string, description: "base64Payload|HMACSig" }
-                      username:  { type: string }
-                      expiresIn: { type: integer, example: 7200 }
+                      success:
+                        type: boolean
+                      token:
+                        type: string
+                        description: base64Payload|HMACSig
+                      username:
+                        type: string
+                      expiresIn:
+                        type: integer
+                        example: 7200
                   - description: Token valid
                     type: object
                     properties:
-                      valid:     { type: boolean }
-                      username:  { type: string }
-                      expiresAt: { type: integer, description: Unix timestamp ms }
-        "400": { description: Missing credentials }
-        "401": { description: Invalid credentials or expired token }
-
-  # ── /api/sync-poster ─────────────────────────────────────────────────────────
+                      valid:
+                        type: boolean
+                      username:
+                        type: string
+                      expiresAt:
+                        type: integer
+                        description: Unix timestamp ms
+        "400":
+          description: Missing credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid credentials or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: postLoginAuth
+    options:
+      tags:
+        - Admin
+      operationId: optionsLoginAuth
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
   /api/sync-poster:
     post:
-      tags: [Admin]
+      tags:
+        - Admin
       summary: Upload or update a poster image in the GitHub repository
       description: |
         Commits the image to the root of the repo using the GitHub Contents API.
@@ -1054,11 +3611,13 @@ paths:
           application/json:
             schema:
               type: object
-              required: [filename, content]
+              required:
+                - filename
+                - content
               properties:
                 filename:
                   type: string
-                  pattern: '^(poster\d+|leaguePoster\d+)\.png$'
+                  pattern: ^(poster\d+|leaguePoster\d+)\.png$
                   example: leaguePoster3.png
                 content:
                   type: string
@@ -1074,19 +3633,48 @@ paths:
               schema:
                 type: object
                 properties:
-                  success: { type: boolean }
-                  message: { type: string }
+                  success:
+                    type: boolean
+                  message:
+                    type: string
                   commit:
                     type: object
                     properties:
-                      sha:     { type: string }
-                      url:     { type: string }
-                      message: { type: string }
+                      sha:
+                        type: string
+                      url:
+                        type: string
+                      message:
+                        type: string
                   file:
                     type: object
                     properties:
-                      name:         { type: string }
-                      url:          { type: string }
-                      download_url: { type: string }
-        "400": { description: Missing or invalid parameters }
-        "500": { description: GitHub token not configured or API error }
+                      name:
+                        type: string
+                      url:
+                        type: string
+                      download_url:
+                        type: string
+        "400":
+          description: Missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: GitHub token not configured or API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: postSyncPoster
+    options:
+      tags:
+        - Admin
+      operationId: optionsSyncPoster
+      summary: Handle preflight request
+      security: []
+      responses:
+        "200":
+          description: Empty preflight response
+security: []
