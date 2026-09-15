@@ -22,3 +22,5 @@ import './results.js';
 import './simgrid.js';
 import './simgrid-results.js';
 import './driver-mappings.js';
+import './discord-auth.js';
+import './driver-profile.js';

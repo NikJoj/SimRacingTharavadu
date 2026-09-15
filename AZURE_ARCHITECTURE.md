@@ -38,6 +38,7 @@ The GitHub Actions workflow at `.github/workflows/azure-static-web-apps-delightf
 | Admin support | `/api/login-auth`, `/api/sync-poster` | Azure configuration + GitHub Contents API |
 | SimGrid | `/api/simgrid` | SimGrid GridOS → Neon snapshot + registrations |
 | Driver identity | `/api/driver-mappings` | Admin-approved aliases → searchable race-entry index |
+| Driver login | `/api/discord-auth`, `/api/driver-profile` | Discord OAuth2 → signed HttpOnly session → mapped history |
 | LMU result upload | `/api/simgrid-results` | Admin XML upload → normalized Neon race result |
 
 The complete request and response contract is in `docs/openapi.yaml`.
@@ -50,10 +51,18 @@ Primary tables: `events`, `leagues`, `leaderboard`, `registrations`, and `race_r
 
 Driver identity is maintained separately from archived result JSON in
 `driver_profiles`, `driver_aliases`, `driver_name_candidates`, `race_sessions`,
-`race_entries`, and `driver_mapping_audit`. The admin dashboard scans existing
+`race_entries`, `driver_login_claims`, and `driver_mapping_audit`. The admin dashboard scans existing
 registrations and results, approves racing-name aliases against a Discord-labelled
 profile, and can reverse a link. Discord usernames are preparatory metadata; a
 future login flow must bind and authenticate by immutable Discord user ID.
+
+Driver login uses Discord's OAuth2 authorization-code flow with only the
+`identify` scope. A signed, short-lived HttpOnly cookie protects OAuth state.
+The first login matching an admin-entered username creates a pending claim with
+the verified Discord numeric ID; it does not grant race-history access. After an
+admin approves the claim, the driver signs in again and receives a signed,
+HttpOnly, Secure, SameSite=Lax seven-day SRT session. No Discord access or refresh
+tokens are persisted. Login is optional and public pages remain available.
 
 ### Applying the driver-identity schema
 
@@ -99,6 +108,10 @@ Configure these application settings in Azure Static Web Apps. Never place their
 | `DATABASE_URL` | Data and race archive functions | Neon PostgreSQL connection string |
 | `USE_TEST_DATABASE` | All database-backed functions | Optional `true`/`false` selector; defaults to production |
 | `TEST_DATABASE_URL` | All database-backed functions in test mode | Separate Neon test branch connection string |
+| `DISCORD_CLIENT_ID` | Optional driver login | Discord application ID |
+| `DISCORD_CLIENT_SECRET` | Optional driver login | Discord OAuth client secret; server-side only |
+| `DISCORD_REDIRECT_URI` | Optional driver login | Exact registered callback URL ending in `/api/discord-auth?action=callback` |
+| `DRIVER_SESSION_SECRET` | Optional driver login | Cookie-signing secret; falls back to `JWT_SECRET` |
 | `ADMIN_USERNAME` | `login-auth` | Dashboard username |
 | `ADMIN_PASSWORD` | `login-auth` | Dashboard password |
 | `JWT_SECRET` | `login-auth` | HMAC signing secret for the short-lived dashboard token |

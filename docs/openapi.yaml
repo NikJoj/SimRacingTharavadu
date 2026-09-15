@@ -249,6 +249,42 @@ components:
 # ─────────────────────────────────────────────────────────────────────────────
 paths:
 
+  /api/discord-auth:
+    get:
+      tags: [Driver Portal]
+      summary: Start or complete Discord OAuth, inspect login state, or sign out
+      description: |
+        `action=login` starts Discord's authorization-code flow with the
+        `identify` scope. `action=callback` verifies state, exchanges the code
+        server-side, and binds the immutable Discord user ID only to one exact
+        pre-approved username. `action=me` is a public login-state check and
+        `action=logout` clears the signed HttpOnly driver session.
+      parameters:
+        - in: query
+          name: action
+          schema: { type: string, enum: [login, callback, me, logout] }
+      responses:
+        '200': { description: Login-state response }
+        '302': { description: Redirect to Discord or the driver profile }
+        '401': { description: Invalid OAuth state or session }
+        '503': { description: Discord OAuth environment variables are missing }
+
+  /api/driver-profile:
+    get:
+      tags: [Driver Portal]
+      summary: Get the authenticated driver's consolidated profile and race history
+      description: Requires the signed HttpOnly driver session. With raceResultId,
+        returns an individual mapped race result for the same driver.
+      parameters:
+        - in: query
+          name: raceResultId
+          schema: { type: integer }
+      responses:
+        '200': { description: Profile/history or one accessible race result }
+        '400': { description: Invalid race result ID }
+        '401': { description: Missing, expired, or unlinked driver session }
+        '404': { description: Race is not mapped to this driver }
+
   /api/driver-mappings:
     get:
       tags: [Admin]
@@ -277,9 +313,11 @@ paths:
               type: object
               required: [action]
               properties:
-                action: { type: string, enum: [index, assign, unassign, update-profile] }
+                action: { type: string, enum: [index, assign, unassign, update-profile, review-claim] }
                 candidateId: { type: integer }
                 profileId: { type: integer }
+                claimId: { type: integer }
+                decision: { type: string, enum: [approve, reject] }
                 displayName: { type: string }
                 discordUsername: { type: string }
       responses:

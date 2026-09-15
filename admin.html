@@ -160,6 +160,10 @@
         </div>
         <div id="mapping-status" class="status-message" role="status" aria-live="polite"></div>
         <div class="mapping-stats" id="mapping-stats"></div>
+        <div class="mapping-panel" id="mapping-claims-panel" hidden>
+          <div class="mapping-panel-header"><div><h3>Pending Discord login claims</h3><p>Approve only after confirming this Discord account belongs to the mapped driver.</p></div></div>
+          <div id="mapping-claims" class="data-table"></div>
+        </div>
         <div class="mapping-panel">
           <div class="mapping-panel-header"><div><h3>Discovered names</h3><p>Assign an unmatched name to a new or existing driver. Approved aliases are reused during future race syncs.</p></div>
             <input id="mapping-search" class="search-input" placeholder="Search driver names…" oninput="renderDriverMappings()"></div>

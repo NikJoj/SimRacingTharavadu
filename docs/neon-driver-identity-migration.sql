@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS driver_profiles (
   discord_username TEXT,
   discord_user_id TEXT UNIQUE,
   simgrid_user_id TEXT UNIQUE,
+  discord_global_name TEXT,
+  discord_avatar_hash TEXT,
   status TEXT NOT NULL DEFAULT 'awaiting_login',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -13,6 +15,9 @@ CREATE TABLE IF NOT EXISTS driver_profiles (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_driver_profiles_discord_username
   ON driver_profiles (LOWER(discord_username)) WHERE discord_username IS NOT NULL;
+
+ALTER TABLE driver_profiles ADD COLUMN IF NOT EXISTS discord_global_name TEXT;
+ALTER TABLE driver_profiles ADD COLUMN IF NOT EXISTS discord_avatar_hash TEXT;
 
 CREATE TABLE IF NOT EXISTS driver_aliases (
   id SERIAL PRIMARY KEY,
@@ -79,6 +84,19 @@ CREATE TABLE IF NOT EXISTS driver_mapping_audit (
   details JSONB NOT NULL DEFAULT '{}'::jsonb,
   admin_username TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS driver_login_claims (
+  id BIGSERIAL PRIMARY KEY,
+  driver_profile_id INTEGER NOT NULL REFERENCES driver_profiles(id) ON DELETE CASCADE,
+  discord_user_id TEXT NOT NULL UNIQUE,
+  discord_username TEXT NOT NULL,
+  discord_global_name TEXT,
+  discord_avatar_hash TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  reviewed_by TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  reviewed_at TIMESTAMPTZ
 );
 
 ALTER TABLE registrations

@@ -1,4 +1,4 @@
-let driverMappingData = { profiles: [], candidates: [], audit: [] };
+let driverMappingData = { profiles: [], candidates: [], audit: [], claims: [] };
 
 function mappingAuthHeaders(json = false) {
   const headers = { 'X-SRT-Admin-Token': localStorage.getItem('srt_admin_token') || '' };
@@ -54,6 +54,7 @@ function renderDriverMappings() {
     <div><strong>${driverMappingData.profiles.length}</strong><span>Profiles</span></div>
     <div><strong>${driverMappingData.candidates.length}</strong><span>Known names</span></div>
     <div><strong>${unmatched}</strong><span>Needs review</span></div>`;
+  renderLoginClaims();
   const profileOptions = driverMappingData.profiles.map(profile =>
     `<option value="${profile.id}">${escapeHtml(profile.display_name)} · @${escapeHtml(profile.discord_username || 'unassigned')}</option>`).join('');
   document.getElementById('mapping-candidates').innerHTML = candidates.length ? `<div class="table-wrapper"><table><thead><tr>
@@ -74,6 +75,23 @@ function renderDriverMappings() {
     </tr>`).join('')}</tbody></table></div>` : '<div class="loading">No driver names found. Run the history scan first.</div>';
   renderDriverProfiles();
   renderMappingAudit();
+}
+
+function renderLoginClaims() {
+  const panel = document.getElementById('mapping-claims-panel'), claims = driverMappingData.claims || [];
+  panel.hidden = !claims.length;
+  if (!claims.length) return;
+  document.getElementById('mapping-claims').innerHTML = `<div class="table-wrapper"><table><thead><tr><th>Mapped profile</th><th>Discord account</th><th>Discord user ID</th><th>Requested</th><th>Action</th></tr></thead><tbody>
+    ${claims.map(claim => `<tr><td><strong>${escapeHtml(claim.display_name)}</strong></td><td>@${escapeHtml(claim.discord_username)}${claim.discord_global_name ? `<small class="mapping-normalized">${escapeHtml(claim.discord_global_name)}</small>` : ''}</td>
+      <td><code>${escapeHtml(claim.discord_user_id)}</code></td><td>${formatDate(claim.created_at)}</td><td><div class="table-actions"><button class="btn-primary btn-small" onclick="reviewDiscordClaim(${claim.id},'approve')">Approve</button><button class="btn-secondary btn-small" onclick="reviewDiscordClaim(${claim.id},'reject')">Reject</button></div></td></tr>`).join('')}</tbody></table></div>`;
+}
+
+async function reviewDiscordClaim(claimId, decision) {
+  try {
+    await mappingRequest({ action: 'review-claim', claimId, decision });
+    mappingStatus(`Discord login claim ${decision === 'approve' ? 'approved. The driver can now sign in again.' : 'rejected.'}`);
+    await loadDriverMappings();
+  } catch (error) { mappingStatus(error.message, true); }
 }
 
 function toggleNewMappingFields(candidateId) {

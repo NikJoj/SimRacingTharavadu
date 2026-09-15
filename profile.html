@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Driver Profile · Sim Racing Tharavadu</title>
+  <link rel="icon" type="image/png" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/variables.css"><link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/navigation.css"><link rel="stylesheet" href="css/leagues.css">
+  <link rel="stylesheet" href="css/profile.css"><link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <nav><a class="nav-logo" href="index.html"><span class="logo-mark"><img src="srtLogo.png" alt="SRT"></span><span class="nav-brand">Sim Racing <span>Tharavadu</span></span></a>
+    <ul class="nav-links"><li><a href="index.html">Home</a></li><li><a class="active" href="profile.html">Driver Profile</a></li></ul></nav>
+  <main class="driver-profile-page">
+    <div id="profile-loading" class="profile-state"><span class="spinner"></span> Loading driver profile…</div>
+    <section id="profile-login" class="profile-login" hidden>
+      <div class="profile-login-mark">SRT Driver Portal</div><h1>Your racing history,<br><span>one profile.</span></h1>
+      <p>Discord login is optional. Sign in to see races connected to the identity approved by an SRT administrator.</p>
+      <a class="btn-primary discord-login-button" href="/api/discord-auth?action=login">Continue with Discord</a>
+      <div id="profile-login-error" class="profile-login-error" hidden></div>
+    </section>
+    <section id="profile-dashboard" class="profile-dashboard" hidden>
+      <header class="profile-hero"><div id="profile-avatar" class="profile-avatar"></div><div><span class="section-tag">// Driver Portal</span>
+        <h1 id="profile-name"></h1><p id="profile-discord"></p></div><a class="profile-logout" href="/api/discord-auth?action=logout">Sign out</a></header>
+      <div id="profile-stats" class="profile-stats"></div>
+      <div class="profile-history-heading"><div><span class="section-tag">// Career archive</span><h2>My Races</h2></div><span id="profile-history-count"></span></div>
+      <div id="profile-history" class="profile-history"></div>
+    </section>
+  </main>
+  <div id="profile-race-modal" class="profile-modal" hidden><div class="profile-modal-dialog"><button class="profile-modal-close" onclick="closeProfileRace()" aria-label="Close">×</button>
+    <div id="profile-race-content"></div></div></div>
+  <script src="js/profile.js"></script>
+</body></html>

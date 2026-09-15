@@ -2,6 +2,7 @@ import { app } from '@azure/functions';
 import { query } from './db.js';
 import { requireAdmin, SyncError } from './simgrid-client.js';
 import { ensureIdentitySchema, indexAllHistory, normalizeDriverName } from './driver-identity.js';
+import { normalizeDiscordUsername } from './discord-session.js';
 
 function clean(value, max = 120) { return String(value || '').trim().slice(0, max); }
 
@@ -13,7 +14,7 @@ export function createDriverMappingsHandler({ db = query } = {}) {
       const admin = requireAdmin(request);
       await ensureIdentitySchema(db);
       if (request.method === 'GET') {
-        const [profiles, candidates, audit] = await Promise.all([
+        const [profiles, candidates, audit, claims] = await Promise.all([
           db(`SELECT profile.*, COUNT(DISTINCT alias.id)::integer AS alias_count,
             COUNT(DISTINCT entry.id)::integer AS race_count FROM driver_profiles profile
             LEFT JOIN driver_aliases alias ON alias.driver_profile_id=profile.id
@@ -21,9 +22,12 @@ export function createDriverMappingsHandler({ db = query } = {}) {
             GROUP BY profile.id ORDER BY profile.display_name`),
           db(`SELECT * FROM driver_name_candidates ORDER BY
             CASE status WHEN 'unmatched' THEN 0 ELSE 1 END, appearances DESC, sample_name`),
-          db('SELECT * FROM driver_mapping_audit ORDER BY created_at DESC LIMIT 30')
+          db('SELECT * FROM driver_mapping_audit ORDER BY created_at DESC LIMIT 30'),
+          db(`SELECT claim.*,profile.display_name FROM driver_login_claims claim
+            JOIN driver_profiles profile ON profile.id=claim.driver_profile_id
+            WHERE claim.status='pending' ORDER BY claim.created_at`)
         ]);
-        return { status: 200, headers, jsonBody: { profiles: profiles.rows, candidates: candidates.rows, audit: audit.rows } };
+        return { status: 200, headers, jsonBody: { profiles: profiles.rows, candidates: candidates.rows, audit: audit.rows, claims: claims.rows } };
       }
       if (request.method !== 'POST') throw new SyncError('Method not allowed.', 405);
       let body; try { body = await request.json(); } catch { throw new SyncError('Invalid JSON request.', 400); }
@@ -40,7 +44,7 @@ export function createDriverMappingsHandler({ db = query } = {}) {
         if (profileId) {
           if (!(await db('SELECT id FROM driver_profiles WHERE id=$1', [profileId])).rows.length) throw new SyncError('Driver profile not found.', 404);
         } else {
-          const displayName = clean(body.displayName || candidate.sample_name), discord = clean(body.discordUsername);
+          const displayName = clean(body.displayName || candidate.sample_name), discord = normalizeDiscordUsername(clean(body.discordUsername));
           if (!displayName || !discord) throw new SyncError('Display name and Discord username are required for a new profile.', 400);
           profileId = (await db(`INSERT INTO driver_profiles (display_name, discord_username)
             VALUES ($1,$2) RETURNING id`, [displayName, discord])).rows[0].id;
@@ -75,11 +79,28 @@ export function createDriverMappingsHandler({ db = query } = {}) {
         return { status: 200, headers, jsonBody: { success: true } };
       }
       if (body.action === 'update-profile') {
-        const id = Number(body.profileId), displayName = clean(body.displayName), discord = clean(body.discordUsername);
+        const id = Number(body.profileId), displayName = clean(body.displayName), discord = normalizeDiscordUsername(clean(body.discordUsername));
         if (!Number.isSafeInteger(id) || !displayName || !discord) throw new SyncError('Profile, display name and Discord username are required.', 400);
         const result = await db(`UPDATE driver_profiles SET display_name=$1,discord_username=$2,updated_at=NOW() WHERE id=$3 RETURNING id`, [displayName, discord, id]);
         if (!result.rows.length) throw new SyncError('Driver profile not found.', 404);
         await db(`INSERT INTO driver_mapping_audit(action,driver_profile_id,details,admin_username) VALUES('update_profile',$1,$2::jsonb,$3)`, [id, JSON.stringify({ displayName, discordUsername: discord }), admin]);
+        return { status: 200, headers, jsonBody: { success: true } };
+      }
+      if (body.action === 'review-claim') {
+        const claimId = Number(body.claimId), decision = body.decision;
+        if (!Number.isSafeInteger(claimId) || !['approve','reject'].includes(decision)) throw new SyncError('Choose a valid login claim and decision.', 400);
+        const claim = (await db(`SELECT * FROM driver_login_claims WHERE id=$1 AND status='pending'`, [claimId])).rows[0];
+        if (!claim) throw new SyncError('Pending login claim not found.', 404);
+        if (decision === 'approve') {
+          const profile = (await db('SELECT discord_user_id FROM driver_profiles WHERE id=$1', [claim.driver_profile_id])).rows[0];
+          if (!profile || (profile.discord_user_id && profile.discord_user_id !== claim.discord_user_id)) throw new SyncError('This profile is already linked to another Discord account.', 409);
+          await db(`UPDATE driver_profiles SET discord_user_id=$1,discord_username=$2,discord_global_name=$3,
+            discord_avatar_hash=$4,status='verified',updated_at=NOW() WHERE id=$5`,
+            [claim.discord_user_id, normalizeDiscordUsername(claim.discord_username), claim.discord_global_name || '', claim.discord_avatar_hash || '', claim.driver_profile_id]);
+        }
+        await db(`UPDATE driver_login_claims SET status=$1,reviewed_by=$2,reviewed_at=NOW() WHERE id=$3`, [decision === 'approve' ? 'approved' : 'rejected', admin, claimId]);
+        await db(`INSERT INTO driver_mapping_audit(action,driver_profile_id,details,admin_username)
+          VALUES($1,$2,$3::jsonb,$4)`, [`claim_${decision}`, claim.driver_profile_id, JSON.stringify({ discordUsername: claim.discord_username, discordUserId: claim.discord_user_id }), admin]);
         return { status: 200, headers, jsonBody: { success: true } };
       }
       throw new SyncError('Unknown mapping action.', 400);
